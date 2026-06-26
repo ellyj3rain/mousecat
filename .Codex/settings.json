@@ -1,0 +1,13 @@
+{
+  "project": "Mousecat",
+  "runtime": "node-esm",
+  "mcp": {
+    "serverCommand": "node src/cli.mjs mcp",
+    "toolNamespace": "mousecat"
+  },
+  "sourcePolicy": {
+    "trackRuntimeState": false,
+    "trackCredentialValues": false,
+    "trackGeneratedPrintables": false
+  }
+}

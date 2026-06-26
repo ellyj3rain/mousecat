@@ -1,0 +1,17 @@
+{
+  "hostProfile": "local-dev",
+  "upstreams": {
+    "neo": { "enabled": true },
+    "github": { "enabled": true },
+    "z-library": { "enabled": false },
+    "codex": { "enabled": true },
+    "claude": { "enabled": true },
+    "browser": { "enabled": true },
+    "jetbrains": { "enabled": true },
+    "cursor": { "enabled": true },
+    "custom": { "enabled": true }
+  },
+  "credentials": {
+    "policy": "references-only"
+  }
+}

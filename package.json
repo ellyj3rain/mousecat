@@ -1,0 +1,35 @@
+{
+  "name": "mousecat",
+  "version": "0.1.0",
+  "description": "One MCP server for governed operator interaction, skill-framework routing, live visualization, and tool-boundary control.",
+  "type": "module",
+  "bin": {
+    "mousecat": "./src/cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test",
+    "smoke:status": "node src/cli.mjs status",
+    "smoke:buttons": "node src/cli.mjs buttons",
+    "smoke:mcp": "node src/cli.mjs mcp --self-test"
+  },
+  "keywords": [
+    "mcp",
+    "operator-ui",
+    "agent-tools",
+    "work-permits",
+    "skill-frameworks"
+  ],
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CORE.md",
+    "ARCHITECTURE.md",
+    "GOVERNANCE.md",
+    "ROADMAP.md",
+    "VERSION"
+  ]
+}
