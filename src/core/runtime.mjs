@@ -1,5 +1,6 @@
 import {
   ATOMIC_SKILLS,
+  INTERACTION_SHAPES,
   SKILL_FRAMEWORKS,
   TOOL_BOUNDARIES,
   UPSTREAMS,
@@ -9,7 +10,14 @@ import {
   getUpstream,
   skillButtons,
 } from "./catalog.mjs";
+import { readMousecatBridgeContract } from "./bridge-contracts.mjs";
 import { defaultConfig } from "./config.mjs";
+import {
+  connectorSummaries,
+  discoverConnectorTools,
+  invokeConnectorTool,
+  routeConnectorPlan,
+} from "./connectors.mjs";
 
 function nowIso() {
   return new Date().toISOString();
@@ -37,11 +45,83 @@ function optionButtons(options = []) {
   }));
 }
 
+const LEGACY_SHAPE_MAP = Object.freeze({
+  point: "decision",
+  architecture: "decision",
+  tree: "queue",
+  batch: "queue",
+});
+
+function normalizeShape(shape = "decision") {
+  const mapped = LEGACY_SHAPE_MAP[shape] || shape;
+  return INTERACTION_SHAPES.includes(mapped) ? mapped : "decision";
+}
+
+function publicConstraintSummary(constraints = {}) {
+  return {
+    maxItems: Number.isInteger(constraints.maxItems) ? constraints.maxItems : null,
+    recommendationFirst: constraints.recommendationFirst === true,
+    allowFreeform: constraints.allowFreeform === true,
+  };
+}
+
+function normalizeInteractionItem(raw = {}, fallback = {}) {
+  const prompt = String(raw.prompt || raw.question || fallback.prompt || "Decision required");
+  const options = Array.isArray(raw.options) ? raw.options : Array.isArray(fallback.options) ? fallback.options : [];
+  return {
+    id: String(raw.id || fallback.id || "item-1"),
+    shape: normalizeShape(raw.shape || fallback.shape),
+    prompt,
+    title: raw.title || raw.header || null,
+    options,
+    buttons: optionButtons(options),
+    required: raw.required !== false,
+    sensitive: raw.sensitive === true,
+    status: raw.status || "open",
+    recommendedDefault: raw.recommendedDefault || null,
+    metadata: raw.metadata && typeof raw.metadata === "object" ? clone(raw.metadata) : {},
+  };
+}
+
+function summarizeInteraction(interaction) {
+  return {
+    interactionId: interaction.interactionId,
+    sessionId: interaction.sessionId,
+    source: interaction.source,
+    status: interaction.status,
+    itemCount: interaction.items.length,
+    shapes: [...new Set(interaction.items.map((item) => item.shape))],
+    parentInteractionId: interaction.parentInteractionId,
+  };
+}
+
+function eventCategory(type) {
+  if (type.startsWith("interaction.")) return "interaction";
+  if (type.startsWith("queue.")) return "queue";
+  if (type.startsWith("connector.")) return "connector";
+  if (type.startsWith("invoke.")) return "invoke";
+  if (type.startsWith("route.")) return "route";
+  if (type.startsWith("credentials.")) return "credentials";
+  if (type.startsWith("session.")) return "session";
+  return "runtime";
+}
+
+function publicEvent(event) {
+  return {
+    id: event.id,
+    type: event.type,
+    category: eventCategory(event.type),
+    at: event.at,
+    data: clone(event.data || {}),
+  };
+}
+
 export function createMousecatRuntime(options = {}) {
   const config = options.config || defaultConfig();
   const state = {
     startedAt: nowIso(),
     sessions: new Map(),
+    interactions: new Map(),
     queue: [],
     events: [],
     credentialRefs: [],
@@ -92,10 +172,12 @@ export function createMousecatRuntime(options = {}) {
         skillFrameworks: SKILL_FRAMEWORKS.length,
         workPermitProfiles: WORK_PERMIT_PROFILES.length,
         sessions: state.sessions.size,
+        interactions: state.interactions.size,
         queueItems: state.queue.length,
         credentialRefs: state.credentialRefs.length,
         events: state.events.length,
       },
+      connectors: connectorSummaries(config),
       upstreams: UPSTREAMS.map((upstream) => ({
         id: upstream.id,
         label: upstream.label,
@@ -113,18 +195,54 @@ export function createMousecatRuntime(options = {}) {
   }
 
   function ask(args = {}) {
-    const question = {
-      id: nextId("q", state.events.length),
-      prompt: String(args.prompt || ""),
-      shape: args.shape || "point",
+    const legacyId = nextId("q", state.events.length);
+    const source = String(args.source || args.skillRef || "mousecat.ask");
+    const sessionId = args.sessionId || null;
+    const interactionId = args.interactionId || legacyId;
+    const rawItems = Array.isArray(args.items) && args.items.length > 0
+      ? args.items
+      : [{
+        id: args.itemId || "item-1",
+        prompt: args.prompt,
+        shape: args.shape,
+        options: args.options,
+        recommendedDefault: args.recommendedDefault,
+      }];
+    const items = rawItems.map((item, index) => normalizeInteractionItem(item, {
+      id: `item-${index + 1}`,
+      prompt: args.prompt,
+      shape: args.shape,
+      options: args.options,
+    }));
+    const status = items.some((item) => item.status === "open") ? "open" : "answered";
+    const interaction = {
+      id: legacyId,
+      interactionId,
+      sessionId,
+      parentInteractionId: args.parentInteractionId || null,
+      source,
+      title: args.title || null,
+      status,
+      items,
+      constraints: publicConstraintSummary(args.constraints || {}),
       skillRef: args.skillRef || null,
-      options: Array.isArray(args.options) ? args.options : [],
-      buttons: optionButtons(args.options || []),
-      skillButtons: skillButtons().filter((buttonSpec) => !args.skillRef || buttonSpec.skillRef === args.skillRef),
       createdAt: nowIso(),
+      updatedAt: nowIso(),
     };
-    emit("question.created", { questionId: question.id, shape: question.shape, skillRef: question.skillRef });
-    return { schema: "mousecat.question/1", question };
+    state.interactions.set(interactionId, interaction);
+
+    const question = {
+      id: legacyId,
+      prompt: items[0]?.prompt || String(args.prompt || ""),
+      shape: args.shape || items[0]?.shape || "decision",
+      skillRef: interaction.skillRef,
+      options: items[0]?.options || [],
+      buttons: items[0]?.buttons || [],
+      skillButtons: skillButtons().filter((buttonSpec) => !args.skillRef || buttonSpec.skillRef === args.skillRef),
+      createdAt: interaction.createdAt,
+    };
+    emit("interaction.requested", summarizeInteraction(interaction));
+    return { schema: "mousecat.interaction/1", interaction, question };
   }
 
   function session(args = {}) {
@@ -143,9 +261,10 @@ export function createMousecatRuntime(options = {}) {
 
     const snapshot = {
       sessions: [...state.sessions.values()],
+      interactions: [...state.interactions.values()].map((interaction) => clone(interaction)),
       queue: clone(state.queue),
       openThreads: state.queue.filter((item) => item.status !== "answered" && item.status !== "ratified"),
-      recentEvents: state.events.slice(-20),
+      recentEvents: state.events.slice(-20).map(publicEvent),
     };
 
     if (action === "total-recall") {
@@ -167,6 +286,12 @@ export function createMousecatRuntime(options = {}) {
           recommendedDefault: item.recommendedDefault || null,
           evidence: item.source || "mousecat.queue",
         })),
+        interactionChains: snapshot.interactions.map((interaction) => ({
+          interactionId: interaction.interactionId,
+          sessionId: interaction.sessionId,
+          status: interaction.status,
+          shapes: interaction.items.map((item) => item.shape),
+        })),
         nextMove: "Render open questions through mousecat.ask or mousecat.queue before invoking upstream tools.",
       };
     }
@@ -177,28 +302,45 @@ export function createMousecatRuntime(options = {}) {
   function queue(args = {}) {
     const action = args.action || "list";
     if (action === "enqueue") {
-      const item = {
-        id: args.item?.id || nextId("dq", state.queue.length),
-        prompt: args.item?.prompt || args.prompt || "Decision required",
-        shape: args.item?.shape || args.shape || "point",
-        options: Array.isArray(args.item?.options) ? args.item.options : [],
-        recommendedDefault: args.item?.recommendedDefault || null,
-        source: args.item?.source || "mousecat.queue",
-        status: "open",
-        createdAt: nowIso(),
-      };
-      state.queue.push(item);
-      emit("queue.enqueued", { itemId: item.id, shape: item.shape });
-      return { schema: "mousecat.queue/1", action, item, queueLength: state.queue.length };
+      const rawItems = Array.isArray(args.items) && args.items.length > 0 ? args.items : [args.item || args];
+      const enqueued = rawItems.map((raw, index) => {
+        const normalized = normalizeInteractionItem(raw, {
+          id: raw?.id || nextId("dq", state.queue.length + index),
+          prompt: raw?.prompt || args.prompt,
+          shape: raw?.shape || args.shape || "queue",
+          options: raw?.options || args.options,
+        });
+        return {
+          ...normalized,
+          id: raw?.id || normalized.id,
+          sessionId: raw?.sessionId || args.sessionId || null,
+          interactionId: raw?.interactionId || args.interactionId || null,
+          parentInteractionId: raw?.parentInteractionId || args.parentInteractionId || null,
+          source: raw?.source || args.source || "mousecat.queue",
+          recommendedDefault: raw?.recommendedDefault || normalized.recommendedDefault,
+          status: "open",
+          createdAt: nowIso(),
+        };
+      });
+      state.queue.push(...enqueued);
+      emit("queue.enqueued", {
+        itemIds: enqueued.map((item) => item.id),
+        itemCount: enqueued.length,
+        shapes: [...new Set(enqueued.map((item) => item.shape))],
+        sessionId: enqueued[0]?.sessionId || null,
+      });
+      return { schema: "mousecat.queue/1", action, item: enqueued[0], items: enqueued, queueLength: state.queue.length };
     }
 
-    if (action === "answer") {
+    if (action === "answer" || action === "hold") {
       const item = state.queue.find((candidate) => candidate.id === args.itemId);
       if (!item) return { schema: "mousecat.queue/1", action, ok: false, error: "unknown-queue-item" };
-      item.status = "answered";
-      item.answer = args.answer || {};
-      item.answeredAt = nowIso();
-      emit("queue.answered", { itemId: item.id });
+      item.status = action === "hold" ? "held" : "answered";
+      item.answer = action === "answer" ? args.answer || {} : null;
+      item.holdReason = action === "hold" ? args.reason || args.answer?.reason || "operator-held" : null;
+      item.answeredAt = action === "answer" ? nowIso() : item.answeredAt || null;
+      item.heldAt = action === "hold" ? nowIso() : item.heldAt || null;
+      emit(action === "hold" ? "queue.held" : "queue.answered", { itemId: item.id, sessionId: item.sessionId || null });
       return { schema: "mousecat.queue/1", action, ok: true, item };
     }
 
@@ -225,17 +367,39 @@ export function createMousecatRuntime(options = {}) {
 
   function visualize(args = {}) {
     const limit = Number.isInteger(args.limit) ? Math.max(1, args.limit) : 25;
-    emit("visualize.snapshot", { includeEvents: args.includeEvents === true });
+    const stream = args.stream || "snapshot";
+    emit("visualize.snapshot", { includeEvents: args.includeEvents === true, stream });
+    const interactions = [...state.interactions.values()].map((interaction) => clone(interaction));
+    const events = state.events.slice(-limit).map(publicEvent);
     return {
       schema: "mousecat.visualizer/1",
+      stream,
       buttons: skillButtons(),
       skillFrameworks: SKILL_FRAMEWORKS,
       workPermitProfiles: WORK_PERMIT_PROFILES,
       toolBoundaries: TOOL_BOUNDARIES,
+      connectors: connectorSummaries(config),
+      interactions,
+      interactionSessions: [...new Set(interactions.map((interaction) => interaction.sessionId).filter(Boolean))].map((sessionId) => ({
+        sessionId,
+        interactions: interactions
+          .filter((interaction) => interaction.sessionId === sessionId)
+          .map((interaction) => summarizeInteraction(interaction)),
+      })),
       queue: clone(state.queue),
       upstreams: status().upstreams,
       credentialRefs: clone(state.credentialRefs),
-      events: args.includeEvents ? state.events.slice(-limit) : [],
+      events: args.includeEvents ? events : [],
+      liveGraph: {
+        nodes: [
+          ...UPSTREAMS.map((upstream) => ({ id: `upstream:${upstream.id}`, kind: "upstream", label: upstream.label })),
+          ...interactions.map((interaction) => ({ id: `interaction:${interaction.interactionId}`, kind: "interaction", label: interaction.title || interaction.source, status: interaction.status })),
+          ...state.queue.map((item) => ({ id: `queue:${item.id}`, kind: "queue-item", label: item.prompt, status: item.status })),
+        ],
+        edges: state.queue
+          .filter((item) => item.interactionId)
+          .map((item) => ({ from: `interaction:${item.interactionId}`, to: `queue:${item.id}`, kind: "contains" })),
+      },
     };
   }
 
@@ -245,6 +409,7 @@ export function createMousecatRuntime(options = {}) {
       return { schema: "mousecat.route/1", ok: false, code: "unknown-upstream", upstream: args.upstream };
     }
     const enabled = isUpstreamEnabled(upstream.id);
+    const connector = routeConnectorPlan(config, upstream.id, args.capability || null);
     const plan = {
       upstream: upstream.id,
       label: upstream.label,
@@ -252,13 +417,32 @@ export function createMousecatRuntime(options = {}) {
       intent: args.intent || null,
       enabled,
       adapter: upstream.adapter,
-      invocationReady: false,
-      reason: enabled ? "descriptor-available-adapter-not-wired" : "upstream-disabled",
+      connector,
+      invocationReady: enabled && connector.invocationReady,
+      reason: enabled
+        ? connector.configured
+          ? connector.reason
+          : "descriptor-available-connector-not-configured"
+        : "upstream-disabled",
       requiredPermit: "tool-invocation",
       credentialPolicy: upstream.policy || "credential-reference-if-required",
     };
     emit("route.planned", { upstream: upstream.id, capability: plan.capability, enabled });
     return { schema: "mousecat.route/1", ok: true, plan };
+  }
+
+  async function bridge(args = {}) {
+    const upstream = args.upstream || "neo";
+    const result = await readMousecatBridgeContract(config, upstream, {
+      resourceName: args.resourceName,
+      includeInputSchemas: args.includeInputSchemas === true,
+    });
+    emit(result.ok ? "bridge.read" : "bridge.blocked", {
+      upstream,
+      resourceName: args.resourceName || "mousecat_bridge_contract_v1",
+      reason: result.ok ? "public-contract-summary" : result.code,
+    });
+    return result;
   }
 
   function invoke(args = {}) {
@@ -280,12 +464,48 @@ export function createMousecatRuntime(options = {}) {
       emit("invoke.blocked", { upstream: args.upstream, reason: "upstream-disabled" });
       return { schema: "mousecat.invoke/1", ok: false, code: "upstream-disabled", route: routeResult.plan };
     }
-    emit("invoke.blocked", { upstream: args.upstream, reason: "adapter-not-wired" });
+    if (routeResult.plan.connector?.configured && routeResult.plan.connector?.enabled) {
+      const toolName = args.capability;
+      if (!toolName || toolName === "tools/list") {
+        return discoverConnectorTools(config, args.upstream).then((discovered) => {
+          emit(discovered.ok ? "connector.discovered" : "connector.blocked", {
+            upstream: args.upstream,
+            reason: discovered.ok ? "tools-list" : discovered.code,
+          });
+          return {
+            schema: "mousecat.invoke/1",
+            ok: discovered.ok,
+            code: discovered.ok ? "connector-tools-listed" : discovered.code,
+            route: routeResult.plan,
+            connector: discovered.connector,
+            result: discovered,
+          };
+        });
+      }
+
+      return invokeConnectorTool(config, args.upstream, toolName, args.payload || {}).then((invoked) => {
+        emit(invoked.ok ? "connector.invoked" : "connector.blocked", {
+          upstream: args.upstream,
+          capability: toolName,
+          reason: invoked.ok ? "forwarded" : invoked.code,
+        });
+        return {
+          schema: "mousecat.invoke/1",
+          ok: invoked.ok,
+          code: invoked.ok ? "connector-forwarded" : invoked.code,
+          route: routeResult.plan,
+          connector: invoked.connector,
+          result: invoked.result || invoked,
+        };
+      });
+    }
+
+    emit("invoke.blocked", { upstream: args.upstream, reason: "connector-not-configured" });
     return {
       schema: "mousecat.invoke/1",
       ok: false,
-      code: "adapter-not-wired",
-      reason: "The route is recognized and permitted, but no live adapter is implemented in A1.",
+      code: "connector-not-configured",
+      reason: "The route is recognized and permitted, but no local MCP connector is configured for this upstream.",
       route: routeResult.plan,
     };
   }
@@ -336,6 +556,8 @@ export function createMousecatRuntime(options = {}) {
         return visualize(args);
       case "mousecat.route":
         return route(args);
+      case "mousecat.bridge":
+        return bridge(args);
       case "mousecat.invoke":
         return invoke(args);
       case "mousecat.status":

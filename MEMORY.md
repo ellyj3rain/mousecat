@@ -19,3 +19,5 @@ Use this file as the local doc-pack index.
 | `DECISION_REGISTRY.md` | Append-only decision history. |
 | `FINDINGS.md` | Append-only findings. |
 | `AGENTS.md` | Codex operating context for this repo. |
+| `src/core/connectors.mjs` | External MCP connector bridge and dynamic discovery surface. |
+| `src/core/mcp-client.mjs` | Minimal stdio MCP client for local/private upstreams. |

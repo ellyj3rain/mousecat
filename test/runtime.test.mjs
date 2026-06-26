@@ -13,10 +13,34 @@ test("runtime creates questions and visualizer button snapshots", () => {
   });
   const visual = runtime.handleTool("mousecat.visualize", { includeEvents: true });
 
-  assert.equal(question.schema, "mousecat.question/1");
+  assert.equal(question.schema, "mousecat.interaction/1");
+  assert.equal(question.interaction.items[0].shape, "decision");
   assert.equal(question.question.buttons.length, 2);
   assert.ok(visual.buttons.some((button) => button.skillRef === "crucible.point"));
+  assert.equal(visual.interactions.length, 1);
+  assert.equal(visual.events[0].category, "interaction");
   assert.ok(visual.events.length > 0);
+});
+
+test("interaction sessions support atomic multi-item chains and visual graph nodes", () => {
+  const runtime = createMousecatRuntime();
+  const interaction = runtime.handleTool("mousecat.ask", {
+    source: "governance-planner",
+    sessionId: "session-a",
+    interactionId: "plan-a:scope-pass",
+    title: "Scope Pass",
+    items: [
+      { id: "boundary", shape: "decision", prompt: "Pick boundary", options: [{ label: "Adapter only" }] },
+      { id: "notes", shape: "freeform", prompt: "Add constraints" },
+    ],
+    constraints: { maxItems: 5, recommendationFirst: true, allowFreeform: true },
+  });
+  const visual = runtime.handleTool("mousecat.visualize", { includeEvents: true, stream: "game" });
+
+  assert.equal(interaction.interaction.items.length, 2);
+  assert.equal(interaction.interaction.constraints.allowFreeform, true);
+  assert.equal(visual.interactionSessions[0].sessionId, "session-a");
+  assert.ok(visual.liveGraph.nodes.some((node) => node.id === "interaction:plan-a:scope-pass"));
 });
 
 test("queue supports enqueue, answer, ratify, and total recall docketing", () => {
@@ -35,6 +59,27 @@ test("queue supports enqueue, answer, ratify, and total recall docketing", () =>
   assert.equal(runtime.handleTool("mousecat.queue", { action: "list" }).queue[0].status, "ratified");
 });
 
+test("queue supports held items and session lineage for long chains", () => {
+  const runtime = createMousecatRuntime();
+  const enqueued = runtime.handleTool("mousecat.queue", {
+    action: "enqueue",
+    sessionId: "session-b",
+    interactionId: "chain-b",
+    items: [
+      { id: "q1", prompt: "First decision", shape: "decision" },
+      { id: "q2", prompt: "Second decision", shape: "review" },
+    ],
+  });
+  const held = runtime.handleTool("mousecat.queue", { action: "hold", itemId: "q2", reason: "needs evidence" });
+  const recall = runtime.handleTool("mousecat.session", { action: "total-recall" });
+  const visual = runtime.handleTool("mousecat.visualize", { includeEvents: true });
+
+  assert.equal(enqueued.items.length, 2);
+  assert.equal(held.item.status, "held");
+  assert.equal(recall.openThreads.length, 2);
+  assert.ok(visual.liveGraph.edges.some((edge) => edge.from === "interaction:chain-b" && edge.to === "queue:q2"));
+});
+
 test("invoke fails closed without a tool-invocation permit or adapter", () => {
   const runtime = createMousecatRuntime();
   const withoutPermit = runtime.handleTool("mousecat.invoke", { upstream: "neo", capability: "status" });
@@ -47,7 +92,7 @@ test("invoke fails closed without a tool-invocation permit or adapter", () => {
   assert.equal(withoutPermit.ok, false);
   assert.equal(withoutPermit.code, "permit-required");
   assert.equal(withPermit.ok, false);
-  assert.equal(withPermit.code, "adapter-not-wired");
+  assert.equal(withPermit.code, "connector-not-configured");
 });
 
 test("credential API accepts references and rejects raw secret-shaped values", () => {
@@ -61,7 +106,7 @@ test("credential API accepts references and rejects raw secret-shaped values", (
   const rejected = runtime.handleTool("mousecat.credentials", {
     action: "register-reference",
     upstream: "github",
-    token: "ghp_example",
+    token: "x",
   });
 
   assert.equal(ref.ok, true);
@@ -80,6 +125,6 @@ test("MCP handler lists tools and calls mousecat.status", async () => {
     params: { name: "mousecat.status", arguments: {} },
   }, runtime);
 
-  assert.equal(listed.result.tools.length, 8);
+  assert.equal(listed.result.tools.length, 9);
   assert.equal(called.result.structuredContent.ok, true);
 });

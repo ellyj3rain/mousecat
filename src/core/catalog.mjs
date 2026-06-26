@@ -1,3 +1,22 @@
+export const INTERACTION_SHAPES = Object.freeze([
+  "decision",
+  "parameter",
+  "ratification",
+  "queue",
+  "review",
+  "freeform",
+  "ranking",
+  "checklist",
+]);
+
+export const INTERACTION_STATUSES = Object.freeze([
+  "open",
+  "answered",
+  "held",
+  "ratified",
+  "unavailable",
+]);
+
 export const MOUSECAT_TOOLS = Object.freeze([
   {
     name: "mousecat.ask",
@@ -6,11 +25,17 @@ export const MOUSECAT_TOOLS = Object.freeze([
       type: "object",
       properties: {
         prompt: { type: "string" },
-        shape: { type: "string", enum: ["point", "architecture", "tree", "batch"] },
+        shape: { type: "string", enum: [...INTERACTION_SHAPES, "point", "architecture", "tree", "batch"] },
+        source: { type: "string" },
+        sessionId: { type: "string" },
+        interactionId: { type: "string" },
+        parentInteractionId: { type: "string" },
+        title: { type: "string" },
         skillRef: { type: "string" },
         options: { type: "array" },
+        items: { type: "array" },
+        constraints: { type: "object" },
       },
-      required: ["prompt"],
       additionalProperties: true,
     },
   },
@@ -33,10 +58,13 @@ export const MOUSECAT_TOOLS = Object.freeze([
     inputSchema: {
       type: "object",
       properties: {
-        action: { type: "string", enum: ["enqueue", "list", "answer", "ratify", "clear"] },
+        action: { type: "string", enum: ["enqueue", "list", "answer", "hold", "ratify", "clear"] },
         item: { type: "object" },
+        items: { type: "array" },
         itemId: { type: "string" },
         answer: { type: "object" },
+        sessionId: { type: "string" },
+        interactionId: { type: "string" },
       },
       additionalProperties: true,
     },
@@ -49,6 +77,7 @@ export const MOUSECAT_TOOLS = Object.freeze([
       properties: {
         includeEvents: { type: "boolean" },
         limit: { type: "integer" },
+        stream: { type: "string", enum: ["snapshot", "events", "game"] },
       },
       additionalProperties: false,
     },
@@ -64,6 +93,19 @@ export const MOUSECAT_TOOLS = Object.freeze([
         intent: { type: "string" },
       },
       required: ["upstream"],
+      additionalProperties: true,
+    },
+  },
+  {
+    name: "mousecat.bridge",
+    description: "Read and summarize a public upstream bridge contract without invoking private tools.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        upstream: { type: "string" },
+        resourceName: { type: "string" },
+        includeInputSchemas: { type: "boolean" },
+      },
       additionalProperties: true,
     },
   },
@@ -310,7 +352,7 @@ export const WORK_PERMIT_PROFILES = Object.freeze([
   {
     id: "observer",
     label: "Observer",
-    grants: ["mousecat.status", "mousecat.visualize", "mousecat.route", "mousecat.session:snapshot"],
+    grants: ["mousecat.status", "mousecat.visualize", "mousecat.route", "mousecat.bridge", "mousecat.session:snapshot"],
     canInvokeUpstreams: false,
     requiresOperatorPresence: false,
   },
@@ -371,6 +413,12 @@ export const TOOL_BOUNDARIES = Object.freeze([
     upstreamAccess: "descriptor-only",
   },
   {
+    tool: "mousecat.bridge",
+    defaultPermit: "observer",
+    sideEffects: ["audit-event"],
+    upstreamAccess: "resource-read",
+  },
+  {
     tool: "mousecat.invoke",
     defaultPermit: "tool-invocation",
     sideEffects: ["audit-event", "upstream-call-when-adapter-exists"],
@@ -416,6 +464,8 @@ export function skillButtons() {
 export function catalogSnapshot() {
   return {
     schema: "mousecat.catalog/1",
+    interactionShapes: INTERACTION_SHAPES,
+    interactionStatuses: INTERACTION_STATUSES,
     tools: MOUSECAT_TOOLS,
     upstreams: UPSTREAMS,
     atomicSkills: ATOMIC_SKILLS,

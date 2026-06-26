@@ -40,7 +40,7 @@ export async function handleJsonRpc(message, runtime) {
     const name = message.params?.name;
     const args = message.params?.arguments || {};
     if (typeof name !== "string") return error(id, -32602, "tools/call requires params.name");
-    const toolResult = runtime.handleTool(name, args);
+    const toolResult = await runtime.handleTool(name, args);
     return result(id, { content: textContent(toolResult), structuredContent: toolResult });
   }
 
@@ -68,8 +68,9 @@ export async function startStdioServer(options = {}) {
   }
 }
 
-export async function selfTest() {
-  const runtime = createMousecatRuntime();
+export async function selfTest(options = {}) {
+  const config = options.config || (options.configPath ? await loadConfig(options.configPath) : undefined);
+  const runtime = options.runtime || createMousecatRuntime(config ? { config } : undefined);
   const initialized = await handleJsonRpc({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }, runtime);
   const listed = await handleJsonRpc({ jsonrpc: "2.0", id: 2, method: "tools/list" }, runtime);
   const called = await handleJsonRpc({

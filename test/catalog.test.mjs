@@ -39,6 +39,6 @@ test("work permits separate observer, operator interaction, invocation, and cred
 test("catalog snapshot exposes one stable source-owned surface", () => {
   const snapshot = catalogSnapshot();
   assert.equal(snapshot.schema, "mousecat.catalog/1");
-  assert.equal(snapshot.tools.length, 8);
+  assert.equal(snapshot.tools.length, 9);
   assert.ok(snapshot.buttons.length >= 7);
 });

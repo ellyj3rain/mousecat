@@ -1,12 +1,12 @@
 | Document | Mousecat Governance |
 |---|---|
 | Version | 0.1.0 |
-| Timestamp | 2026-06-26 01:17 UTC / 18:17 PST |
+| Timestamp | 2026-06-26 09:57 UTC / 02:57 PDT |
 | Status | ACTIVE - operating discipline. |
 
 # Mousecat Governance
 
-Mousecat governs access to upstream tools by making permission facts visible before execution. Its purpose is to preserve capability while preventing ambient tool access, hidden credential use, and untracked operator decisions.
+Mousecat is governed by GZDS standards expressed as public, repository-local checks. It governs access to upstream tools by making permission facts visible before execution. Its purpose is to preserve capability while preventing ambient tool access, hidden credential use, and untracked operator decisions.
 
 ## Source of Truth
 
@@ -20,7 +20,11 @@ Mousecat governs access to upstream tools by making permission facts visible bef
 
 ## Tool Boundary Discipline
 
-`mousecat.route` may plan access. `mousecat.invoke` may not execute upstream work unless a matching permit, an enabled upstream, and an implemented adapter all agree. Missing adapters are structured boundary facts, not silent fallbacks.
+`mousecat.route` may plan access. `mousecat.invoke` may not execute upstream work unless a matching permit, an enabled upstream, and a configured external connector all agree. Missing connectors are structured boundary facts, not silent fallbacks.
+
+## Open-Source Connector Boundary
+
+Mousecat ships bridge code, not private upstream implementation. Public source may describe connector protocols, config shape, permit checks, and runtime forwarding behavior. Public source must not commit private Neo tool catalogs, private schemas, proprietary prompts, internal governance records, local paths, credential material, or generated discovery output from a private endpoint.
 
 ## Credential Discipline
 
@@ -30,6 +34,14 @@ Mousecat stores credential references such as environment-variable names, OS key
 
 Crucible-shaped decisions, Mass-Assault queues, and Total Recall dockets are first-class skill atoms. Hosts should render them as buttons and structured widgets instead of flattening them into ad hoc chat text.
 
+## PR Readiness
+
+Mousecat is AI-native, not artisanal. Branches must satisfy `npm run pr:ready` before review. PR readiness is the public contribution gate for tests, smokes, GZDS-style floor checks, ceiling coherence checks, doc currency, and strict source hygiene. GitHub Actions reruns the same surface.
+
+AI-assisted changes must leave the repository auditable: source truth, docs, ledgers, package metadata, and runtime catalogs must agree before a pull request is considered ready.
+
+Pull requests are classified before review. Chronology blocks ready PRs behind older non-draft PRs on the same base. Shape classification blocks generated or local output, routes oversized or wide-surface changes to operator ratification, and requires governance-shaped changes to carry append-only ledger companions.
+
 ## Open-Source Posture
 
-The repository is prepared for open-source publication. License, package namespace, and remote publication remain operator-ratified decisions.
+The repository is licensed under MPL-2.0. Package namespace and remote publication remain operator-ratified decisions.

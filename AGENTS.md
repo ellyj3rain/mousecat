@@ -7,21 +7,25 @@ Mousecat is an open-source-ready MCP control plane. It gives AI coding hosts one
 - Keep public MCP tool names stable unless the operator ratifies a breaking change.
 - Treat skills as source-owned atomic records with button metadata, not prose-only instructions.
 - Treat work permits as graphable policy facts. Do not flatten them into one Boolean allowed flag.
-- `mousecat.invoke` must fail closed when an upstream adapter, permit, credential reference, or route is missing.
+- Treat upstreams such as Neo as external connectors. Do not commit private Neo internals, proprietary schemas, local paths, generated route catalogs, or model/provider maps into this repository.
+- `mousecat.invoke` must fail closed when an upstream connector, permit, credential reference, or route is missing.
 - Never store raw secrets, cookies, private keys, Z-Library account state, IDE private state, runtime transcripts, or generated local databases in source.
 - Keep runtime exhaust under ignored local paths such as `.mousecat/`, `runtime/`, `traces/`, or `artifacts/local/`.
 - Append to `BATCH_LOG.md`, `DECISION_REGISTRY.md`, and `FINDINGS.md`; do not rewrite historical entries.
 
 ## Verification
 
-Before claiming the repo is ready, run:
+Before claiming the repo is ready (or submitting a PR), run:
 
 ```powershell
-npm test
-npm run smoke:status
-npm run smoke:buttons
-npm run smoke:mcp
+npm run pr:ready
 ```
+
+This runs the complete AI-native readiness surface: tests, GitHub classifier tests, runtime smokes, GZDS-style governance floor, governance ceiling, docs currency, and strict hygiene.
+
+GitHub CI executes the same `npm run pr:ready` (with audit) on every push/PR using ubuntu-latest and Node 20/22 matrix. Pull requests also run chronology and PR-shape classifier gates before review. Smoke scripts use `.github/mousecat.ci.config.json` so local ignored connectors do not affect public readiness. See the PR readiness section in README.md.
+
+Targeted smoke commands remain available for local diagnosis.
 
 ## Current First-Class Skills
 

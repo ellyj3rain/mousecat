@@ -13,5 +13,16 @@
   },
   "credentials": {
     "policy": "references-only"
+  },
+  "connectors": {
+    "neo": {
+      "enabled": false,
+      "kind": "external-mcp",
+      "transport": "stdio",
+      "command": "node",
+      "args": ["<private-neo-root>/core/mcp/server.js"],
+      "cwd": "<private-neo-root>",
+      "timeoutMs": 10000
+    }
   }
 }

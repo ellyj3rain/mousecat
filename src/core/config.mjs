@@ -11,6 +11,7 @@ export function defaultConfig() {
     credentials: {
       policy: "references-only",
     },
+    connectors: {},
   };
 }
 
@@ -27,13 +28,17 @@ function mergeConfig(base, override) {
       ...base.credentials,
       ...(override?.credentials || {}),
     },
+    connectors: {
+      ...base.connectors,
+      ...(override?.connectors || {}),
+    },
   };
 }
 
 export async function loadConfig(path = "mousecat.config.json") {
   const base = defaultConfig();
   try {
-    const parsed = JSON.parse(await readFile(path, "utf8"));
+    const parsed = JSON.parse((await readFile(path, "utf8")).replace(/^\uFEFF/, ""));
     return mergeConfig(base, parsed);
   } catch (error) {
     if (error.code === "ENOENT") return base;
