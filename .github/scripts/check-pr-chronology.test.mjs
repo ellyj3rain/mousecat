@@ -36,9 +36,9 @@ test("GitHub REST pull request shape is normalized", () => {
 test("pull request context reads event number, base, and repository", () => {
   assert.deepEqual(
     pullRequestContext({
-      pull_request: { number: 12, base: { ref: "main" } },
+      pull_request: { number: 12, draft: true, base: { ref: "main" } },
       repository: { full_name: "ellyj3rain/mousecat" },
     }),
-    { currentNumber: 12, baseRefName: "main", repository: "ellyj3rain/mousecat" },
+    { currentNumber: 12, baseRefName: "main", repository: "ellyj3rain/mousecat", isDraft: true },
   );
 });

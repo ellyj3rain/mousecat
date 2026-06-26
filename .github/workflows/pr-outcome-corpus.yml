@@ -1,0 +1,44 @@
+name: pr-outcome-corpus
+
+on:
+  pull_request:
+    types: [ closed ]
+  workflow_run:
+    workflows: [ ci-verify, codeql, dependency-scan, secret-scan ]
+    types: [ completed ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: pr-outcome-corpus-${{ github.event_name }}-${{ github.event.workflow_run.id || github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  pr-outcome-corpus:
+    name: pr-outcome-corpus
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Collect PR outcome observation
+        run: node .github/scripts/collect-pr-outcome.mjs
+
+      - name: Upload outcome observation artifacts
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-outcome-observations
+          path: .mousecat/data/gitops/pr-outcomes
+          if-no-files-found: ignore

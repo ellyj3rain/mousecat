@@ -11,6 +11,7 @@ export function pullRequestContext(event) {
     currentNumber: Number(pr.number),
     baseRefName: pr.base && pr.base.ref ? pr.base.ref : null,
     repository: event.repository && event.repository.full_name ? event.repository.full_name : null,
+    isDraft: Boolean(pr.draft ?? pr.isDraft),
   };
 }
 
@@ -101,6 +102,11 @@ export async function run(env = process.env) {
   const context = pullRequestContext(readEvent(env.GITHUB_EVENT_PATH));
   if (!context || !context.currentNumber || !context.baseRefName) {
     throw new Error("pull_request event did not include number and base branch");
+  }
+
+  if (context.isDraft) {
+    process.stdout.write(`PR chronology gate: skipped for draft PR #${context.currentNumber}\n`);
+    return 0;
   }
 
   const token = requireToken(env);

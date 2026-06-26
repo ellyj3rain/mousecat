@@ -34,9 +34,9 @@ Mousecat is AI-native and GZDS-governed. Contributions are expected to satisfy t
 npm run pr:ready
 ```
 
-That command runs tests, GitHub classifier tests, runtime smokes against `.github/mousecat.ci.config.json`, governance floor, governance ceiling, doc currency, and strict hygiene. GitHub Actions runs the same PR readiness surface on push to `main` and on pull requests, across Node 20 and 22 on `ubuntu-latest`, then runs `npm audit --audit-level=high`. Pull requests also run chronology and PR-shape classifier gates.
+That command runs tests, GitHub classifier tests, runtime smokes against `.github/mousecat.ci.config.json`, governance floor, governance ceiling, doc currency, and strict hygiene. GitHub Actions runs the required `ci-verify` gate on push to `main` and on pull requests, then runs `npm audit --audit-level=high`. Pull requests also run chronology and PR-shape classifier gates, and CI uploads structured PR classification observations for review.
 
-CodeQL, dependency maintenance, and secret scanning are separate public security surfaces. Status checks become required once branch protection is configured on the GitHub remote.
+CodeQL, dependency maintenance, secret scanning, Node 20 compatibility, package dry runs, and read-only PR outcome observation are separate public governance/security surfaces. Protected checks are `ci-verify`, `node-20-compat`, `dependency-scan`, `secret-scan`, and `codeql`.
 
 The server exposes:
 

@@ -172,3 +172,24 @@
 - GitHub PR checks on PR #1
 
 *Version:* `0.1.0`.
+
+## [A9] | 2026-06-26 18:05 UTC / 11:05 PDT | Governed CI/CD observation loop
+
+*Scope:* Integrate the stronger Neo-style GitOps governance posture into Mousecat's public OSS contribution surface without importing private Neo implementation logic or adding privileged automation.
+
+*Deliverables:*
+- Renamed the primary workflow to stable `ci-verify` and preserved Node 20 compatibility as a separate check.
+- Added classifier trace emission for `mousecat.gitops.pr-classification/1` records.
+- Added read-only PR outcome observation workflow and script for `mousecat.gitops.pr-outcome-observation/1` artifact records.
+- Added manual package dry-run workflow and `npm run cd:dry-run`.
+- Updated GitHub-owned workflow actions to Node 24-compatible major versions.
+- Updated CI, governance, README, AGENTS, and session-state docs around protected checks and future token-gated automation.
+- Added focused tests for classifier traces and outcome observations.
+
+*Verification:*
+- `npm run pr:ready`
+- `npm audit --audit-level=high`
+- `npm run cd:dry-run`
+- `git diff --check`
+
+*Version:* `0.1.0`.

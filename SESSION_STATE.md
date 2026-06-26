@@ -12,7 +12,7 @@ Mousecat is on branch `mallowfluff-a2-oss-neo-connector` in the operator's OSS M
 
 The active correction is that Mousecat is open-source bridge code. Private Neo tools are reached through an ignored local external-MCP connector, not embedded into the repository.
 
-The current development slice is A8.1: public PR classifier scaffolding plus CI merge-base repair around the Mousecat source surface. `npm run pr:ready` is now the local and CI contribution gate: tests, GitHub classifier tests, runtime smokes, governance floor, governance ceiling, doc currency, strict hygiene, dependency audit, and GitHub Actions workflows must agree before review. Pull requests additionally run chronology and PR-shape gates.
+The current development slice is A9: governed CI/CD observation loop. `npm run pr:ready` remains the local contribution gate. GitHub now exposes stable `ci-verify`, Node 20 compatibility, CodeQL, dependency scan, secret scan, manual package dry run, PR classification traces, and read-only PR outcome observations before any auto-merge or publication authority is introduced.
 
 ## Immediate Next
 
@@ -22,7 +22,7 @@ Verify readiness with:
 npm run pr:ready
 ```
 
-Then connect the GitHub remote and ratify branch protection once the operator confirms repository ownership and publication target.
+Then ratify branch protection for `ci-verify`, `node-20-compat`, `dependency-scan`, `secret-scan`, and `codeql`, and keep publication or auto-merge tokens out until explicitly approved.
 
 ## Open Decisions
 
@@ -31,4 +31,4 @@ Then connect the GitHub remote and ratify branch protection once the operator co
 | OSS license | Ratified as MPL-2.0. |
 | Package namespace | Needs operator ratification before npm publication. |
 | Live upstream priority | Private Neo connector first, then GitHub/browser/custom connectors behind the same permit boundary. |
-| GitHub remote and branch protection | Needs operator ratification before push/PR creation. |
+| GitHub branch protection | Ratify required checks, linear history, conversation resolution, and no force-push/delete posture. |

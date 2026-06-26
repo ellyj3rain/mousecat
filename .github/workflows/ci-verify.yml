@@ -1,4 +1,4 @@
-name: ci
+name: ci-verify
 
 on:
   push:
@@ -12,44 +12,41 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-verify-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  verify:
-    name: verify (node-${{ matrix.node-version }})
+  ci-verify:
+    name: ci-verify
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: ['20', '22']
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: '22'
           cache: 'npm'
 
       - name: PR chronology gate
-        if: ${{ github.event_name == 'pull_request' && matrix.node-version == '22' }}
+        if: ${{ github.event_name == 'pull_request' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node .github/scripts/check-pr-chronology.mjs
 
       - name: PR shape gate
-        if: ${{ github.event_name == 'pull_request' && matrix.node-version == '22' }}
+        if: ${{ github.event_name == 'pull_request' }}
         shell: bash
+        env:
+          MOUSECAT_GITOPS_TRACE: "1"
         run: |
           BASE_REF="${GITHUB_BASE_REF:-main}"
           git fetch origin "${BASE_REF}" --depth=1 || true
-          node .github/scripts/check-pr-shape.mjs --base "origin/${BASE_REF}"
+          node .github/scripts/check-pr-shape.mjs --base "origin/${BASE_REF}" --write-trace
 
       - name: Install dependencies (deterministic)
         run: npm ci
@@ -60,13 +57,34 @@ jobs:
       - name: npm audit (fail on high/critical)
         run: npm audit --audit-level=high
 
-      - name: Upload logs artifact (on demand)
+      - name: Upload CI governance artifacts
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: ci-logs-node-${{ matrix.node-version }}
+          name: ci-verify-governance-artifacts
           path: |
             npm-debug.log
             *.log
+            .mousecat/data/gitops/pr-classifications
           if-no-files-found: ignore
+
+  node-20-compat:
+    name: node-20-compat
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies (deterministic)
+        run: npm ci
+
+      - name: Runtime compatibility tests
+        run: npm test

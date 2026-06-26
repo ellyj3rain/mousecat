@@ -77,3 +77,11 @@
 *Rationale:* AI-native open source needs review surfaces that are legible before operator review. Neo's classifier scaffolding is applicable to Mousecat when adapted to Mousecat's public paths and boundaries.
 
 *Origin:* Operator correction that the prior cross-reference did not deeply inspect Neo's newer governance classifiers and that Mousecat needs similar scaffolding for AI-native OSS development.
+
+## DR-010 | 2026-06-26 18:05 UTC / 11:05 PDT | Mousecat CI emits governance observations before privileged automation
+
+*Decision:* Mousecat adopts a stable `ci-verify` check, Node 20 compatibility check, named security checks, classifier trace artifacts, read-only PR outcome observation, and manual package dry runs as the public GitOps governance loop.
+
+*Rationale:* Neo's current CI/CD posture shows that AI-native repositories need source-owned classifiers, durable evidence, protected check names, and policy visibility before automation can be trusted. Mousecat should inherit that discipline while remaining open-source-safe: observations are artifacts, private connector execution stays disabled in CI, and auto-merge or corpus-promotion tokens require later operator ratification.
+
+*Origin:* Operator direction to assess Neo's new CI/CD/governance and integrate the stronger posture into Mousecat rather than merely report on it.

@@ -1,7 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
-import { classifyNumstat, parseNumstat, ratificationFromLabels } from "./check-pr-shape.mjs";
+import {
+  appendPrClassificationTrace,
+  buildPrClassificationRecord,
+  classifyNumstat,
+  parseNumstat,
+  ratificationFromLabels,
+} from "./check-pr-shape.mjs";
 
 test("parseNumstat reads changed file counts", () => {
   assert.deepEqual(parseNumstat("10\t2\tsrc/core/runtime.mjs\n-\t-\tartifacts/docx/export.docx\n"), [
@@ -49,4 +58,22 @@ test("ratificationFromLabels maps operator PR labels to ratification hatches", (
   assert.equal(r.testGap, true);
   assert.equal(r.largeDiff, false);
   assert.equal(r.missingCompanions, false);
+});
+
+test("classification traces are structured JSON lines", () => {
+  const dir = mkdtempSync(join(tmpdir(), "mousecat-pr-shape-"));
+  const path = join(dir, "records.jsonl");
+  const verdict = classifyNumstat("1\t0\tREADME.md\n");
+  const record = buildPrClassificationRecord(verdict, {
+    observedAt: "2026-06-26T00:00:00.000Z",
+    repository: "example/mousecat",
+    pullRequest: "1/merge",
+    base: "origin/main",
+    head: "abc123",
+  });
+  appendPrClassificationTrace(record, path);
+  const parsed = JSON.parse(readFileSync(path, "utf8").trim());
+  assert.equal(parsed.schema, "mousecat.gitops.pr-classification/1");
+  assert.equal(parsed.subject.repository, "example/mousecat");
+  assert.equal(parsed.verdict.classifier, "mousecat.gitops.pr-shape");
 });

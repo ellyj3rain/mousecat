@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { classifyPrShape } from "../../src/core/governance/gitops/merge-strategy-classifier.mjs";
@@ -13,6 +14,37 @@ function flagValue(args, name) {
 
 function truthy(value) {
   return /^(1|true|yes|y)$/i.test(String(value || ""));
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+export function prClassificationTracePath() {
+  return ".mousecat/data/gitops/pr-classifications/records.jsonl";
+}
+
+export function buildPrClassificationRecord(verdict, options = {}) {
+  const observedAt = options.observedAt || nowIso();
+  return {
+    schema: "mousecat.gitops.pr-classification/1",
+    id: `mousecat-pr-classification-${observedAt.replace(/[:.]/g, "-")}`,
+    observedAt,
+    source: "mousecat.github.pr-shape",
+    subject: {
+      repository: options.repository || process.env.GITHUB_REPOSITORY || null,
+      pullRequest: options.pullRequest || process.env.GITHUB_REF_NAME || null,
+      base: options.base || null,
+      head: options.head || process.env.GITHUB_SHA || null,
+    },
+    verdict,
+  };
+}
+
+export function appendPrClassificationTrace(record, path = prClassificationTracePath()) {
+  mkdirSync(dirname(path), { recursive: true });
+  appendFileSync(path, JSON.stringify(record) + "\n", "utf8");
+  return path;
 }
 
 function labelNamesFromEventPath(eventPath) {
@@ -96,6 +128,16 @@ export function run(env = process.env, argv = process.argv.slice(2)) {
     operatorRatifiedMissingCompanions: truthy(env.MOUSECAT_OPERATOR_RATIFIED_MISSING_COMPANIONS) || labelRatification.missingCompanions,
     operatorRatifiedTestGap: truthy(env.MOUSECAT_OPERATOR_RATIFIED_TEST_GAP) || labelRatification.testGap,
   });
+  const writeTrace = argv.includes("--write-trace") || truthy(env.MOUSECAT_GITOPS_TRACE);
+  if (writeTrace) {
+    const tracePath = appendPrClassificationTrace(buildPrClassificationRecord(verdict, {
+      base,
+      repository: env.GITHUB_REPOSITORY,
+      pullRequest: env.GITHUB_REF_NAME,
+      head: env.GITHUB_SHA,
+    }));
+    process.stdout.write(`PR classification trace: ${tracePath}\n`);
+  }
 
   if (!verdict.allowed) {
     process.stderr.write(`PR shape gate: ${verdict.riskBand.toUpperCase()} - ${verdict.next}\n${formatSignals(verdict.signals)}\n`);

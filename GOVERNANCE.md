@@ -42,6 +42,12 @@ AI-assisted changes must leave the repository auditable: source truth, docs, led
 
 Pull requests are classified before review. Chronology blocks ready PRs behind older non-draft PRs on the same base. Shape classification blocks generated or local output, routes oversized or wide-surface changes to operator ratification, and requires governance-shaped changes to carry append-only ledger companions.
 
+## GitOps Observation
+
+Mousecat CI emits structured governance observations as artifacts. PR-shape records use `mousecat.gitops.pr-classification/1`; PR and workflow outcomes use `mousecat.gitops.pr-outcome-observation/1`. These records are audit evidence for maintainers and future automation. They do not grant merge authority, execute private connectors, publish packages, or write back to `main`.
+
+`ci-verify`, `codeql`, `dependency-scan`, `secret-scan`, and `node-20-compat` are the protected check names for the public repository. Publication, auto-merge, and durable outcome-corpus promotion require explicit operator ratification before secrets or write tokens are introduced.
+
 ## Open-Source Posture
 
 The repository is licensed under MPL-2.0. Package namespace and remote publication remain operator-ratified decisions.

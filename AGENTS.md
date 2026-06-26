@@ -23,7 +23,7 @@ npm run pr:ready
 
 This runs the complete AI-native readiness surface: tests, GitHub classifier tests, runtime smokes, GZDS-style governance floor, governance ceiling, docs currency, and strict hygiene.
 
-GitHub CI executes the same `npm run pr:ready` (with audit) on every push/PR using ubuntu-latest and Node 20/22 matrix. Pull requests also run chronology and PR-shape classifier gates before review. Smoke scripts use `.github/mousecat.ci.config.json` so local ignored connectors do not affect public readiness. See the PR readiness section in README.md.
+GitHub CI executes the same `npm run pr:ready` (with audit) through the `ci-verify` check on every push/PR. Pull requests also run chronology and PR-shape classifier gates before review, and the outcome observer records read-only GitOps evidence as artifacts. Smoke scripts use `.github/mousecat.ci.config.json` so local ignored connectors do not affect public readiness. See the PR readiness section in README.md.
 
 Targeted smoke commands remain available for local diagnosis.
 
