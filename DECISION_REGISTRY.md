@@ -85,3 +85,11 @@
 *Rationale:* Neo's current CI/CD posture shows that AI-native repositories need source-owned classifiers, durable evidence, protected check names, and policy visibility before automation can be trusted. Mousecat should inherit that discipline while remaining open-source-safe: observations are artifacts, private connector execution stays disabled in CI, and auto-merge or corpus-promotion tokens require later operator ratification.
 
 *Origin:* Operator direction to assess Neo's new CI/CD/governance and integrate the stronger posture into Mousecat rather than merely report on it.
+
+## DR-011 | 2026-06-26 18:58 UTC / 11:58 PDT | Operator widget is generic before workflow-specific
+
+*Decision:* Mousecat exposes `mousecat.widget` as the generic host-facing operator interaction facade. It carries the public `operator_widget.available()` and `operator_widget.ask(payload)` semantics, typed responses, holds, snapshots, and visualizer event records separately from workflow-specific skill atoms.
+
+*Rationale:* Mousecat should be usable as a default third-party execution and augmentation surface across AI IDEs and agent hosts. Hosts need a stable widget contract for long question chains and modular operator responses; they should not have to understand private or project-specific skill names to render the surface.
+
+*Origin:* Operator critique that skill terms were too opaque for the open-source surface and direction to keep Mousecat broad, customizable, and host-facing.

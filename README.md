@@ -42,6 +42,7 @@ The server exposes:
 
 | Tool | Purpose |
 |---|---|
+| `mousecat.widget` | Expose the generic operator-widget contract, availability, requests, typed responses, holds, and snapshots. |
 | `mousecat.ask` | Create structured operator interaction sessions with atomic items and button payloads. |
 | `mousecat.session` | Start, snapshot, and reconstruct session dockets. |
 | `mousecat.queue` | Manage Mass-Assault style decision queues, held items, and long-chain lineage. |
@@ -54,7 +55,7 @@ The server exposes:
 
 ## First Surfaces
 
-Mousecat ships with source-owned skill atoms for Crucible, Mass-Assault, and Total Recall. These atoms render as buttons that hosts can place in JetBrains widgets, Claude Code or Codex panels, Cursor surfaces, and CLI views. The same registry also defines skill frameworks, work-permit profiles, upstream descriptors, tool boundaries, interaction shapes, and visualizer-safe event streams.
+Mousecat ships a generic operator-widget facade plus source-owned skill atoms for compatibility with existing governed workflows. Hosts can bind to widget controls, structured interaction shapes, and visualizer-safe event streams without knowing private workflow names. The same registry also defines skill frameworks, work-permit profiles, upstream descriptors, tool boundaries, and route policy.
 
 ## Private Neo Connector
 

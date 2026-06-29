@@ -96,6 +96,15 @@ async function main(argv = process.argv.slice(2)) {
     return;
   }
 
+  if (command === "widget") {
+    const [action = "available", payload = ""] = rest;
+    print(await runtime.handleTool("mousecat.widget", {
+      action,
+      ...(payload ? readJsonArg(payload, {}) : {}),
+    }));
+    return;
+  }
+
   if (command === "ask") {
     const prompt = rest.join(" ") || "Decision required";
     print(await runtime.handleTool("mousecat.ask", { prompt, shape: "point", skillRef: "crucible.point" }));
@@ -142,7 +151,7 @@ async function main(argv = process.argv.slice(2)) {
     ok: false,
     code: "unknown-command",
     command,
-    commands: ["status", "catalog", "connectors", "tools", "resources", "bridge", "buttons", "visualize", "ask", "queue", "route", "invoke", "credentials", "permits", "mcp"],
+    commands: ["status", "catalog", "connectors", "tools", "resources", "bridge", "buttons", "visualize", "widget", "ask", "queue", "route", "invoke", "credentials", "permits", "mcp"],
   });
   process.exitCode = 1;
 }

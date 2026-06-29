@@ -20,7 +20,7 @@ Mousecat is governed by GZDS standards expressed as public, repository-local che
 
 ## Tool Boundary Discipline
 
-`mousecat.route` may plan access. `mousecat.invoke` may not execute upstream work unless a matching permit, an enabled upstream, and a configured external connector all agree. Missing connectors are structured boundary facts, not silent fallbacks.
+`mousecat.widget` and `mousecat.ask` may request operator input. `mousecat.route` may plan access. `mousecat.invoke` may not execute upstream work unless a matching permit, an enabled upstream, and a configured external connector all agree. Missing connectors are structured boundary facts, not silent fallbacks.
 
 ## Open-Source Connector Boundary
 
@@ -32,7 +32,7 @@ Mousecat stores credential references such as environment-variable names, OS key
 
 ## Operator Interaction
 
-Crucible-shaped decisions, Mass-Assault queues, and Total Recall dockets are first-class skill atoms. Hosts should render them as buttons and structured widgets instead of flattening them into ad hoc chat text.
+Operator decisions, queues, review items, recalls, and handoff dockets are first-class interaction packets. Hosts should render them as structured widgets instead of flattening them into ad hoc chat text.
 
 ## PR Readiness
 

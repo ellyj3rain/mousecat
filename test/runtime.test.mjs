@@ -41,6 +41,44 @@ test("interaction sessions support atomic multi-item chains and visual graph nod
   assert.equal(interaction.interaction.constraints.allowFreeform, true);
   assert.equal(visual.interactionSessions[0].sessionId, "session-a");
   assert.ok(visual.liveGraph.nodes.some((node) => node.id === "interaction:plan-a:scope-pass"));
+  assert.ok(visual.eventStream.some((event) => event.lane === "interaction"));
+});
+
+test("widget exposes generic availability, ask, and typed response contract", () => {
+  const runtime = createMousecatRuntime();
+  const availability = runtime.handleTool("mousecat.widget", { action: "available" });
+  const requested = runtime.handleTool("mousecat.widget", {
+    action: "ask",
+    request: {
+      source: "host.adapter",
+      interactionId: "widget-1",
+      title: "Widget Pass",
+      items: [
+        { id: "choice", shape: "decision", prompt: "Choose route", options: [{ label: "Local" }, { label: "Remote" }] },
+        { id: "notes", shape: "freeform", prompt: "Add constraint" },
+      ],
+      constraints: { recommendationFirst: true, allowFreeform: true },
+    },
+  });
+  const answered = runtime.handleTool("mousecat.widget", {
+    action: "respond",
+    interactionId: "widget-1",
+    responses: [
+      { itemId: "choice", selectedOption: "Local", value: "local" },
+      { itemId: "notes", notes: "Keep it generic" },
+    ],
+  });
+  const visual = runtime.handleTool("mousecat.visualize", { includeEvents: true, stream: "events" });
+
+  assert.equal(availability.schema, "mousecat.widget.availability/1");
+  assert.equal(availability.contract.api.available, "operator_widget.available()");
+  assert.equal(requested.schema, "mousecat.operator-widget.request/1");
+  assert.equal(requested.interaction.items.length, 2);
+  assert.equal(answered.schema, "mousecat.operator-widget.result/1");
+  assert.equal(answered.status, "answered");
+  assert.equal(answered.responses[0].shape, "decision");
+  assert.ok(visual.widget.controls.some((control) => control.id === "widget.respond"));
+  assert.ok(visual.eventStream.some((event) => event.verb === "answered" && event.subject === "widget-1"));
 });
 
 test("queue supports enqueue, answer, ratify, and total recall docketing", () => {
@@ -125,6 +163,6 @@ test("MCP handler lists tools and calls mousecat.status", async () => {
     params: { name: "mousecat.status", arguments: {} },
   }, runtime);
 
-  assert.equal(listed.result.tools.length, 9);
+  assert.equal(listed.result.tools.length, 10);
   assert.equal(called.result.structuredContent.ok, true);
 });

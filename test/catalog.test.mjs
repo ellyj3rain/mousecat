@@ -7,6 +7,7 @@ import {
   WORK_PERMIT_PROFILES,
   catalogSnapshot,
   skillButtons,
+  widgetControls,
 } from "../src/core/catalog.mjs";
 
 test("Crucible, Mass-Assault, and Total Recall are atomic button skills", () => {
@@ -39,6 +40,9 @@ test("work permits separate observer, operator interaction, invocation, and cred
 test("catalog snapshot exposes one stable source-owned surface", () => {
   const snapshot = catalogSnapshot();
   assert.equal(snapshot.schema, "mousecat.catalog/1");
-  assert.equal(snapshot.tools.length, 9);
+  assert.equal(snapshot.tools.length, 10);
   assert.ok(snapshot.buttons.length >= 7);
+  assert.equal(snapshot.widgetContract.api.ask, "operator_widget.ask(payload)");
+  assert.ok(snapshot.widgetControls.some((control) => control.tool === "mousecat.widget"));
+  assert.ok(widgetControls().some((control) => control.id === "widget.ask"));
 });

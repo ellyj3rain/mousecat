@@ -27,6 +27,7 @@ IDE widgets and CLI views
 
 | Tool | Contract |
 |---|---|
+| `mousecat.widget` | Exposes `operator_widget.available()` and `operator_widget.ask(payload)` semantics, plus response, hold, and snapshot operations for host widgets. |
 | `mousecat.ask` | Returns a structured interaction session with atomic items, lineage, and button sets for host rendering. |
 | `mousecat.session` | Starts, snapshots, and reconstructs working-session state. |
 | `mousecat.queue` | Enqueues, lists, answers, holds, and ratifies decision chains. |
@@ -61,7 +62,7 @@ The public Neo bridge resource is `mousecat_bridge_contract_v1`. Mousecat summar
 
 ## Interaction And Visualization Contract
 
-Operator interaction sessions use public Mousecat shapes: `decision`, `parameter`, `ratification`, `queue`, `review`, `freeform`, `ranking`, and `checklist`. Legacy button shapes such as `point`, `architecture`, `tree`, and `batch` normalize into those public shapes. The visualizer consumes public event categories and graph nodes for interactions, queue items, and upstream descriptors; private upstream payloads and secret values are not part of the graph contract.
+Operator interaction sessions use public Mousecat shapes: `decision`, `parameter`, `ratification`, `queue`, `review`, `freeform`, `ranking`, and `checklist`. `mousecat.widget` is the host-facing facade for availability, request packets, typed responses, holds, and snapshots. Legacy button shapes such as `point`, `architecture`, `tree`, and `batch` normalize into public shapes. The visualizer consumes public event categories, `mousecat.visualizer.event/1` stream records, and graph nodes for interactions, queue items, and upstream descriptors; private upstream payloads and secret values are not part of the graph contract.
 
 ## Runtime State
 

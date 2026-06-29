@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "node --test",
-    "verify": "npm test && npm run test:github-scripts && npm run smoke:status && npm run smoke:buttons && npm run smoke:connectors && npm run smoke:mcp",
+    "verify": "npm test && npm run test:github-scripts && npm run smoke:status && npm run smoke:widget && npm run smoke:buttons && npm run smoke:connectors && npm run smoke:mcp",
     "pr:ready": "npm run verify && npm run governance:floor && npm run governance:ceiling && npm run docs:check && npm run hygiene:strict",
     "ci:verify": "npm run pr:ready",
     "test:github-scripts": "node --test .github/scripts/check-pr-chronology.test.mjs .github/scripts/check-pr-shape.test.mjs .github/scripts/collect-pr-outcome.test.mjs",
@@ -19,6 +19,7 @@
     "docs:check": "node scripts/docs-check.mjs",
     "hygiene:strict": "node scripts/hygiene-strict.mjs",
     "smoke:status": "node src/cli.mjs --config .github/mousecat.ci.config.json status",
+    "smoke:widget": "node src/cli.mjs --config .github/mousecat.ci.config.json widget available",
     "smoke:buttons": "node src/cli.mjs --config .github/mousecat.ci.config.json buttons",
     "smoke:connectors": "node src/cli.mjs --config .github/mousecat.ci.config.json connectors",
     "smoke:mcp": "node src/cli.mjs --config .github/mousecat.ci.config.json mcp --self-test"

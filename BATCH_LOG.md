@@ -193,3 +193,23 @@
 - `git diff --check`
 
 *Version:* `0.1.0`.
+
+## [A10] | 2026-06-26 18:58 UTC / 11:58 PDT | Generic operator-widget surface
+
+*Scope:* Add the first host-facing widget facade above Mousecat's interaction runtime so AI hosts can use a generic operator interaction contract without depending on workflow-specific skill names.
+
+*Deliverables:*
+- Added `mousecat.widget` with availability, ask, respond, hold, and snapshot actions.
+- Added `mousecat.operator-widget.contract/1`, `mousecat.operator-widget.request/1`, and `mousecat.operator-widget.result/1` surfaces.
+- Added generic widget controls separate from compatibility skill buttons.
+- Added `mousecat.visualizer.event/1` event-stream records to `mousecat.visualize`.
+- Added `smoke:widget` to the public verify surface.
+- Updated README, architecture, governance, and session state to use the broader widget framing.
+
+*Verification:*
+- `npm run pr:ready`
+- `npm audit --audit-level=high`
+- `npm run cd:dry-run`
+- `git diff --check`
+
+*Version:* `0.1.0`.

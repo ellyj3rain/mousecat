@@ -1,6 +1,7 @@
 import {
   ATOMIC_SKILLS,
   INTERACTION_SHAPES,
+  OPERATOR_WIDGET_CONTRACT,
   SKILL_FRAMEWORKS,
   TOOL_BOUNDARIES,
   UPSTREAMS,
@@ -9,6 +10,7 @@ import {
   getPermitProfile,
   getUpstream,
   skillButtons,
+  widgetControls,
 } from "./catalog.mjs";
 import { readMousecatBridgeContract } from "./bridge-contracts.mjs";
 import { defaultConfig } from "./config.mjs";
@@ -116,6 +118,36 @@ function publicEvent(event) {
   };
 }
 
+function visualizerEvent(event) {
+  const category = eventCategory(event.type);
+  const data = event.data || {};
+  return {
+    schema: "mousecat.visualizer.event/1",
+    eventId: event.id,
+    at: event.at,
+    lane: category,
+    actor: data.source || data.upstream || data.sessionId || "mousecat",
+    verb: event.type.split(".").slice(1).join(".") || event.type,
+    subject: data.interactionId || data.itemId || data.capability || data.resourceName || data.reason || category,
+    status: data.status || data.reason || "observed",
+    intensity: category === "invoke" || category === "connector" ? 0.8 : category === "interaction" || category === "queue" ? 0.6 : 0.35,
+    data: clone(data),
+  };
+}
+
+function responsePayloadFor(item, response = {}) {
+  return {
+    itemId: item.id,
+    shape: item.shape,
+    status: response.status || item.status || "answered",
+    value: response.value ?? response.answer ?? null,
+    selectedOption: response.selectedOption ?? response.option ?? null,
+    ranking: Array.isArray(response.ranking) ? response.ranking : null,
+    checklist: Array.isArray(response.checklist) ? response.checklist : null,
+    notes: response.notes || response.reason || null,
+  };
+}
+
 export function createMousecatRuntime(options = {}) {
   const config = options.config || defaultConfig();
   const state = {
@@ -194,6 +226,25 @@ export function createMousecatRuntime(options = {}) {
     };
   }
 
+  function widgetAvailability() {
+    return {
+      schema: "mousecat.widget.availability/1",
+      available: true,
+      status: "available",
+      contract: OPERATOR_WIDGET_CONTRACT,
+      limits: {
+        maxItems: 20,
+        maxQueueItems: 200,
+        supportsLongChains: true,
+      },
+      presentation: {
+        hostOwned: true,
+        controls: widgetControls(),
+        eventStream: "mousecat.visualize(stream=events)",
+      },
+    };
+  }
+
   function ask(args = {}) {
     const legacyId = nextId("q", state.events.length);
     const source = String(args.source || args.skillRef || "mousecat.ask");
@@ -243,6 +294,82 @@ export function createMousecatRuntime(options = {}) {
     };
     emit("interaction.requested", summarizeInteraction(interaction));
     return { schema: "mousecat.interaction/1", interaction, question };
+  }
+
+  function widget(args = {}) {
+    const action = args.action || "available";
+    if (action === "available") {
+      const availability = widgetAvailability();
+      emit("widget.available", { status: availability.status });
+      return availability;
+    }
+
+    if (action === "ask") {
+      const request = args.request && typeof args.request === "object" ? args.request : args;
+      const interactionResult = ask(request);
+      emit("widget.requested", {
+        interactionId: interactionResult.interaction.interactionId,
+        source: interactionResult.interaction.source,
+        itemCount: interactionResult.interaction.items.length,
+      });
+      return {
+        schema: "mousecat.operator-widget.request/1",
+        available: true,
+        contract: OPERATOR_WIDGET_CONTRACT,
+        interaction: interactionResult.interaction,
+        controls: widgetControls(),
+      };
+    }
+
+    if (action === "respond" || action === "hold") {
+      const interactionId = args.interactionId || args.request?.interactionId;
+      const interaction = state.interactions.get(interactionId);
+      if (!interaction) {
+        return {
+          schema: "mousecat.operator-widget.result/1",
+          interactionId: interactionId || null,
+          status: "unavailable",
+          responses: [],
+          reason: "unknown-interaction",
+        };
+      }
+      const rawResponses = Array.isArray(args.responses) && args.responses.length > 0
+        ? args.responses
+        : [{ ...(args.response || {}), itemId: args.itemId }];
+      const responses = rawResponses.map((raw, index) => {
+        const item = interaction.items.find((candidate) => candidate.id === raw.itemId) || interaction.items[index] || interaction.items[0];
+        if (!item) return null;
+        item.status = action === "hold" || raw.status === "held" ? "held" : "answered";
+        item.response = responsePayloadFor(item, raw);
+        item.updatedAt = nowIso();
+        return item.response;
+      }).filter(Boolean);
+      interaction.status = responses.some((response) => response.status === "held") ? "held" : "answered";
+      interaction.updatedAt = nowIso();
+      emit(action === "hold" ? "widget.held" : "widget.answered", {
+        interactionId,
+        status: interaction.status,
+        responseCount: responses.length,
+      });
+      return {
+        schema: "mousecat.operator-widget.result/1",
+        interactionId,
+        status: interaction.status === "held" ? "held" : "answered",
+        responses,
+      };
+    }
+
+    if (action === "snapshot") {
+      return {
+        schema: "mousecat.widget.snapshot/1",
+        availability: widgetAvailability(),
+        interactions: [...state.interactions.values()].map((interaction) => clone(interaction)),
+        queue: clone(state.queue),
+        controls: widgetControls(),
+      };
+    }
+
+    return { schema: "mousecat.error/1", ok: false, code: "unknown-widget-action", action };
   }
 
   function session(args = {}) {
@@ -375,6 +502,10 @@ export function createMousecatRuntime(options = {}) {
       schema: "mousecat.visualizer/1",
       stream,
       buttons: skillButtons(),
+      widget: {
+        availability: widgetAvailability(),
+        controls: widgetControls(),
+      },
       skillFrameworks: SKILL_FRAMEWORKS,
       workPermitProfiles: WORK_PERMIT_PROFILES,
       toolBoundaries: TOOL_BOUNDARIES,
@@ -390,6 +521,7 @@ export function createMousecatRuntime(options = {}) {
       upstreams: status().upstreams,
       credentialRefs: clone(state.credentialRefs),
       events: args.includeEvents ? events : [],
+      eventStream: state.events.slice(-limit).map(visualizerEvent),
       liveGraph: {
         nodes: [
           ...UPSTREAMS.map((upstream) => ({ id: `upstream:${upstream.id}`, kind: "upstream", label: upstream.label })),
@@ -546,6 +678,8 @@ export function createMousecatRuntime(options = {}) {
 
   function handleTool(name, args = {}) {
     switch (name) {
+      case "mousecat.widget":
+        return widget(args);
       case "mousecat.ask":
         return ask(args);
       case "mousecat.session":

@@ -17,7 +17,48 @@ export const INTERACTION_STATUSES = Object.freeze([
   "unavailable",
 ]);
 
+export const WIDGET_ACTIONS = Object.freeze([
+  "available",
+  "ask",
+  "respond",
+  "hold",
+  "snapshot",
+]);
+
+export const OPERATOR_WIDGET_CONTRACT = Object.freeze({
+  schema: "mousecat.operator-widget.contract/1",
+  api: Object.freeze({
+    available: "operator_widget.available()",
+    ask: "operator_widget.ask(payload)",
+  }),
+  requestSchema: "mousecat.operator-widget.request/1",
+  resultSchema: "mousecat.operator-widget.result/1",
+  shapes: INTERACTION_SHAPES,
+  statuses: ["answered", "held", "unavailable"],
+  ownership: Object.freeze({
+    host: ["availability", "presentation", "batching", "accessibility", "adapter-rendering"],
+    caller: ["interpretation", "recursion", "next-action", "failure-handling"],
+  }),
+});
+
 export const MOUSECAT_TOOLS = Object.freeze([
+  {
+    name: "mousecat.widget",
+    description: "Expose the generic host operator-widget contract for availability, request, response, hold, and snapshot flows.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: { type: "string", enum: WIDGET_ACTIONS },
+        request: { type: "object" },
+        interactionId: { type: "string" },
+        itemId: { type: "string" },
+        responses: { type: "array" },
+        response: { type: "object" },
+        reason: { type: "string" },
+      },
+      additionalProperties: true,
+    },
+  },
   {
     name: "mousecat.ask",
     description: "Create a structured operator question with skill buttons for host rendering.",
@@ -352,14 +393,14 @@ export const WORK_PERMIT_PROFILES = Object.freeze([
   {
     id: "observer",
     label: "Observer",
-    grants: ["mousecat.status", "mousecat.visualize", "mousecat.route", "mousecat.bridge", "mousecat.session:snapshot"],
+    grants: ["mousecat.status", "mousecat.visualize", "mousecat.route", "mousecat.bridge", "mousecat.session:snapshot", "mousecat.widget:available"],
     canInvokeUpstreams: false,
     requiresOperatorPresence: false,
   },
   {
     id: "operator-interaction",
     label: "Operator Interaction",
-    grants: ["mousecat.ask", "mousecat.queue", "mousecat.session"],
+    grants: ["mousecat.widget", "mousecat.ask", "mousecat.queue", "mousecat.session"],
     canInvokeUpstreams: false,
     requiresOperatorPresence: true,
   },
@@ -382,6 +423,12 @@ export const WORK_PERMIT_PROFILES = Object.freeze([
 ]);
 
 export const TOOL_BOUNDARIES = Object.freeze([
+  {
+    tool: "mousecat.widget",
+    defaultPermit: "operator-interaction",
+    sideEffects: ["in-memory-interaction", "in-memory-response", "audit-event"],
+    upstreamAccess: "none",
+  },
   {
     tool: "mousecat.ask",
     defaultPermit: "operator-interaction",
@@ -461,11 +508,49 @@ export function skillButtons() {
   );
 }
 
+export function widgetControls() {
+  return Object.freeze([
+    {
+      id: "widget.ask",
+      label: "Ask",
+      tool: "mousecat.widget",
+      payload: { action: "ask" },
+      requiresPermit: "operator-interaction",
+      shape: "decision",
+    },
+    {
+      id: "widget.queue",
+      label: "Queue",
+      tool: "mousecat.widget",
+      payload: { action: "snapshot" },
+      requiresPermit: "operator-interaction",
+      shape: "queue",
+    },
+    {
+      id: "widget.respond",
+      label: "Respond",
+      tool: "mousecat.widget",
+      payload: { action: "respond" },
+      requiresPermit: "operator-interaction",
+      shape: "review",
+    },
+    {
+      id: "widget.hold",
+      label: "Hold",
+      tool: "mousecat.widget",
+      payload: { action: "hold" },
+      requiresPermit: "operator-interaction",
+      shape: "ratification",
+    },
+  ]);
+}
+
 export function catalogSnapshot() {
   return {
     schema: "mousecat.catalog/1",
     interactionShapes: INTERACTION_SHAPES,
     interactionStatuses: INTERACTION_STATUSES,
+    widgetContract: OPERATOR_WIDGET_CONTRACT,
     tools: MOUSECAT_TOOLS,
     upstreams: UPSTREAMS,
     atomicSkills: ATOMIC_SKILLS,
@@ -473,5 +558,6 @@ export function catalogSnapshot() {
     workPermitProfiles: WORK_PERMIT_PROFILES,
     toolBoundaries: TOOL_BOUNDARIES,
     buttons: skillButtons(),
+    widgetControls: widgetControls(),
   };
 }
