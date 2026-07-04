@@ -93,3 +93,51 @@
 *Rationale:* Mousecat should be usable as a default third-party execution and augmentation surface across AI IDEs and agent hosts. Hosts need a stable widget contract for long question chains and modular operator responses; they should not have to understand private or project-specific skill names to render the surface.
 
 *Origin:* Operator critique that skill terms were too opaque for the open-source surface and direction to keep Mousecat broad, customizable, and host-facing.
+
+## DR-012 | 2026-07-04 02:04 UTC / 19:04 PDT | Mousecat adopts the PR documentation runner
+
+*Decision:* Mousecat adds a repository-local PR documentation runner to `npm run pr:ready`. The runner checks doc-pack completeness, source-change documentation through `BATCH_LOG.md`, append-only ledger preservation, documentation path-reference consistency, and batch-prefix presence for PR or commit titles.
+
+*Rationale:* AI-native OSS work needs a mechanical documentation consistency gate, not only social convention. The runner adapts the operator's Marshmallow Commons governance direction into Mousecat as a clean-room public check that imports no private Neo implementation.
+
+*Origin:* Operator direction that the Marshmallow Commons/PolyForm governance conversation should also apply to Mousecat.
+
+## DR-013 | 2026-07-04 02:17 UTC / 19:17 PDT | Mousecat adopts a Kohai-aware root odometer
+
+*Decision:* Mousecat's root `VERSION` uses `major.minor.kohai.patch-maturity`. npm package metadata projects to `major.minor.kohai-maturity` when the root patch coordinate is zero. The governance floor enforces the root form, caps, and package projection.
+
+*Rationale:* Mousecat is a public OSS bridge, but it should share the current Neo/GZDS governance semantics. Kohai is the third numeric coordinate: governance automation, release-discipline, classifier, hygiene, documentation, and OSS-readiness maturation move Kohai; runtime/API/public operator-contract growth moves minor; local repair moves patch.
+
+*Origin:* Operator correction that the current standard is Kohai as a numeric version tier and that Mousecat was stale relative to Neo/GZDS governance.
+
+## DR-014 | 2026-07-04 02:26 UTC / 19:26 PDT | Mousecat uses PolyForm Perimeter 1.0.0
+
+*Decision:* Mousecat supersedes MPL-2.0 with PolyForm Perimeter License 1.0.0. The root `LICENSE` file carries Mousecat's required notice and the full PolyForm Perimeter 1.0.0 terms. npm metadata uses `SEE LICENSE IN LICENSE`.
+
+*Rationale:* Mousecat is source-available bridge infrastructure for operator-governed agent tooling. PolyForm Perimeter keeps source visible and usable under the published grant while reserving competing-product use outside the license. The package metadata must point to the in-repo text because the active license is not represented as an SPDX expression in this repository.
+
+*Origin:* Operator direction to switch Mousecat from the old MPL posture to the PolyForm governance posture already discussed for Marshmallow Commons-style OSS surfaces.
+
+## DR-015 | 2026-07-04 02:28 UTC / 19:28 PDT | Mousecat owns local governance hooks
+
+*Decision:* Mousecat provides a repository-local hook installer for `commit-msg`, `pre-commit`, and `pre-push`. The hooks enforce batch-prefixed commit messages, run governance/documentation/hygiene checks before commit, and run `npm run pr:ready` plus audit before push.
+
+*Rationale:* CI is the remote authority, but workstation hooks prevent split-brain drift before a change leaves the local checkout. The hook bodies live in source and are test-covered so they can evolve under the same governance as the rest of Mousecat.
+
+*Origin:* Operator direction to instantiate Mousecat with proper Neo-style governance and hooks rather than leaving standards as docs-only instructions.
+
+## DR-016 | 2026-07-04 03:02 UTC / 20:02 PDT | Stale upstream MCP runtime is a first-class connector boundary result
+
+*Decision:* Mousecat treats upstream MCP `MCP_RUNTIME_STALE` failures as `connector-runtime-stale` with `restartRequired: true` and a public stale code. The result appears at discovery and permit-gated invocation boundaries.
+
+*Rationale:* Neo is the primary tool set for governance, routing, and iteration, while Mousecat is the development target. When a long-lived private Neo MCP process goes stale, Mousecat must make that state actionable for hosts without embedding private Neo source, generated schemas, local paths, or runtime internals.
+
+*Origin:* Live Codex-to-Neo pre-flight reproduced `MCP_RUNTIME_STALE` from the Neo MCP process while beginning Mousecat development. A10.5 captures that failure mode as public connector behavior.
+
+## DR-017 | 2026-07-04 05:30 UTC / 22:30 PDT | Secret scanning uses the open-source Gitleaks CLI
+
+*Decision:* Mousecat's `secret-scan` workflow installs and runs a pinned open-source Gitleaks CLI release directly instead of using `gitleaks/gitleaks-action@v3`.
+
+*Rationale:* Mousecat's public personal upstream and private Ground Zero Solutions downstream need the same named secret-scanning gate. The marketplace action requires a Gitleaks license for organization-owned private repositories, while the open-source CLI preserves the scan without introducing repository secrets or paid-action coupling.
+
+*Origin:* The private `GroundZeroSolutions/mousecat` baseline run failed at `secret-scan` because the Gitleaks action license gate applies to organization/private repositories.

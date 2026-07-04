@@ -1,6 +1,6 @@
 {
   "name": "mousecat",
-  "version": "0.1.0",
+  "version": "0.1.5-alpha",
   "description": "One MCP server for governed operator interaction, skill-framework routing, live visualization, and tool-boundary control.",
   "type": "module",
   "bin": {
@@ -9,7 +9,7 @@
   "scripts": {
     "test": "node --test",
     "verify": "npm test && npm run test:github-scripts && npm run smoke:status && npm run smoke:widget && npm run smoke:buttons && npm run smoke:connectors && npm run smoke:mcp",
-    "pr:ready": "npm run verify && npm run governance:floor && npm run governance:ceiling && npm run docs:check && npm run hygiene:strict",
+    "pr:ready": "npm run verify && npm run governance:floor && npm run governance:ceiling && npm run docs:check && npm run docs:pr && npm run hygiene:strict",
     "ci:verify": "npm run pr:ready",
     "test:github-scripts": "node --test .github/scripts/check-pr-chronology.test.mjs .github/scripts/check-pr-shape.test.mjs .github/scripts/collect-pr-outcome.test.mjs",
     "pr:shape": "node .github/scripts/check-pr-shape.mjs",
@@ -17,6 +17,9 @@
     "governance:floor": "node scripts/governance-floor.mjs",
     "governance:ceiling": "node scripts/governance-ceiling.mjs",
     "docs:check": "node scripts/docs-check.mjs",
+    "docs:pr": "node scripts/pr-doc-runner.mjs",
+    "hooks:install": "node scripts/install-hooks.mjs",
+    "hooks:check": "node scripts/install-hooks.mjs --check",
     "hygiene:strict": "node scripts/hygiene-strict.mjs",
     "smoke:status": "node src/cli.mjs --config .github/mousecat.ci.config.json status",
     "smoke:widget": "node src/cli.mjs --config .github/mousecat.ci.config.json widget available",
@@ -31,7 +34,7 @@
     "work-permits",
     "skill-frameworks"
   ],
-  "license": "MPL-2.0",
+  "license": "SEE LICENSE IN LICENSE",
   "engines": {
     "node": ">=20"
   },

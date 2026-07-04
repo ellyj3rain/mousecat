@@ -1,19 +1,19 @@
 # Mousecat CI/CD and Governance
 
-This directory holds the GitHub Actions configuration for MPL-2.0, GZDS-governed Mousecat.
+This directory holds the GitHub Actions configuration for PolyForm Perimeter 1.0.0, GZDS-governed Mousecat.
 
 ## Workflows
 
-- `ci-verify.yml`: Primary PR readiness gate. Runs on PR and push to main. Executes chronology and PR-shape gates, writes classifier trace artifacts, runs `npm ci`, `npm run pr:ready`, and `npm audit --audit-level=high`.
-- `cd-dry-run.yml`: Manual package dry run. Runs the full CI verification surface before `npm pack --dry-run`.
-- `pr-outcome-corpus.yml`: Read-only outcome observation lane for closed PRs and completed required-check workflows. It uploads structured observations as artifacts and does not push corpus commits.
+- `.github/workflows/ci-verify.yml`: Primary PR readiness gate. Runs on PR and push to main. Executes chronology and PR-shape gates, writes classifier trace artifacts, runs `npm ci`, `npm run pr:ready`, and `npm audit --audit-level=high`. The `pr:ready` surface includes `docs:pr`, the repository-local PR documentation runner.
+- `.github/workflows/cd-dry-run.yml`: Manual package dry run. Runs the full CI verification surface before `npm pack --dry-run`.
+- `.github/workflows/pr-outcome-corpus.yml`: Read-only outcome observation lane for closed PRs and completed required-check workflows. It uploads structured observations as artifacts and does not push corpus commits.
 - `mousecat.ci.config.json`: Checked-in CI/default smoke config. It keeps public readiness independent from ignored local connector files.
 - `.github/scripts/check-pr-chronology.mjs`: PR chronology gate. Skips draft PRs and blocks a ready PR while an older non-draft PR targets the same base.
 - `.github/scripts/check-pr-shape.mjs`: PR shape classifier gate. Blocks generated/local output, routes large, wide, or governance-incoherent PRs through operator ratification labels, and can emit `mousecat.gitops.pr-classification/1` trace records.
 - `.github/scripts/collect-pr-outcome.mjs`: Outcome observer. Emits `mousecat.gitops.pr-outcome-observation/1` records for PR and workflow-run events.
-- `codeql.yml`: CodeQL analysis for JavaScript. Publishes SARIF for GitHub code scanning (public repo surface).
-- `dependency-scan.yml`: Named dependency audit check for PRs, main pushes, scheduled runs, and manual dispatch.
-- `secret-scan.yml`: Gitleaks scan for committed secret-shaped material on PRs, main pushes, scheduled runs, and manual dispatch.
+- `.github/workflows/codeql.yml`: CodeQL analysis for JavaScript. Publishes SARIF for GitHub code scanning (public repo surface).
+- `.github/workflows/dependency-scan.yml`: Named dependency audit check for PRs, main pushes, scheduled runs, and manual dispatch.
+- `.github/workflows/secret-scan.yml`: Pinned Gitleaks CLI scan for committed secret-shaped material on PRs, main pushes, scheduled runs, and manual dispatch.
 
 ## Dependabot
 
@@ -26,7 +26,7 @@ This directory holds the GitHub Actions configuration for MPL-2.0, GZDS-governed
 - Default config surface only: `mousecat.config.json` is gitignored; CI clones start with `connectors: {}` and safe "not-configured" posture for all upstreams (including neo). Private Neo paths, commands, or tokens are never present or executed.
 - Reproducible installs via committed `package-lock.json`.
 - Pinned action versions (major tags from trusted GitHub orgs), using Node 24-compatible GitHub-owned action majors.
-- Native GitHub protections (secret scanning, push protection) complement the explicit `secret-scan.yml` workflow.
+- Native GitHub protections (secret scanning, push protection) complement the explicit `.github/workflows/secret-scan.yml` workflow. The workflow installs the open-source Gitleaks CLI directly so public and private organization downstreams do not depend on marketplace-action licensing.
 - No automatic publication, deploy, or release. CD is a manual dry run until publication policy is ratified.
 
 ## Local Equivalence
@@ -38,6 +38,12 @@ npm run pr:ready
 ```
 
 This is what the required `ci-verify` gate runs before the audit step. See also AGENTS.md and root README.
+
+`npm run docs:pr` is available as a targeted check for doc-pack completeness, source-change documentation, append-only ledger preservation, documentation path references, and batch-prefixed PR titles.
+
+`npm run hooks:install` installs local checkout hooks and `npm run hooks:check` verifies them. CI does not require installed hooks; protected checks remain the remote authority.
+
+Connector smokes run against the checked-in safe config and do not start private upstreams. Stale private MCP runtimes are handled by the public connector boundary as `connector-runtime-stale` when a local ignored config points Mousecat at that upstream.
 
 ## What this surface deliberately excludes
 

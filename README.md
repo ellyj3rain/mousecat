@@ -1,14 +1,16 @@
 | Document | Mousecat README |
 |---|---|
-| Version | 0.1.0 |
-| Timestamp | 2026-06-26 09:57 UTC / 02:57 PDT |
+| Version | 0.1.5.0-alpha |
+| Timestamp | 2026-07-04 05:30 UTC / 22:30 PDT |
 | Status | ACTIVE - participant entry point. |
 
 # Mousecat
 
 Mousecat is one MCP server for AI coding hosts that need structured operator interaction, governed workflow chains, live multi-agent visualization, and routed access to an AI tool ecosystem. Hosts see one tool namespace. Mousecat owns routing, skill-framework buttons, work permits, policy, credential references, connector status, and live status.
 
-Mousecat is MPL-2.0, GZDS-governed open-source bridge code. It does not ship private Neo tools. A local ignored config can point Mousecat at a private Neo MCP server, then Mousecat discovers tools dynamically and forwards permitted calls at runtime.
+Mousecat is PolyForm Perimeter 1.0.0-licensed, GZDS-governed source-available bridge code. It does not ship private Neo tools. A local ignored config can point Mousecat at a private Neo MCP server, then Mousecat discovers tools dynamically and forwards permitted calls at runtime.
+
+Mousecat uses a Kohai-aware root odometer: `VERSION` is `major.minor.kohai.patch-maturity`, with npm package metadata projected to `major.minor.kohai-maturity` when the root patch coordinate is zero. Governance automation and release-discipline maturation move Kohai; runtime or public contract expansion moves minor.
 
 ## Quick Start
 
@@ -34,9 +36,18 @@ Mousecat is AI-native and GZDS-governed. Contributions are expected to satisfy t
 npm run pr:ready
 ```
 
-That command runs tests, GitHub classifier tests, runtime smokes against `.github/mousecat.ci.config.json`, governance floor, governance ceiling, doc currency, and strict hygiene. GitHub Actions runs the required `ci-verify` gate on push to `main` and on pull requests, then runs `npm audit --audit-level=high`. Pull requests also run chronology and PR-shape classifier gates, and CI uploads structured PR classification observations for review.
+That command runs tests, GitHub classifier tests, runtime smokes against `.github/mousecat.ci.config.json`, governance floor, governance ceiling, doc currency, the PR documentation runner, and strict hygiene. GitHub Actions runs the required `ci-verify` gate on push to `main` and on pull requests, then runs `npm audit --audit-level=high`. Pull requests also run chronology, PR-shape, and documentation-consistency gates, and CI uploads structured PR classification observations for review.
 
-CodeQL, dependency maintenance, secret scanning, Node 20 compatibility, package dry runs, and read-only PR outcome observation are separate public governance/security surfaces. Protected checks are `ci-verify`, `node-20-compat`, `dependency-scan`, `secret-scan`, and `codeql`.
+Install local governance hooks once per checkout:
+
+```powershell
+npm run hooks:install
+npm run hooks:check
+```
+
+The installed hooks enforce batch-prefixed commit messages, run governance/doc/hygiene checks before commits, and run `npm run pr:ready` plus audit before pushes.
+
+CodeQL, dependency maintenance, secret scanning, Node 20 compatibility, package dry runs, and read-only PR outcome observation are separate public governance/security surfaces. Secret scanning uses the pinned open-source Gitleaks CLI so public and private organization downstreams share the same check. Protected check names are `ci-verify`, `node-20-compat`, `dependency-scan`, `secret-scan`, and `codeql`.
 
 The server exposes:
 
@@ -69,11 +80,11 @@ node src/cli.mjs bridge neo
 node src/cli.mjs invoke neo <neo-tool-name> profileId=tool-invocation example=payload
 ```
 
-Dynamic discovery comes from the configured MCP server's `tools/list` and `resources/list` responses. `mousecat.bridge` reads the public `mousecat_bridge_contract_v1` resource and returns a sanitized summary with public routes, boundary classes, stale-runtime policy, and withheld-surface labels. Do not commit generated discovery output, local paths, credentials, or private tool schemas.
+Dynamic discovery comes from the configured MCP server's `tools/list` and `resources/list` responses. `mousecat.bridge` reads the public `mousecat_bridge_contract_v1` resource and returns a sanitized summary with public routes, boundary classes, stale-runtime policy, and withheld-surface labels. If an upstream MCP process reports `MCP_RUNTIME_STALE`, Mousecat returns `connector-runtime-stale` with `restartRequired: true` instead of treating it as an opaque JSON-RPC failure. Do not commit generated discovery output, local paths, credentials, or private tool schemas.
 
 ## Source Policy
 
-Mousecat core source is licensed under MPL-2.0. The file-level copyleft posture keeps modifications to Mousecat source files open when distributed while allowing proprietary hosts, plugins, adapters, and local/private upstreams to integrate through public contracts. Runtime transcripts, private host state, credential values, Z-Library session state, upstream caches, and generated local artifacts stay out of Git.
+Mousecat core source is licensed under PolyForm Perimeter 1.0.0. The perimeter posture permits use, modification, and distribution under the published terms while reserving competing-product use outside the grant. Runtime transcripts, private host state, credential values, Z-Library session state, upstream caches, and generated local artifacts stay out of Git.
 
 ## Read First
 

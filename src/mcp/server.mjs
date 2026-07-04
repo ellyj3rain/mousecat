@@ -2,6 +2,7 @@ import readline from "node:readline";
 
 import { MOUSECAT_TOOLS } from "../core/catalog.mjs";
 import { loadConfig } from "../core/config.mjs";
+import { packageVersion } from "../core/governance/version.mjs";
 import { createMousecatRuntime } from "../core/runtime.mjs";
 
 function result(id, value) {
@@ -27,7 +28,7 @@ export async function handleJsonRpc(message, runtime) {
   if (message.method === "initialize") {
     return result(id, {
       protocolVersion: message.params?.protocolVersion || "2025-03-26",
-      serverInfo: { name: "mousecat", version: "0.1.0" },
+      serverInfo: { name: "mousecat", version: packageVersion() },
       capabilities: { tools: {} },
     });
   }

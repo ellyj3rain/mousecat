@@ -8,6 +8,18 @@ function sendError(id, code, message) {
   process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", id, error: { code, message } })}\n`);
 }
 
+function sendStale(id) {
+  process.stdout.write(`${JSON.stringify({
+    jsonrpc: "2.0",
+    id,
+    error: {
+      code: -32075,
+      message: "MCP_RUNTIME_STALE: upstream MCP server source changed after this process booted; restart before retrying.",
+      data: { code: "MCP_RUNTIME_STALE" },
+    },
+  })}\n`);
+}
+
 const bridgeContract = {
   schema: "neo.mcp.mousecat-bridge-contract/1",
   schema_version: "1.0.0",
@@ -69,6 +81,10 @@ for await (const line of rl) {
       serverInfo: { name: "mock-private-neo", version: "0.0.0-test" },
       capabilities: { tools: {}, resources: {} },
     });
+    continue;
+  }
+  if (process.env.MOUSECAT_MOCK_MCP_STALE === "1") {
+    sendStale(message.id);
     continue;
   }
   if (message.method === "tools/list") {

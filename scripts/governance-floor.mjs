@@ -14,15 +14,29 @@ import {
   TOOL_BOUNDARIES,
   WORK_PERMIT_PROFILES,
 } from "../src/core/catalog.mjs";
+import {
+  parseRootVersion,
+  projectRootVersionToPackageVersion,
+} from "../src/core/governance/version.mjs";
 
 const errors = [];
 const pkg = readJson("package.json");
+const lock = readJson("package-lock.json");
 const version = readText("VERSION").trim();
 const license = fileExists("LICENSE") ? readText("LICENSE") : "";
+const rootVersion = parseRootVersion(version);
+const packageProjection = projectRootVersionToPackageVersion(version);
 
-failIf(errors, pkg.license !== "MPL-2.0", "package.json license must be MPL-2.0.");
-failIf(errors, !license.includes("Mozilla Public License Version 2.0"), "LICENSE must contain the MPL-2.0 text.");
-failIf(errors, pkg.version !== version, `package.json version (${pkg.version}) must match VERSION (${version}).`);
+failIf(errors, pkg.license !== "SEE LICENSE IN LICENSE", "package.json license must point to the in-repo PolyForm Perimeter license.");
+failIf(errors, !license.includes("PolyForm Perimeter License 1.0.0"), "LICENSE must contain the PolyForm Perimeter 1.0.0 text.");
+failIf(errors, !license.includes("Required Notice:"), "LICENSE must carry a Required Notice line.");
+failIf(errors, !rootVersion.ok, rootVersion.violation || "VERSION must use Mousecat's Kohai-aware root form.");
+failIf(errors, !packageProjection.ok, packageProjection.error || "VERSION must project to npm package metadata.");
+if (packageProjection.ok) {
+  failIf(errors, pkg.version !== packageProjection.version, `package.json version (${pkg.version}) must project from VERSION (${version}) as ${packageProjection.version}.`);
+  failIf(errors, lock.version !== packageProjection.version, `package-lock.json top version (${lock.version}) must match package projection ${packageProjection.version}.`);
+  failIf(errors, lock.packages?.[""]?.version !== packageProjection.version, `package-lock root package version (${lock.packages?.[""]?.version}) must match package projection ${packageProjection.version}.`);
+}
 failIf(errors, !fileExists("package-lock.json"), "package-lock.json must be present for deterministic npm ci.");
 
 const toolNames = MOUSECAT_TOOLS.map((tool) => tool.name);

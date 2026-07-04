@@ -37,6 +37,14 @@ function credentialValueLooksSecret(args) {
   return ["value", "secret", "token", "password", "cookie", "privateKey", "apiKey"].some((key) => args[key]);
 }
 
+function connectorBoundaryFields(result) {
+  const fields = {};
+  if (result?.restartRequired === true) fields.restartRequired = true;
+  if (result?.staleCode) fields.staleCode = result.staleCode;
+  if (result?.upstreamMessage) fields.upstreamMessage = result.upstreamMessage;
+  return fields;
+}
+
 function optionButtons(options = []) {
   return options.map((option, index) => ({
     id: `option-${index + 1}`,
@@ -608,6 +616,7 @@ export function createMousecatRuntime(options = {}) {
             schema: "mousecat.invoke/1",
             ok: discovered.ok,
             code: discovered.ok ? "connector-tools-listed" : discovered.code,
+            ...connectorBoundaryFields(discovered),
             route: routeResult.plan,
             connector: discovered.connector,
             result: discovered,
@@ -625,6 +634,7 @@ export function createMousecatRuntime(options = {}) {
           schema: "mousecat.invoke/1",
           ok: invoked.ok,
           code: invoked.ok ? "connector-forwarded" : invoked.code,
+          ...connectorBoundaryFields(invoked),
           route: routeResult.plan,
           connector: invoked.connector,
           result: invoked.result || invoked,

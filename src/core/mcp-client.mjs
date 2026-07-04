@@ -1,10 +1,40 @@
 import { spawn } from "node:child_process";
+
+import { packageVersion } from "./governance/version.mjs";
 import readline from "node:readline";
 
 function safeError(error) {
   return {
     name: error?.name || "Error",
     message: error?.message || String(error),
+  };
+}
+
+function normalizeJsonRpcError(error, stderr) {
+  const message = String(error?.message || "");
+  const dataCode = typeof error?.data?.code === "string" ? error.data.code : null;
+  const staleCode = dataCode === "MCP_RUNTIME_STALE" || message.includes("MCP_RUNTIME_STALE")
+    ? "MCP_RUNTIME_STALE"
+    : null;
+
+  if (staleCode) {
+    return {
+      ok: false,
+      code: "connector-runtime-stale",
+      staleCode,
+      restartRequired: true,
+      message: "The upstream MCP runtime reported stale source. Restart that connector before retrying.",
+      upstreamMessage: message || null,
+      jsonrpcCode: error?.code ?? null,
+      stderr: stderr.trim() || null,
+    };
+  }
+
+  return {
+    ok: false,
+    code: "connector-jsonrpc-error",
+    error,
+    stderr: stderr.trim() || null,
   };
 }
 
@@ -94,12 +124,7 @@ export async function callMcpStdio(connector, method, params = {}, options = {})
       }
       if (message.id !== callId) return;
       if (message.error) {
-        finish({
-          ok: false,
-          code: "connector-jsonrpc-error",
-          error: message.error,
-          stderr: stderr.trim() || null,
-        });
+        finish(normalizeJsonRpcError(message.error, stderr));
         return;
       }
       finish({
@@ -113,7 +138,7 @@ export async function callMcpStdio(connector, method, params = {}, options = {})
       jsonrpc: "2.0",
       id: initializeId,
       method: "initialize",
-      params: { protocolVersion: "2025-03-26", clientInfo: { name: "mousecat", version: "0.1.0" } },
+      params: { protocolVersion: "2025-03-26", clientInfo: { name: "mousecat", version: packageVersion() } },
     })}\n`);
     child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: callId, method, params })}\n`);
   });

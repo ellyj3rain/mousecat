@@ -30,6 +30,15 @@ function configWithMockNeo() {
   };
 }
 
+function configWithStaleMockNeo() {
+  const config = configWithMockNeo();
+  config.connectors.neo.env = {
+    ...(config.connectors.neo.env || {}),
+    MOUSECAT_MOCK_MCP_STALE: "1",
+  };
+  return config;
+}
+
 test("connector summaries expose configuration posture without private tool schemas", () => {
   const summary = connectorSummary(configWithMockNeo(), "neo");
 
@@ -103,4 +112,33 @@ test("mousecat.invoke still requires a permit before connector forwarding", asyn
 
   assert.equal(blocked.ok, false);
   assert.equal(blocked.code, "permit-required");
+});
+
+test("stale upstream MCP runtime is a first-class connector boundary result", async () => {
+  const discovered = await discoverConnectorTools(configWithStaleMockNeo(), "neo");
+
+  assert.equal(discovered.ok, false);
+  assert.equal(discovered.code, "connector-runtime-stale");
+  assert.equal(discovered.staleCode, "MCP_RUNTIME_STALE");
+  assert.equal(discovered.restartRequired, true);
+  assert.equal(discovered.connector.upstream, "neo");
+  assert.match(discovered.upstreamMessage, /MCP_RUNTIME_STALE/u);
+  assert.equal(JSON.stringify(discovered).includes("inputSchema"), false);
+});
+
+test("mousecat.invoke surfaces stale Neo runtime after permit checks", async () => {
+  const runtime = createMousecatRuntime({ config: configWithStaleMockNeo() });
+  const invoked = await runtime.handleTool("mousecat.invoke", {
+    upstream: "neo",
+    capability: "neo.echo",
+    payload: { text: "hello" },
+    permit: { profileId: "tool-invocation" },
+  });
+
+  assert.equal(invoked.ok, false);
+  assert.equal(invoked.code, "connector-runtime-stale");
+  assert.equal(invoked.restartRequired, true);
+  assert.equal(invoked.staleCode, "MCP_RUNTIME_STALE");
+  assert.match(invoked.upstreamMessage, /MCP_RUNTIME_STALE/u);
+  assert.equal(invoked.connector.reason, "external-mcp-tool-call-ready");
 });

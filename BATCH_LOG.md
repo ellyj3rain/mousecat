@@ -213,3 +213,125 @@
 - `git diff --check`
 
 *Version:* `0.1.0`.
+
+## [A10.1] | 2026-07-04 02:04 UTC / 19:04 PDT | PR documentation runner governance hardening
+
+*Scope:* Apply the Marshmallow Commons open-source governance direction to Mousecat by adding a clean-room documentation consistency runner to the public readiness gate.
+
+*Deliverables:*
+- Added the pure PR documentation runner core under `src/core/governance/doc-runner.mjs`.
+- Added `scripts/pr-doc-runner.mjs` and wired `npm run docs:pr` into `npm run pr:ready`.
+- Added node tests for doc-pack completeness, source-change documentation, append-only ledgers, local-only references, path-reference resolution, and reference extraction.
+- Updated README, governance, agent, and CI documentation so the runner is part of the public Mousecat contribution surface.
+- Added `DR-012` to record the governance decision without importing private Neo internals.
+
+*Verification:*
+- `npm run docs:pr -- --all`
+- `npm run pr:ready`
+- `npm audit --audit-level=high`
+- `npm run cd:dry-run`
+- `git diff --check`
+
+*Version:* `0.1.0`.
+
+## [A10.2] | 2026-07-04 02:17 UTC / 19:17 PDT | Kohai-aware governance alignment
+
+*Scope:* Bring Mousecat's public governance floor up to the current Neo/GZDS Kohai version standard without importing private Neo implementation code.
+
+*Deliverables:*
+- Added `src/core/governance/version.mjs` as the Mousecat-owned version primitive for parsing the root odometer, computing tier movement, enforcing caps, and projecting npm metadata.
+- Added tests for the four-coordinate root form, npm projection, and Kohai rollover.
+- Changed root `VERSION` to `0.1.1.0-alpha` and package metadata to the npm projection `0.1.1-alpha`.
+- Updated the governance floor and docs checks to reject malformed root versions, cap violations, and package projection drift.
+- Routed MCP server and client identity through package metadata instead of hardcoded version strings.
+- Updated README, governance, session state, and decision/finding ledgers to record the Kohai standard.
+
+*Verification:*
+- `node --test test/version.test.mjs`
+- `npm run pr:ready`
+- `npm audit --audit-level=high`
+- `npm run cd:dry-run`
+- `git diff --check`
+
+*Version:* `0.1.0` -> `0.1.1.0-alpha`; package projection `0.1.1-alpha` (governance maturation -> Kohai).
+
+## [A10.3] | 2026-07-04 02:26 UTC / 19:26 PDT | PolyForm Perimeter license supersession
+
+*Scope:* Supersede Mousecat's MPL-2.0 posture with PolyForm Perimeter 1.0.0 and wire the license into the public readiness floor.
+
+*Deliverables:*
+- Replaced `LICENSE` with Mousecat's required notice plus the official PolyForm Perimeter License 1.0.0 text and URL.
+- Updated package metadata from `MPL-2.0` to `SEE LICENSE IN LICENSE`.
+- Changed root `VERSION` to `0.1.2.0-alpha` and package metadata to the npm projection `0.1.2-alpha`.
+- Updated governance floor, docs check, README, governance, CI, AGENTS, and session state to make PolyForm Perimeter the active Mousecat license posture.
+- Added `DR-014` and `F-005` to record the license supersession and the stale MPL gate risk.
+
+*Verification:*
+- `node --test test/version.test.mjs`
+- `npm run pr:ready`
+- `npm audit --audit-level=high`
+- `npm run cd:dry-run`
+- `git diff --check`
+
+*Version:* `0.1.1.0-alpha` -> `0.1.2.0-alpha`; package projection `0.1.2-alpha` (license/governance policy supersession -> Kohai).
+
+## [A10.4] | 2026-07-04 02:28 UTC / 19:28 PDT | Local governance hook installation
+
+*Scope:* Add Mousecat-owned local Git hooks so governance checks run before commits and pushes from the workstation.
+
+*Deliverables:*
+- Added `scripts/install-hooks.mjs` with source-owned `commit-msg`, `pre-commit`, and `pre-push` hook bodies plus `--check` verification.
+- Added `test/install-hooks.test.mjs` for hook bodies, install behavior, and stale-hook detection.
+- Added package scripts `hooks:install` and `hooks:check`.
+- Installed the hooks in the local checkout.
+- Updated README, governance, CI, AGENTS, and session state to document local hook installation and remote CI authority.
+- Added `DR-015` and `F-006` to record the hook posture and the previous drift risk.
+
+*Verification:*
+- `npm run hooks:install`
+- `npm run hooks:check`
+- `node --test test/install-hooks.test.mjs test/version.test.mjs`
+- `npm run pr:ready`
+- `npm audit --audit-level=high`
+- `npm run cd:dry-run`
+- `git diff --check`
+
+*Version:* `0.1.2.0-alpha` -> `0.1.3.0-alpha`; package projection `0.1.3-alpha` (local governance automation -> Kohai).
+
+## [A10.5] | 2026-07-04 03:02 UTC / 20:02 PDT | Stale upstream MCP runtime boundary hardening
+
+*Scope:* Make the live Neo-primary tool path actionable without importing private Neo internals by recognizing upstream MCP stale-runtime failures at Mousecat's public connector boundary.
+
+*Deliverables:*
+- Added `connector-runtime-stale` normalization in `src/core/mcp-client.mjs` for JSON-RPC errors that carry or mention `MCP_RUNTIME_STALE`.
+- Propagated `restartRequired`, `staleCode`, and `upstreamMessage` through the `mousecat.invoke` envelope so hosts can restart the upstream connector without digging through nested error data.
+- Extended the mock MCP fixture to reproduce a stale runtime after `initialize`.
+- Added connector tests for stale discovery and stale permitted invocation.
+- Updated README, governance, CI notes, session state, decision, and finding records to describe the boundary behavior.
+
+*Verification:*
+- `node --test test/connectors.test.mjs test/runtime.test.mjs`
+- `npm run pr:ready`
+- `npm audit --audit-level=high`
+- `npm run cd:dry-run`
+- `git diff --check`
+
+*Version:* `0.1.3.0-alpha` -> `0.1.4.0-alpha`; package projection `0.1.4-alpha` (connector/runtime boundary governance maturation -> Kohai).
+
+## [A10.6] | 2026-07-04 05:30 UTC / 22:30 PDT | Private downstream secret-scan portability
+
+*Scope:* Keep Mousecat's named secret-scan gate portable across the public upstream and private Ground Zero Solutions downstream without requiring a marketplace-action license.
+
+*Deliverables:*
+- Replaced `gitleaks/gitleaks-action@v3` with a pinned direct install of the open-source Gitleaks CLI in `.github/workflows/secret-scan.yml`.
+- Documented that the secret scan is a shared public/private downstream check and does not require private secrets or action licensing.
+- Corrected session state so branch protection is pending on the private downstream until the baseline check set is green.
+- Updated Kohai/package metadata for the CI governance portability maturation.
+
+*Verification:*
+- `npm run pr:ready`
+- `npm audit --audit-level=high`
+- `npm run hooks:check`
+- `git diff --check`
+
+*Version:* `0.1.4.0-alpha` -> `0.1.5.0-alpha`; package projection `0.1.5-alpha` (CI governance portability -> Kohai).
