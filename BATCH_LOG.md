@@ -1742,3 +1742,32 @@ gate while separately proposing `actions/setup-node` 7 and CodeQL action 4.37.4.
 Their exact workflow-only updates are included in this already-ratified
 publication batch; the older requests can close as superseded. The runtime Node
 versions remain 22 and 20, with no workflow permission or trigger changes.
+
+## A19.9.1 - Observatory surface repair
+
+*Timestamp:* 2026-09-27 19:41 UTC / 12:41 PDT
+
+The operator identified four basic failures in the first multi-view surface:
+perceptual information covered the world, the fixed person inspector consumed
+screen width, live controls expired after three seconds, and ended-session ages
+continued advancing. Telemetry now occupies a compact shelf below each image.
+The inspector can yield its full width and the client retains that choice,
+panel size and selected telemetry groups.
+
+Command liveness is separate from ideal frame freshness. A delayed running
+frame remains controllable for thirty seconds, and an explicitly paused session
+retains its resume path at any age. Ended and disconnected sessions remain
+write-closed. Ended views freeze final-frame, retained-frame and inspection
+timing, stop the half-second age interval and reduce successor discovery from
+ten polls per second to one.
+
+Focused native-view verification passes 62 assertions with two expected Windows
+symlink skips. Headless Chrome at 1600 by 1050 and 760 by 900 proves that
+telemetry begins exactly below the image, hiding the inspector expands the stage
+from 1000 to 1538 pixels, preferences survive reload, final timing does not move,
+long-paused controls remain enabled, and neither viewport overflows. The complete
+`npm run pr:ready` gate passes 293 Node tests with two expected Windows symlink
+skips, 16 GitHub classifier tests, every runtime smoke, governance, documentation
+and strict hygiene. The rebuilt installed Desktop and restarted port 4317 service
+pass the same browser checks. Version remains `1.6.0.0-alpha`; this repairs the
+existing A19.9 surface.

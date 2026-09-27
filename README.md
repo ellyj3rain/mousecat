@@ -205,16 +205,20 @@ The Simulation route accepts a locally registered `mousecat.native-view/1`
 producer without turning Mousecat into the simulation owner. It verifies native
 PNG identity, source session and monotonic cursors, then displays the current
 engine frame beside up to four retained activity views. The screens share one
-adjustable size, remain equal, and can be hidden or restored individually.
-Every screen keeps its frame age visible.
+adjustable size, remain equal, and can be hidden or restored individually. The
+person inspector can release its full width back to the screens, and that choice,
+panel size and visible data groups persist in the client profile. Every screen
+keeps its frame age visible.
 
 A producer may attach bounded Activity, Attention, Memory and Needs groups to a
-retained frame. Each overlay carries its own source sample time, so the surface
-reports any lag between recorded state and pixels. Operators can toggle each
-group without changing the simulation. Camera, time, person selection, native
-panel and cognition requests continue through the declared command pack;
-view sizing and visibility remain client-only. Ended and stale runs stay
-inspectable but accept no source command.
+retained frame. Compact telemetry sits beneath the pixels and carries its own
+source sample time, so the surface reports any lag without covering the world.
+Operators can toggle each group without changing the simulation. Camera, time,
+person selection, native panel and cognition requests continue through the
+declared command pack; view sizing and visibility remain client-only. Delayed
+running frames remain controllable for a bounded interval, deliberate pauses can
+always resume, and ended runs freeze their final timing while remaining
+inspectable.
 
 ## Native World Runtime
 

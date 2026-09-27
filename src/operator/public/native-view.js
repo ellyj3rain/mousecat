@@ -6,6 +6,17 @@ function node(tag, text, parent, className) {
   return value;
 }
 
+function readPreference(name, fallback) {
+  try {
+    const value = localStorage.getItem(`mousecat.native-view.${name}`);
+    return value === null ? fallback : JSON.parse(value);
+  } catch { return fallback; }
+}
+
+function writePreference(name, value) {
+  try { localStorage.setItem(`mousecat.native-view.${name}`, JSON.stringify(value)); } catch { /* Preferences are optional. */ }
+}
+
 export function installNativeView(root) {
   const heading = node("header", undefined, root, "native-heading");
   const identity = node("div", undefined, heading);
@@ -14,6 +25,9 @@ export function installNativeView(root) {
   const sessionLabel = node("label", "Session ", heading);
   const sessions = node("select", undefined, sessionLabel); sessions.setAttribute("aria-label", "Simulation session");
   const connection = node("strong", "Connecting", heading, "native-connection"); connection.setAttribute("role", "status");
+  const layoutActions = node("div", undefined, heading, "native-layout-actions");
+  const inspectorToggle = node("button", "Hide details", layoutActions, "button secondary-button native-layout-toggle");
+  inspectorToggle.type = "button"; inspectorToggle.setAttribute("aria-controls", "native-person-inspector");
   const body = node("div", undefined, root, "native-body");
   const stage = node("div", undefined, body, "native-stage");
   const context = node("div", undefined, stage, "native-view-context");
@@ -26,19 +40,25 @@ export function installNativeView(root) {
   const observatoryTools = node("div", undefined, stage, "native-observatory-tools");
   const sizeControl = node("label", undefined, observatoryTools, "native-panel-size");
   node("span", "Panel size", sizeControl);
-  const panelSize = node("input", undefined, sizeControl); panelSize.type = "range"; panelSize.id = "native-observatory-panel-size"; panelSize.min = "280"; panelSize.max = "640"; panelSize.step = "40"; panelSize.value = "320";
+  const panelSize = node("input", undefined, sizeControl); panelSize.type = "range"; panelSize.id = "native-observatory-panel-size"; panelSize.min = "280"; panelSize.max = "640"; panelSize.step = "40";
+  const preferredSize = Number(readPreference("panel-size", 320));
+  panelSize.value = Number.isInteger(preferredSize) && preferredSize >= 280 && preferredSize <= 640 && preferredSize % 40 === 0 ? preferredSize : 320;
   panelSize.setAttribute("aria-label", "Observatory panel size");
-  const panelSizeValue = node("output", "320 px", sizeControl); panelSizeValue.htmlFor = panelSize.id;
+  const panelSizeValue = node("output", `${panelSize.value} px`, sizeControl); panelSizeValue.htmlFor = panelSize.id;
   const viewChooser = node("div", undefined, observatoryTools, "native-observatory-choice");
   node("span", "Views", viewChooser); const viewToggles = node("div", undefined, viewChooser, "native-observatory-toggles");
   const overlayChooser = node("div", undefined, observatoryTools, "native-observatory-choice");
   node("span", "Overlay", overlayChooser); const overlayToggles = node("div", undefined, overlayChooser, "native-observatory-toggles");
-  const visibleOverlays = new Set(["attention"]);
-  for (const [id, label] of [["activity", "Activity"], ["attention", "Attention"], ["memory", "Memory"], ["needs", "Needs"]]) {
+  const overlayChoices = [["activity", "Activity"], ["attention", "Attention"], ["memory", "Memory"], ["needs", "Needs"]];
+  const knownOverlays = new Set(overlayChoices.map(([id]) => id));
+  const savedOverlays = readPreference("overlays", ["attention"]);
+  const visibleOverlays = new Set(Array.isArray(savedOverlays) ? savedOverlays.filter(id => knownOverlays.has(id)) : ["attention"]);
+  for (const [id, label] of overlayChoices) {
     const value = node("button", label, overlayToggles, "native-observatory-toggle"); value.type = "button"; value.dataset.overlay = id;
     value.setAttribute("aria-pressed", String(visibleOverlays.has(id)));
     value.addEventListener("click", () => {
       if (visibleOverlays.has(id)) visibleOverlays.delete(id); else visibleOverlays.add(id);
+      writePreference("overlays", [...visibleOverlays]);
       value.setAttribute("aria-pressed", String(visibleOverlays.has(id))); if (current) renderFeeds(current);
     });
   }
@@ -46,13 +66,14 @@ export function installNativeView(root) {
   stage.style.setProperty("--native-panel-size", `${panelSize.value}px`);
   panelSize.addEventListener("input", () => {
     stage.style.setProperty("--native-panel-size", `${panelSize.value}px`); panelSizeValue.textContent = `${panelSize.value} px`;
+    writePreference("panel-size", Number(panelSize.value));
   });
   const primaryPanel = node("article", undefined, panelGrid, "native-observatory-panel native-observatory-primary");
   const viewport = node("div", undefined, primaryPanel, "native-viewport");
   viewport.tabIndex = 0; viewport.setAttribute("aria-label", "Native simulation view. Arrow keys move the camera; mouse wheel or plus and minus zoom; space pauses or resumes.");
   const picture = node("img", undefined, viewport); picture.alt = "Native simulation frame"; picture.hidden = true; picture.draggable = false;
   const empty = node("p", "Waiting for the simulation feed.", viewport, "native-empty");
-  const primaryOverlay = node("div", undefined, viewport, "native-panel-overlay"); primaryOverlay.hidden = true;
+  const primaryOverlay = node("div", undefined, primaryPanel, "native-panel-telemetry"); primaryOverlay.hidden = true;
   const primaryCaption = node("div", undefined, primaryPanel, "native-panel-caption");
   const primaryLabel = node("strong", "Current camera", primaryCaption), primaryAge = node("span", "No frame", primaryCaption);
   const noScreens = node("p", "Choose a view above to restore the observatory.", panelGrid, "native-observatory-empty"); noScreens.hidden = true;
@@ -81,8 +102,10 @@ export function installNativeView(root) {
   button("End run", "stop");
   const commandStatus = node("p", "", stage, "native-command-status"); commandStatus.setAttribute("role", "status");
   const summary = node("p", "", stage, "native-summary");
-  const inspector = node("aside", undefined, body, "native-inspector"); inspector.setAttribute("aria-label", "People inspector");
-  const personTitle = node("h3", "Inspect person", inspector, "native-person-title");
+  const inspector = node("aside", undefined, body, "native-inspector"); inspector.id = "native-person-inspector"; inspector.setAttribute("aria-label", "People inspector");
+  const inspectorTitlebar = node("div", undefined, inspector, "native-inspector-titlebar");
+  const personTitle = node("h3", "Inspect person", inspectorTitlebar, "native-person-title");
+  const inspectorClose = node("button", "\u00d7", inspectorTitlebar, "native-inspector-close"); inspectorClose.type = "button"; inspectorClose.setAttribute("aria-label", "Hide person details");
   const personHeading = node("div", undefined, inspector, "native-person-heading");
   const filter = node("input", undefined, personHeading); filter.type = "search"; filter.placeholder = "Find a person"; filter.setAttribute("aria-label", "Find a person");
   const people = node("select", undefined, personHeading); people.setAttribute("aria-label", "Inspect person");
@@ -113,6 +136,15 @@ export function installNativeView(root) {
   const settingsDraft = node("p", "", cognitionControls, "native-source");
   const settingsStatus = node("p", "", cognitionControls, "native-command-status"); settingsStatus.setAttribute("role", "status");
   const cognitionBody = node("div", undefined, cognition);
+  let inspectorVisible = readPreference("inspector", true) !== false;
+  function setInspectorVisible(visible) {
+    inspectorVisible = visible; inspector.hidden = !visible; body.classList.toggle("native-inspector-hidden", !visible);
+    inspectorToggle.textContent = visible ? "Hide details" : "Show details";
+    inspectorToggle.setAttribute("aria-expanded", String(visible)); writePreference("inspector", visible);
+  }
+  inspectorToggle.addEventListener("click", () => setInspectorVisible(!inspectorVisible));
+  inspectorClose.addEventListener("click", () => setInspectorVisible(false));
+  setInspectorVisible(inspectorVisible);
   let active = false, requestedId = null, sessionId = null, current = null, selected = null, explicitPerson = false;
   let timer, controller, generation = 0, imageKey = "", personSignature = "", peopleSignature = "";
   let waiting = null, posting = false, lastResult = null, imagesReceived = 0, rateStarted = performance.now();
@@ -240,6 +272,10 @@ export function installNativeView(root) {
   people.addEventListener("change", () => { selected = people.value; explicitPerson = true; renderPerson(); renderCognition(); void send("select", { personId: selected }); });
 
   function ageText(capturedAtUnixMs) {
+    if (current?.view.state === "ended") {
+      const offset = Math.max(0, current.view.capturedAtUnixMs - capturedAtUnixMs);
+      return offset < 1000 ? "final frame" : `${(offset / 1000).toFixed(1)}s before final`;
+    }
     const age = Math.max(0, Date.now() - capturedAtUnixMs);
     return age < 1000 ? "just received" : `${(age / 1000).toFixed(1)}s old`;
   }
@@ -254,7 +290,10 @@ export function installNativeView(root) {
       const section = node("section", undefined, container, "native-overlay-group"); section.dataset.overlay = group.id;
       node("strong", group.label, section);
       const rows = node("dl", undefined, section);
-      for (const row of group.rows) { node("dt", row.label, rows); node("dd", row.value, rows); }
+      for (const row of group.rows) {
+        const item = node("div", undefined, rows, "native-overlay-value"); item.title = `${row.label}: ${row.value}`;
+        node("dt", row.label, item); node("dd", row.value, item);
+      }
     }
     if (groups.length && lag >= 100) node("small", `State ${(lag / 1000).toFixed(1)}s before frame`, container, "native-overlay-age");
     container.hidden = groups.length === 0;
@@ -307,7 +346,7 @@ export function installNativeView(root) {
         const card = node("article", undefined, panelGrid, "native-observatory-panel native-feed-card");
         const media = node("div", undefined, card, "native-panel-media");
         const image = node("img", undefined, media); image.alt = ""; image.decoding = "async"; image.draggable = false;
-        const overlay = node("div", undefined, media, "native-panel-overlay"); overlay.hidden = true;
+        const overlay = node("div", undefined, card, "native-panel-telemetry"); overlay.hidden = true;
         const caption = node("div", undefined, card, "native-panel-caption");
         const label = node("strong", "", caption), age = node("span", "", caption);
         value = { card, image, overlay, label, age, key: "", capturedAtUnixMs: 0 }; feedCards.set(feed.id, value);
@@ -441,38 +480,45 @@ export function installNativeView(root) {
     if (!active || !current) return;
     refreshFeedAges();
     const view = current.view, age = Math.max(0, Date.now() - view.capturedAtUnixMs);
-    const live = age < 3000 && view.state !== "ended" && !feedError;
-    connection.textContent = feedError ? "Feed unavailable" : view.state === "ended" ? "Run ended" : age >= 10000 ? "Disconnected" : age >= 3000 ? "Stale frame" : view.state === "paused" ? "Paused" : "Running";
-    connection.dataset.state = feedError ? "stale" : view.state === "ended" ? "ended" : age >= 3000 ? "stale" : "live";
-    imageAge.textContent = `Frame ${age < 1000 ? "just received" : `${(age / 1000).toFixed(1)}s old`}`;
-    for (const value of controlButtons) value.disabled = !live || posting;
+    const commandable = view.state !== "ended" && !feedError && (view.state === "paused" || age < 30000);
+    connection.textContent = feedError ? "Feed unavailable" : view.state === "ended" ? "Run ended" : view.state === "paused" ? "Paused" : age >= 30000 ? "Disconnected" : age >= 3000 ? "Delayed frame" : "Running";
+    connection.dataset.state = feedError ? "stale" : view.state === "ended" ? "ended" : view.state === "paused" ? "paused" : age >= 3000 ? "stale" : "live";
+    imageAge.textContent = view.state === "ended" ? "Final frame" : "Frame " + (age < 1000 ? "just received" : (age / 1000).toFixed(1) + "s old");
+    if (view.state === "ended") deliveryRate.textContent = "Run complete";
+    for (const value of controlButtons) value.disabled = !commandable || posting;
     people.disabled = !view.people.length || posting;
     focus.disabled ||= !selected;
     panelOpen.disabled ||= !selected || !view.panels?.length;
     panelClose.disabled ||= !selected || !view.panels?.length;
-    applyCognition.disabled = !live || posting || !view.people.find(person => person.id === selected)?.cognition
+    applyCognition.disabled = !commandable || posting || !view.people.find(person => person.id === selected)?.cognition
       || !settingsValid() || ["pending", "sending"].includes(cognitionRequest?.status);
     pause.textContent = view.state === "paused" ? "Resume" : "Pause";
     automatic.setAttribute("aria-pressed", String(view.camera?.mode === "automatic"));
     zoomControls.hidden = !view.viewport;
     if (view.viewport) {
       const { zoom, targetZoom, zoomLevels } = view.viewport;
-      zoomLabel.textContent = `${Math.round(100 / zoom)}%`;
-      zoomLabel.title = `Camera zoom ${zoom.toFixed(2)}; target ${targetZoom.toFixed(2)}`;
+      zoomLabel.textContent = Math.round(100 / zoom) + "%";
+      zoomLabel.title = "Camera zoom " + zoom.toFixed(2) + "; target " + targetZoom.toFixed(2);
       zoomOut.disabled ||= targetZoom >= zoomLevels.at(-1) - 0.0001;
       zoomIn.disabled ||= targetZoom <= zoomLevels[0] + 0.0001;
     }
     const inspection = view.inspection;
     if (!inspection?.sequence) inspectionAge.textContent = inspection?.message || "Person information has not been sampled.";
     else {
-      const detailAge = Math.max(0, Date.now() - inspection.capturedAtUnixMs) / 1000;
-      inspectionAge.textContent = `Person information: ${inspection.status}${detailAge >= 3 ? " · stale" : ""} · ${detailAge.toFixed(1)}s old${inspection.omittedPeople ? ` · ${inspection.omittedPeople} people outside this sample` : ""}${inspection.omittedEvents ? ` · ${inspection.omittedEvents} events omitted` : ""}`;
-      if (inspection.status !== "available" && inspection.message) inspectionAge.textContent += ` · ${inspection.message}`;
+      const referenceTime = view.state === "ended" ? view.capturedAtUnixMs : Date.now();
+      const detailAge = Math.max(0, referenceTime - inspection.capturedAtUnixMs) / 1000;
+      const timing = view.state === "ended" ? (detailAge < 1 ? "final sample" : detailAge.toFixed(1) + "s before final") : detailAge.toFixed(1) + "s old";
+      inspectionAge.textContent = "Person information: " + inspection.status
+        + (view.state !== "ended" && detailAge >= 3 ? " \u00b7 stale" : "") + " \u00b7 " + timing
+        + (inspection.omittedPeople ? " \u00b7 " + inspection.omittedPeople + " people outside this sample" : "")
+        + (inspection.omittedEvents ? " \u00b7 " + inspection.omittedEvents + " events omitted" : "");
+      if (inspection.status !== "available" && inspection.message) inspectionAge.textContent += " \u00b7 " + inspection.message;
     }
   }
 
   function update(next) {
     current = next; const view = next.view;
+    setFreshnessTimer(view.state !== "ended");
     title.textContent = next.binding.label || view.title;
     summary.textContent = view.summary;
     const cameraNames = (view.camera?.personIds || []).map(id => view.people.find(person => person.id === id)?.label).filter(Boolean);
@@ -497,7 +543,8 @@ export function installNativeView(root) {
   }
 
   async function send(action, values = {}) {
-    if (!active || !current || posting || feedError || current.view.state === "ended" || Date.now() - current.view.capturedAtUnixMs >= 3000) return;
+    const age = current ? Date.now() - current.view.capturedAtUnixMs : Infinity;
+    if (!active || !current || posting || feedError || current.view.state === "ended" || (current.view.state !== "paused" && age >= 30000)) return;
     if (action === "cognition") {
       if (!settingsValid() || !current.view.people.find(person => person.id === selected)?.cognition || ["pending", "sending"].includes(cognitionRequest?.status)) return;
       cognitionRequest = { values: { ...values }, sequence: null, status: "sending", message: "Sending settings request.",
@@ -605,11 +652,12 @@ export function installNativeView(root) {
       feedError = null;
       update(next);
       const elapsed = performance.now() - rateStarted;
-      if (elapsed >= 2000) { deliveryRate.textContent = `${(1000 * imagesReceived / elapsed).toFixed(1)} images/s`; imagesReceived = 0; rateStarted = performance.now(); }
+      if (next.view.state === "ended") deliveryRate.textContent = "Run complete";
+      else if (elapsed >= 2000) { deliveryRate.textContent = (1000 * imagesReceived / elapsed).toFixed(1) + " images/s"; imagesReceived = 0; rateStarted = performance.now(); }
       if (next.view.state === "ended" || next.connection === "disconnected") {
         const successor = await findSuccessor(signal);
         if (successor) { autoSelect(successor.id); delay = 0; }
-        else delay = 100;
+        else delay = 1000;
       }
     } catch (error) {
       if (expected !== generation || error.name === "AbortError") return;
@@ -622,11 +670,15 @@ export function installNativeView(root) {
       if (active && expected === generation) timer = setTimeout(() => void poll(expected), delay);
     }
   }
-  const ageTimer = setInterval(freshness, 500);
-  window.addEventListener("pagehide", () => { clearInterval(ageTimer); close(); });
+  let ageTimer = null;
+  function setFreshnessTimer(enabled) {
+    if (enabled && ageTimer === null) ageTimer = setInterval(freshness, 500);
+    else if (!enabled && ageTimer !== null) { clearInterval(ageTimer); ageTimer = null; }
+  }
+  window.addEventListener("pagehide", () => close());
   function close() {
     active = false; generation += 1; clearTimeout(timer); controller?.abort(); drag = null;
-    postController?.abort(); postController = null; posting = false;
+    postController?.abort(); postController = null; posting = false; setFreshnessTimer(false);
   }
   return {
     open(id) {

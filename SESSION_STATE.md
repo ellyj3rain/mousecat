@@ -1,24 +1,32 @@
 | Document | Mousecat Session State |
 |---|---|
 | Version | 1.6.0.0-alpha |
-| Timestamp | 2026-09-27 09:43 UTC |
-| Status | ACTIVE - A19.9 native simulation observatory implemented and verified live; complete repository readiness passes; changes remain unpublished. |
+| Timestamp | 2026-09-27 19:41 UTC |
+| Status | ACTIVE - A19.9.1 observatory surface repair implemented, installed and fully verified. |
 
 # Session State
 
 ## Current State
 
-A19.9 replaces the unequal native-view strip with an adjustable equal-panel
-observatory. The current engine frame and retained activity captures can be
-hidden or restored independently. Activity, attention, memory and needs remain
-separate overlay groups, with source sample lag shown against each frame rather
-than presenting older inspection as simultaneous state. Frame and inspection
-ages, immutable native images, the right-side person inspector and the existing
-camera/time/cognition command boundary remain intact. Watching or configuring
-the observatory creates no operator answer, scenario ratification or training
-row. The installed Desktop and headless browser pass the active multi-view
-interaction checks. The complete `npm run pr:ready` gate passes 291 Node tests,
-16 GitHub classifier tests, every runtime smoke and all repository checks.
+A19.9.1 repairs the first observatory composition. Activity, attention, memory
+and needs now occupy a compact telemetry shelf below each image instead of
+covering world pixels. The person inspector can be hidden from either the
+workspace heading or its own close control; the stage immediately receives its
+width. Inspector visibility, panel size and telemetry choices persist locally.
+Ended sessions report final-frame and before-final timing without an advancing
+age interval, and successor discovery backs off to one second. Delayed running
+frames remain commandable for thirty seconds, while a deliberate pause retains
+its resume path regardless of frame age. Ended and disconnected runs remain
+write-closed. Desktop and 760-pixel browser checks prove non-overlap, width
+recovery, preference persistence, frozen final timing and no horizontal
+overflow. The installed Desktop was rebuilt, its shared service restarted, and
+the same checks passed against port 4317. Watching or configuring the observatory
+creates no operator answer, scenario ratification or training row. The complete
+`npm run pr:ready` gate passes 293 Node tests with two expected Windows symlink
+skips, 16 GitHub classifier tests, every runtime smoke and all repository checks.
+
+A19.9 established the adjustable equal-panel observatory and source-timed
+perceptual projections. Its immutable frame and source authority remain intact.
 
 A19.8 adds a shared declarative map and timeline to ML review under explicit
 operator authorization. Scene data and teaching rules remain caller-owned.

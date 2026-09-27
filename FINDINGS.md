@@ -532,3 +532,20 @@ optional source-timed overlays. The client renders one equal adjustable panel
 grid, independent screen visibility and four minimal overlay switches. A stable
 view follows its successor only after the successor has a complete frame, and
 each overlay reports its lag or remains absent when sampled after the pixels.
+
+## F-061 | 2026-09-27 19:41 UTC / 12:41 PDT | The first observatory displaced the world and expired its own controls
+
+*Severity:* High
+
+*Finding:* The first equal-panel surface placed dense state cards over the native
+pixels and made the person inspector a permanent second column. It also equated
+three-second frame freshness with command liveness, so ordinary delivery delay
+or a deliberate pause disabled control, and it kept visible age timers advancing
+after a run ended. The ended-session successor loop continued at ten polls per
+second even when no successor existed.
+
+*Resolution:* A19.9.1 moves bounded telemetry beneath each image, makes the
+inspector collapsible with persistent client preferences, separates delayed
+frames from disconnection, preserves Resume for an explicit pause, freezes final
+relative timing and stops its age interval, and backs ended-session successor
+discovery down to one poll per second.

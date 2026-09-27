@@ -5,6 +5,8 @@ import { validCognitionControls, validateCognitionView } from "./cognition-view.
 
 const MAX_JSON = 1024 * 1024;
 const MAX_IMAGE = 16 * 1024 * 1024;
+const LIVE_FRAME_MS = 3000;
+const DISCONNECTED_FRAME_MS = 30000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const HASH = /^[0-9a-f]{64}$/u;
 const ACTIONS = { pause: [], resume: [], speed: ["value"], zoom: ["value"], pan: ["dx", "dy"], focus: ["personId"], auto: [], stop: [], select: ["personId"], panel: ["panelId", "personId", "visible"], cognition: ["opponentShare", "opportunitiesPerHour", "maxDepth"] };
@@ -256,7 +258,7 @@ export function createNativeViews(config = {}) {
     const ageMs = Math.max(0, Date.now() - view.capturedAtUnixMs);
     const imageUrl = descriptor => `/api/native-views/${id}/image?binding=${bound.bindingId}&file=${encodeURIComponent(descriptor.file)}&sha256=${descriptor.sha256}`;
     return { schema: "mousecat.native-view-response/1", binding: { ...publicBinding(bound), bindingId: bound.bindingId }, view,
-      connection: view.state === "ended" ? "ended" : ageMs > 10000 ? "disconnected" : ageMs > 3000 ? "stale" : "live", ageMs,
+      connection: view.state === "ended" ? "ended" : view.state === "paused" ? "stale" : ageMs > DISCONNECTED_FRAME_MS ? "disconnected" : ageMs > LIVE_FRAME_MS ? "stale" : "live", ageMs,
       imageUrl: imageUrl(view.image), feedImages: (view.feeds || []).map(feed => ({ id: feed.id, imageUrl: imageUrl(feed.image) })) };
   }
   async function image(id, params) {
@@ -285,7 +287,7 @@ export function createNativeViews(config = {}) {
       requireValue(previous.signature === signature, "native-request-id-reused");
       return previous.result;
     }
-    requireValue(current.connection === "live" && view.state !== "ended", "native-view-not-live");
+    requireValue(view.state !== "ended" && (current.connection !== "disconnected" || view.state === "paused"), "native-view-not-live");
     const template = nativeViewCommandPack[payload.action];
     requireValue(template?.operatorSafe === true, "native-command-not-allowed");
     object(payload, ["bindingId", "sessionId", "requestId", "action", ...template.fields]);

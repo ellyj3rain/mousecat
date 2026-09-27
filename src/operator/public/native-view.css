@@ -1,14 +1,17 @@
 .native-workspace { min-height: 0; display: flex; flex-direction: column; flex: 1; padding: 12px 18px 16px; gap: 12px; }
 .native-heading { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
 .native-heading h2 { margin: 0 0 2px; font-size: 19px; }
-.native-heading > div { margin-right: auto; }
+.native-heading > div:first-child { margin-right: auto; }
 .native-heading a { color: var(--text-muted); font-size: 12px; }
 .native-heading label { font-size: 13px; color: var(--text-muted); }
+.native-layout-actions { display: flex; align-items: center; gap: 6px; }
+.native-layout-toggle { min-height: 32px; padding: 6px 9px; font-size: 12px; white-space: nowrap; }
 .native-workspace select, .native-workspace input { background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: 5px; padding: 7px 9px; max-width: 100%; }
 .native-connection { font-size: 13px; color: var(--text-muted); }
 .native-connection[data-state="live"] { color: var(--success); }
 .native-connection[data-state="stale"] { color: var(--danger); }
 .native-body { min-height: 0; flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 36vw, 520px); gap: 18px; }
+.native-body.native-inspector-hidden { grid-template-columns: minmax(0, 1fr); }
 .native-stage { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .native-view-context { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 24px; margin-bottom: 10px; }
 .native-camera { flex: 1 1 230px; }
@@ -35,15 +38,15 @@
 .native-viewport:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .native-viewport img, .native-panel-media > img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: contain; user-select: none; }
 .native-empty { color: #d6dce2; padding: 30px; text-align: center; max-width: 500px; }
-.native-panel-overlay { position: absolute; z-index: 2; inset: auto 6px 6px; display: grid; grid-template-columns: repeat(auto-fit, minmax(116px, 1fr)); gap: 5px; pointer-events: none; }
-.native-panel-overlay[hidden] { display: none; }
-.native-overlay-group { min-width: 0; padding: 5px 6px; color: #f4f1e8; background: rgba(10, 12, 13, .82); border: 1px solid rgba(255, 255, 255, .15); border-radius: 4px; backdrop-filter: blur(3px); }
-.native-panel-overlay[data-count="1"] .native-overlay-group { grid-column: 1 / -1; }
-.native-overlay-group > strong { display: block; margin-bottom: 3px; font-size: 9px; line-height: 1.1; text-transform: uppercase; letter-spacing: .06em; }
-.native-overlay-group dl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 6px; margin: 0; font-size: 9px; line-height: 1.25; }
-.native-overlay-group dt { min-width: 0; overflow: hidden; color: #c5c3bb; text-overflow: ellipsis; white-space: nowrap; }
-.native-overlay-group dd { max-width: 150px; margin: 0; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
-.native-overlay-age { grid-column: 1 / -1; justify-self: end; padding: 2px 4px; color: #d0cec7; background: rgba(10, 12, 13, .76); border-radius: 3px; font-size: 8px; line-height: 1; }
+.native-panel-telemetry { display: grid; gap: 5px; padding: 6px 8px; color: #f4f1e8; background: #171a1c; border-top: 1px solid rgba(255, 255, 255, .12); }
+.native-panel-telemetry[hidden] { display: none; }
+.native-overlay-group { min-width: 0; display: flex; align-items: center; gap: 8px; }
+.native-overlay-group > strong { flex: none; padding: 2px 5px; color: #dedbd1; background: rgba(255, 255, 255, .07); border-radius: 999px; font-size: 8px; line-height: 1.2; text-transform: uppercase; letter-spacing: .06em; }
+.native-overlay-group dl { min-width: 0; display: flex; flex: 1; flex-wrap: wrap; gap: 3px 9px; margin: 0; font-size: 9px; line-height: 1.35; }
+.native-overlay-value { min-width: 0; display: inline-flex; gap: 4px; }
+.native-overlay-group dt { min-width: 0; overflow: hidden; color: #999e9f; text-overflow: ellipsis; white-space: nowrap; }
+.native-overlay-group dd { min-width: 0; margin: 0; overflow: hidden; color: #f4f1e8; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.native-overlay-age { justify-self: end; color: #999e9f; font-size: 8px; line-height: 1.1; }
 .native-panel-caption { min-height: 29px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 6px 8px; box-sizing: border-box; }
 .native-panel-caption strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
 .native-panel-caption span { flex: none; color: var(--text-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
@@ -58,7 +61,12 @@
 .native-speeds, .native-pan { padding-right: 8px; border-right: 1px solid var(--line); }
 .native-summary, .native-command-status { font-size: 12px; line-height: 1.5; color: var(--text-muted); margin: 3px 0; overflow-wrap: anywhere; }
 .native-command-status[data-state="rejected"] { color: var(--danger); }
-.native-inspector { min-height: 0; border-left: 1px solid var(--line); padding-left: 16px; display: flex; flex-direction: column; }
+.native-inspector { min-height: 0; padding: 12px; display: flex; flex-direction: column; background: color-mix(in srgb, var(--surface) 90%, var(--text) 10%); border: 1px solid var(--line); border-radius: 7px; }
+.native-inspector[hidden] { display: none; }
+.native-inspector-titlebar { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.native-inspector-close { flex: none; width: 30px; height: 30px; padding: 0; color: var(--text-muted); background: transparent; border: 1px solid transparent; border-radius: 5px; font: inherit; font-size: 20px; line-height: 1; cursor: pointer; }
+.native-inspector-close:hover { color: var(--text); border-color: var(--line-strong); }
+.native-inspector-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .native-person-heading { display: grid; gap: 8px; }
 .native-person-title { margin: 0 0 8px; font-size: 16px; line-height: 1.4; overflow-wrap: anywhere; }
 .native-inspection-age, .native-source { font-size: 11px; color: var(--text-muted); margin: 4px 0; line-height: 1.5; overflow-wrap: anywhere; }
@@ -94,7 +102,7 @@
   .native-body { grid-template-columns: 1fr; grid-auto-rows: max-content; overflow-y: auto; }
   .native-stage { min-height: 430px; }
   .native-observatory-grid { flex: none; min-height: 300px; max-height: none; overflow: visible; }
-  .native-inspector { display: block; min-height: 400px; border-left: none; border-top: 1px solid var(--line); padding: 12px 0 0; }
+  .native-inspector { min-height: 400px; }
   .native-person-detail { overflow-y: visible; }
   .native-person-title { position: sticky; top: 0; z-index: 1; padding: 8px 0; background: var(--surface); }
   .native-workspace { padding: 10px; }

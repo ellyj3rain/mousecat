@@ -31,14 +31,16 @@ observations. Filesystem paths remain on the server.
 person sections/events through the installed Desktop's Simulation route. One
 equal-panel observatory combines the current frame with bounded retained
 activity views. The operator adjusts their shared size, hides or restores each
-screen, and independently toggles Activity, Attention, Memory and Needs overlays.
-Overlay data remains bound to the source sample timestamp preserved with that
-frame; frame age and state lag remain visible. These presentation choices do
-not publish simulation commands.
+screen, collapses the person inspector, and independently toggles Activity,
+Attention, Memory and Needs telemetry. Telemetry uses a compact shelf below the
+pixels. Its data remains bound to the source sample timestamp preserved with
+that frame; frame age and state lag remain visible. These presentation choices
+do not publish simulation commands.
 
 The native view preserves frame identity, independent inspection age, source
-camera state and explicit command outcomes. Ended or stale feeds disable new
-commands. The source-owned command pack supports bounded camera, time,
+camera state and explicit command outcomes. Ended feeds disable new commands;
+delayed running frames retain a bounded command interval, and a deliberate pause
+retains its resume path. The source-owned command pack supports bounded camera, time,
 selection, advertised panel and cognition requests. Same-origin requests become
 immutable consecutive command files; publication and native application are
 separate acknowledgements.

@@ -548,7 +548,7 @@ test("an acknowledged request retry returns its receipt after liveness or person
     if (scenario === "ended") view.state = "ended";
     if (scenario === "person departed") view.people = view.people.filter(person => person.id !== payload.personId);
     await f.save(view);
-    if (scenario === "stale") now += 12000;
+    if (scenario === "stale") now += 32000;
     const repeated = await f.adapter.command(f.row.id, payload);
     assert.deepEqual(repeated, first);
     assert.deepEqual(await f.files(), [commandName(1)]);
@@ -575,9 +575,9 @@ test("native command payloads fail closed before any queue publication", async t
   assert.deepEqual(await f.files(), []);
 });
 
-test("ended, stale, disconnected and future frames cannot admit commands", async t => {
-  for (const [name, age, state] of [["ended", 0, "ended"], ["stale", 5000, "running"],
-    ["disconnected", 12000, "running"], ["future", -60000, "running"]]) await t.test(name, async inner => {
+test("ended, disconnected and future frames cannot admit commands", async t => {
+  for (const [name, age, state] of [["ended", 0, "ended"],
+    ["disconnected", 31000, "running"], ["future", -60000, "running"]]) await t.test(name, async inner => {
     const f = await fixture(inner), payload = await f.payload();
     // A fresh adapter distinguishes a stale producer from an ordinary regression.
     const view = manifest(f.row.sessionId, Date.now() - age); view.state = state;
@@ -585,6 +585,20 @@ test("ended, stale, disconnected and future frames cannot admit commands", async
     const adapter = createNativeViews({ registryPath: f.registryPath });
     await assert.rejects(adapter.command(f.row.id, payload));
     assert.deepEqual(await f.files(), []);
+  });
+});
+
+test("delayed running frames and deliberately paused sessions remain controllable", async t => {
+  for (const [name, age, state, connection] of [["delayed", 5000, "running", "stale"],
+    ["long pause", 24 * 60 * 60 * 1000, "paused", "stale"]]) await t.test(name, async inner => {
+    const now = Date.now(), f = await fixture(inner), view = manifest(f.row.sessionId, now - age);
+    view.state = state; await f.save(view);
+    const adapter = createNativeViews({ registryPath: f.registryPath });
+    const snapshot = await adapter.snapshot(f.row.id);
+    assert.equal(snapshot.connection, connection);
+    const result = await adapter.command(f.row.id, { bindingId: snapshot.binding.bindingId, sessionId: f.row.sessionId,
+      requestId: randomUUID(), action: state === "paused" ? "resume" : "pause" });
+    assert.equal(result.status, "requested");
   });
 });
 

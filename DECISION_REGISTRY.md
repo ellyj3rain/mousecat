@@ -598,3 +598,17 @@ of simultaneous viewpoints. A state projection can appear only on pixels
 captured at or after that source sample. Client visibility, size and overlay
 choices do not mutate the simulation. This implementation authorization grants
 no behavioral verdict, dataset admission or teaching label.
+
+## A19.9.1 - The observatory yields space to observation
+
+*Timestamp:* 2026-09-27 19:41 UTC / 12:41 PDT
+
+The operator explicitly required non-occlusive screen information, a toggleable
+right-side inspector, richer use of available information space, controls that
+do not expire prematurely, and timing that stops when a run ends. Perceptual
+telemetry therefore sits outside the pixels. The inspector is optional and its
+width returns to the screen grid. Frame freshness may warn before command
+liveness closes; a deliberate pause always retains its resume command. Ended
+sessions preserve final relative timing and stop their age interval. These are
+shared Mousecat presentation and command-liveness rules and create no simulation
+judgment or dataset admission.
