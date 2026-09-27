@@ -1,7 +1,14 @@
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 
 import { packageVersion } from "./governance/version.mjs";
 import readline from "node:readline";
+
+export const MCP_PROTOCOL_VERSION = "2025-06-18";
+export const HTTP_MCP_TRANSPORTS = Object.freeze(["http", "streamable-http"]);
+export const CANCELLATION_ACK_EXTENSION = "mousecat/cancellation-ack";
+export const CANCELLATION_ACK_SCHEMA = "mousecat.mcp.cancellation-ack/1";
+const CANCELLATION_STATUS_METHOD = "mousecat/cancellation/status";
 
 function safeError(error) {
   return {
@@ -38,6 +45,392 @@ function normalizeJsonRpcError(error, stderr) {
   };
 }
 
+function connectorTransport(connector) {
+  return connector?.transport || "stdio";
+}
+
+export function isHttpMcpTransport(transport) {
+  return HTTP_MCP_TRANSPORTS.includes(transport);
+}
+
+function normalizeHttpMcpUrl(connector) {
+  const raw = connector?.url || connector?.endpoint || connector?.baseUrl;
+  if (!raw) return null;
+  const normalized = String(raw).replace(/\/+$/u, "");
+  return normalized.endsWith("/mcp") ? normalized : `${normalized}/mcp`;
+}
+
+function bearerToken(connector) {
+  const tokenEnv = connector?.tokenEnv || connector?.bearerTokenEnv || connector?.auth?.tokenEnv;
+  return tokenEnv ? process.env[tokenEnv] || null : null;
+}
+
+function compactHttpErrorBody(body) {
+  if (!body || typeof body !== "object") return null;
+  if (typeof body.error === "string") return { error: body.error };
+  if (body.error && typeof body.error === "object") {
+    return {
+      error: {
+        code: body.error.code ?? null,
+        message: body.error.message || null,
+      },
+    };
+  }
+  return {
+    code: body.code || null,
+    message: body.message || null,
+  };
+}
+
+function httpHeaders(connector, sessionId = null) {
+  const headers = {
+    accept: "application/json, text/event-stream",
+    "content-type": "application/json",
+    "mcp-protocol-version": MCP_PROTOCOL_VERSION,
+  };
+  if (sessionId) headers["mcp-session-id"] = sessionId;
+  const token = bearerToken(connector);
+  if (token) headers.authorization = `Bearer ${token}`;
+  return headers;
+}
+
+function invalidHttpResponse(reason, details = {}) {
+  return { ok: false, code: "connector-invalid-response", reason, ...details };
+}
+
+function parseSseEvent(raw) {
+  const data = raw
+    .split(/\r?\n/u)
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trimStart())
+    .join("\n");
+  if (!data) return null;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
+}
+
+async function readSseResponse(response, expectedId) {
+  if (!response.body?.getReader) return null;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const events = buffer.split(/\r?\n\r?\n/u);
+    buffer = events.pop() || "";
+    for (const event of events) {
+      const message = parseSseEvent(event);
+      if (message?.id === expectedId) {
+        await reader.cancel();
+        return message;
+      }
+    }
+    if (done) {
+      const message = parseSseEvent(buffer);
+      return message?.id === expectedId ? message : null;
+    }
+  }
+}
+
+async function readRequestResponse(response, expectedId) {
+  const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+  if (contentType.includes("text/event-stream")) return readSseResponse(response, expectedId);
+  if (!contentType.includes("application/json")) return null;
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchHttpJsonRpc(connector, endpoint, message, options = {}) {
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: httpHeaders(connector, options.sessionId),
+      body: JSON.stringify(message),
+      signal: options.signal,
+    });
+    const isNotification = message.id === undefined;
+
+    if (!response.ok) {
+      const text = await response.text();
+      let body = null;
+      try {
+        body = text ? JSON.parse(text) : null;
+      } catch {
+        body = null;
+      }
+      return {
+        ok: false,
+        code: "connector-http-error",
+        status: response.status,
+        message: body?.error?.message || body?.error || `HTTP ${response.status}`,
+        body: compactHttpErrorBody(body),
+      };
+    }
+    if (isNotification) {
+      const text = await response.text();
+      if (response.status !== 202 || text) {
+        return invalidHttpResponse("notification-must-return-empty-202", { status: response.status });
+      }
+      return { ok: true, accepted: true, sessionId: options.sessionId || null };
+    }
+
+    if (response.status === 202 || response.status === 204) {
+      return invalidHttpResponse("request-returned-notification-status", { status: response.status });
+    }
+    const body = await readRequestResponse(response, message.id);
+    if (!body || body.jsonrpc !== "2.0" || body.id !== message.id) {
+      return invalidHttpResponse("jsonrpc-response-correlation-failed", { status: response.status });
+    }
+    const hasResult = Object.hasOwn(body, "result");
+    const hasError = Object.hasOwn(body, "error");
+    if (hasResult === hasError) return invalidHttpResponse("jsonrpc-result-error-exclusivity-failed");
+    if (body?.error) return normalizeJsonRpcError(body.error, "");
+    return {
+      ok: true,
+      result: body?.result,
+      sessionId: response.headers.get("mcp-session-id") || options.sessionId || null,
+    };
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      return { ok: false, code: "connector-local-abort", message: "The local MCP request was aborted." };
+    }
+    return {
+      ok: false,
+      code: "connector-http-failed",
+      error: safeError(error),
+    };
+  }
+}
+
+async function postHttpJsonRpc(connector, endpoint, message, options = {}) {
+  if (typeof fetch !== "function") {
+    return {
+      ok: false,
+      code: "connector-http-unavailable",
+      message: "This Node.js runtime does not provide fetch for HTTP MCP connectors.",
+    };
+  }
+
+  const configuredTimeoutMs = Number(connector.timeoutMs || options.timeoutMs || 10000);
+  const remainingMs = Number.isFinite(options.deadlineAt) ? options.deadlineAt - Date.now() : configuredTimeoutMs;
+  if (remainingMs <= 0) {
+    return {
+      ok: false,
+      code: "connector-timeout",
+      message: "The MCP invocation deadline elapsed before the request could start.",
+    };
+  }
+  const timeoutMs = Math.max(1, Math.min(configuredTimeoutMs, remainingMs));
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const result = await fetchHttpJsonRpc(connector, endpoint, message, {
+      sessionId: options.sessionId,
+      signal: controller.signal,
+    });
+    if (result.code === "connector-local-abort") {
+      return {
+        ok: false,
+        code: "connector-timeout",
+        message: `Timed out waiting for MCP response after ${timeoutMs}ms.`,
+      };
+    }
+    return result;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function boundedCancellationGrace(connector, options) {
+  const raw = options.cancellationGraceMs ?? connector.cancellationGraceMs ?? 1000;
+  return Number.isInteger(raw) ? Math.max(100, Math.min(raw, 5000)) : 1000;
+}
+
+function negotiatedCancellationCapability(capabilities) {
+  const extension = capabilities?.experimental?.[CANCELLATION_ACK_EXTENSION];
+  if (extension?.schema !== CANCELLATION_ACK_SCHEMA) return null;
+  if (extension?.statusMethod !== CANCELLATION_STATUS_METHOD) return null;
+  if (extension?.sideEffects !== "none") return null;
+  return extension;
+}
+
+function cancellationStatusAcknowledged(result, requestId) {
+  return result?.ok === true
+    && result.result?.schema === CANCELLATION_ACK_SCHEMA
+    && result.result?.requestId === requestId
+    && result.result?.status === "cancelled"
+    && result.result?.sideEffects === "none";
+}
+
+function raceWithin(promise, timeoutMs) {
+  const marker = Symbol("timeout");
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(marker), Math.max(1, timeoutMs));
+    }),
+  ]).then((value) => {
+    clearTimeout(timer);
+    return { timedOut: value === marker, value: value === marker ? null : value };
+  });
+}
+
+async function callHttpWithCancellation(connector, endpoint, method, params, options, session) {
+  const requestId = randomUUID();
+  const deadlineAt = Number.isFinite(options.deadlineAt)
+    ? options.deadlineAt
+    : Date.now() + Number(connector.timeoutMs || options.timeoutMs || 10000);
+  const remainingMs = deadlineAt - Date.now();
+  if (remainingMs <= 0) {
+    return {
+      ok: false,
+      code: "connector-timeout",
+      message: "The MCP invocation deadline elapsed before the tool request could start.",
+      cancellation: { requested: false, notificationAccepted: false, acknowledged: false },
+      dispatchPhase: "not-dispatched",
+    };
+  }
+
+  const controller = new AbortController();
+  const callPromise = fetchHttpJsonRpc(connector, endpoint, {
+    jsonrpc: "2.0",
+    id: requestId,
+    method,
+    params,
+  }, { sessionId: session.id, signal: controller.signal });
+  const initial = await raceWithin(callPromise, remainingMs);
+  if (!initial.timedOut) return { ...initial.value, dispatchPhase: "terminal-observed" };
+
+  const requestedAt = new Date().toISOString();
+  const graceMs = boundedCancellationGrace(connector, options);
+  const graceDeadline = Date.now() + graceMs;
+  const notification = await postHttpJsonRpc(connector, endpoint, {
+    jsonrpc: "2.0",
+    method: "notifications/cancelled",
+    params: { requestId, reason: "deadline-exceeded" },
+  }, { sessionId: session.id, deadlineAt: graceDeadline, timeoutMs: graceMs });
+  const notificationAccepted = notification.ok === true;
+  const capability = negotiatedCancellationCapability(session.capabilities);
+  let status = null;
+  if (notificationAccepted && capability && Date.now() < graceDeadline) {
+    status = await postHttpJsonRpc(connector, endpoint, {
+      jsonrpc: "2.0",
+      id: randomUUID(),
+      method: capability.statusMethod,
+      params: { requestId, waitMs: Math.max(1, graceDeadline - Date.now()) },
+    }, { sessionId: session.id, deadlineAt: graceDeadline, timeoutMs: graceMs });
+  }
+
+  controller.abort();
+  await callPromise;
+  const acknowledged = cancellationStatusAcknowledged(status, requestId);
+  if (acknowledged) {
+    return {
+      ok: false,
+      code: "connector-cancelled",
+      message: "The upstream cancellation extension confirmed terminal cancellation with no side effects.",
+      cancellation: {
+        requested: true,
+        requestedAt,
+        notificationAccepted,
+        negotiated: true,
+        acknowledged: true,
+        acknowledgedAt: new Date().toISOString(),
+        requestId,
+        reason: "deadline-exceeded",
+        schema: CANCELLATION_ACK_SCHEMA,
+        graceMs,
+        graceExpiredAt: new Date(graceDeadline).toISOString(),
+      },
+      dispatchPhase: "terminal-observed",
+    };
+  }
+  return {
+    ok: false,
+    code: "connector-timeout",
+    message: "Timed out waiting for MCP response; cancellation remains an unknown upstream outcome.",
+    cancellation: {
+      requested: true,
+      requestedAt,
+      notificationAccepted,
+      negotiated: Boolean(capability),
+      acknowledged: false,
+      requestId,
+      reason: "deadline-exceeded",
+      graceMs,
+      graceExpiredAt: new Date(graceDeadline).toISOString(),
+    },
+    dispatchPhase: "request-sent",
+  };
+}
+
+export async function callMcpHttp(connector, method, params = {}, options = {}) {
+  const endpoint = normalizeHttpMcpUrl(connector);
+  if (!endpoint) {
+    return {
+      ok: false,
+      code: "connector-url-missing",
+      message: "The connector has no HTTP MCP url or baseUrl configured.",
+    };
+  }
+
+  const timeoutMs = Number(connector.timeoutMs || options.timeoutMs || 10000);
+  const deadlineAt = Number.isFinite(options.deadlineAt) ? options.deadlineAt : Date.now() + timeoutMs;
+  const initialize = await postHttpJsonRpc(connector, endpoint, {
+    jsonrpc: "2.0",
+    id: randomUUID(),
+    method: "initialize",
+    params: {
+      protocolVersion: MCP_PROTOCOL_VERSION,
+      capabilities: {
+        experimental: {
+          [CANCELLATION_ACK_EXTENSION]: {
+            schema: CANCELLATION_ACK_SCHEMA,
+            statusMethod: CANCELLATION_STATUS_METHOD,
+          },
+        },
+      },
+      clientInfo: { name: "mousecat", version: packageVersion() },
+    },
+  }, { ...options, deadlineAt });
+  if (!initialize.ok) return { ...initialize, dispatchPhase: "not-dispatched" };
+  if (initialize.result?.protocolVersion !== MCP_PROTOCOL_VERSION) {
+    return { ...invalidHttpResponse("unsupported-negotiated-protocol-version", {
+      protocolVersion: initialize.result?.protocolVersion || null,
+    }), dispatchPhase: "not-dispatched" };
+  }
+  const session = {
+    id: initialize.sessionId,
+    capabilities: initialize.result?.capabilities || {},
+  };
+  const initialized = await postHttpJsonRpc(connector, endpoint, {
+    jsonrpc: "2.0",
+    method: "notifications/initialized",
+  }, { ...options, sessionId: session.id, deadlineAt });
+  if (!initialized.ok) return { ...initialized, dispatchPhase: "not-dispatched" };
+
+  if (method === "tools/call") {
+    return callHttpWithCancellation(connector, endpoint, method, params, { ...options, deadlineAt }, session);
+  }
+  return postHttpJsonRpc(connector, endpoint, {
+    jsonrpc: "2.0",
+    id: randomUUID(),
+    method,
+    params,
+  }, { ...options, sessionId: session.id, deadlineAt });
+}
+
 export async function callMcpStdio(connector, method, params = {}, options = {}) {
   if (!connector?.command) {
     return {
@@ -58,9 +451,9 @@ export async function callMcpStdio(connector, method, params = {}, options = {})
 
   let stderr = "";
   let settled = false;
-  let nextId = 1;
-  const initializeId = nextId++;
-  const callId = nextId++;
+  const initializeId = randomUUID();
+  const callId = randomUUID();
+  let callDispatched = false;
 
   const cleanup = () => {
     settled = true;
@@ -81,6 +474,7 @@ export async function callMcpStdio(connector, method, params = {}, options = {})
         code: "connector-timeout",
         message: `Timed out waiting for MCP response after ${timeoutMs}ms.`,
         stderr: stderr.trim() || null,
+        dispatchPhase: callDispatched ? "request-sent" : "not-dispatched",
       });
     }, timeoutMs);
 
@@ -96,6 +490,7 @@ export async function callMcpStdio(connector, method, params = {}, options = {})
         ok: false,
         code: "connector-spawn-failed",
         error: safeError(error),
+        dispatchPhase: "not-dispatched",
       });
     });
 
@@ -110,6 +505,7 @@ export async function callMcpStdio(connector, method, params = {}, options = {})
         code: "connector-exited",
         exitCode: code,
         stderr: stderr.trim() || null,
+        dispatchPhase: callDispatched ? "request-sent" : "not-dispatched",
       });
     });
 
@@ -122,15 +518,35 @@ export async function callMcpStdio(connector, method, params = {}, options = {})
       } catch {
         return;
       }
+      if (message.id === initializeId) {
+        if (message.error) {
+          finish({ ...normalizeJsonRpcError(message.error, stderr), dispatchPhase: "not-dispatched" });
+          return;
+        }
+        if (message.result?.protocolVersion !== MCP_PROTOCOL_VERSION) {
+          finish({
+            ...invalidHttpResponse("unsupported-negotiated-protocol-version", {
+              protocolVersion: message.result?.protocolVersion || null,
+            }),
+            dispatchPhase: "not-dispatched",
+          });
+          return;
+        }
+        child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })}\n`);
+        child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: callId, method, params })}\n`);
+        callDispatched = true;
+        return;
+      }
       if (message.id !== callId) return;
       if (message.error) {
-        finish(normalizeJsonRpcError(message.error, stderr));
+        finish({ ...normalizeJsonRpcError(message.error, stderr), dispatchPhase: "terminal-observed" });
         return;
       }
       finish({
         ok: true,
         result: message.result,
         stderr: stderr.trim() || null,
+        dispatchPhase: "terminal-observed",
       });
     });
 
@@ -138,24 +554,34 @@ export async function callMcpStdio(connector, method, params = {}, options = {})
       jsonrpc: "2.0",
       id: initializeId,
       method: "initialize",
-      params: { protocolVersion: "2025-03-26", clientInfo: { name: "mousecat", version: packageVersion() } },
+      params: {
+        protocolVersion: MCP_PROTOCOL_VERSION,
+        capabilities: {},
+        clientInfo: { name: "mousecat", version: packageVersion() },
+      },
     })}\n`);
-    child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: callId, method, params })}\n`);
   });
 }
 
-export function listMcpTools(connector) {
-  return callMcpStdio(connector, "tools/list", {});
+export function callMcp(connector, method, params = {}, options = {}) {
+  if (isHttpMcpTransport(connectorTransport(connector))) {
+    return callMcpHttp(connector, method, params, options);
+  }
+  return callMcpStdio(connector, method, params, options);
 }
 
-export function callMcpTool(connector, name, args = {}) {
-  return callMcpStdio(connector, "tools/call", { name, arguments: args });
+export function listMcpTools(connector) {
+  return callMcp(connector, "tools/list", {});
+}
+
+export function callMcpTool(connector, name, args = {}, options = {}) {
+  return callMcp(connector, "tools/call", { name, arguments: args }, options);
 }
 
 export function listMcpResources(connector) {
-  return callMcpStdio(connector, "resources/list", {});
+  return callMcp(connector, "resources/list", {});
 }
 
 export function readMcpResource(connector, resource = {}) {
-  return callMcpStdio(connector, "resources/read", resource);
+  return callMcp(connector, "resources/read", resource);
 }

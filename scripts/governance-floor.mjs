@@ -18,6 +18,7 @@ import {
   parseRootVersion,
   projectRootVersionToPackageVersion,
 } from "../src/core/governance/version.mjs";
+import { validateToolBoundaries } from "./lib/tool-boundaries.mjs";
 
 const errors = [];
 const pkg = readJson("package.json");
@@ -40,14 +41,7 @@ if (packageProjection.ok) {
 failIf(errors, !fileExists("package-lock.json"), "package-lock.json must be present for deterministic npm ci.");
 
 const toolNames = MOUSECAT_TOOLS.map((tool) => tool.name);
-const boundaryNames = TOOL_BOUNDARIES.map((boundary) => boundary.tool);
-for (const toolName of toolNames) {
-  failIf(errors, !boundaryNames.includes(toolName), `${toolName} must have a TOOL_BOUNDARIES entry.`);
-}
-for (const boundary of TOOL_BOUNDARIES) {
-  failIf(errors, !toolNames.includes(boundary.tool), `${boundary.tool} boundary has no matching public tool.`);
-  failIf(errors, !WORK_PERMIT_PROFILES.some((permit) => permit.id === boundary.defaultPermit), `${boundary.tool} references unknown permit ${boundary.defaultPermit}.`);
-}
+errors.push(...validateToolBoundaries(MOUSECAT_TOOLS, TOOL_BOUNDARIES, WORK_PERMIT_PROFILES));
 
 for (const permit of WORK_PERMIT_PROFILES) {
   for (const grant of permit.grants) {

@@ -4,7 +4,7 @@ This directory holds the GitHub Actions configuration for PolyForm Perimeter 1.0
 
 ## Workflows
 
-- `.github/workflows/ci-verify.yml`: Primary PR readiness gate. Runs on PR and push to main. Executes chronology and PR-shape gates, writes classifier trace artifacts, runs `npm ci`, `npm run pr:ready`, and `npm audit --audit-level=high`. The `pr:ready` surface includes `docs:pr`, the repository-local PR documentation runner.
+- `.github/workflows/ci-verify.yml`: Primary PR readiness gate. Runs on PR and push to main. Executes chronology and PR-shape gates, writes classifier trace artifacts, runs `npm ci`, `npm run pr:ready`, and `npm audit --audit-level=high`. The `pr:ready` surface includes `smoke:adapters` for host render packets, `smoke:host-state` for host-state binding packets, and `docs:pr`, the repository-local PR documentation runner.
 - `.github/workflows/cd-dry-run.yml`: Manual package dry run. Runs the full CI verification surface before `npm pack --dry-run`.
 - `.github/workflows/pr-outcome-corpus.yml`: Read-only outcome observation lane for closed PRs and completed required-check workflows. It uploads structured observations as artifacts and does not push corpus commits.
 - `mousecat.ci.config.json`: Checked-in CI/default smoke config. It keeps public readiness independent from ignored local connector files.
@@ -14,6 +14,12 @@ This directory holds the GitHub Actions configuration for PolyForm Perimeter 1.0
 - `.github/workflows/codeql.yml`: CodeQL analysis for JavaScript. Publishes SARIF for GitHub code scanning (public repo surface).
 - `.github/workflows/dependency-scan.yml`: Named dependency audit check for PRs, main pushes, scheduled runs, and manual dispatch.
 - `.github/workflows/secret-scan.yml`: Pinned Gitleaks CLI scan for committed secret-shaped material on PRs, main pushes, scheduled runs, and manual dispatch.
+
+## Open Ground GitLab
+
+The root `.gitlab-ci.yml` mirrors the portable contribution gate on the public Open Ground GitLab project. It runs `ci-verify`, `merge-request-shape`, `node-20-compat`, `dependency-scan`, and `package-dry-run` on the dedicated `open-ground-local-podman` group runner. Every job requires both `zero-local` and `open-ground` tags, which keeps this public lane separate from private-group runner tenancy.
+
+The slim Node images do not include `git`. The two jobs that inspect repository state install `git` and CA certificates explicitly before running `npm run pr:ready` or the PR-shape classifier. Open Ground project settings require a successful pipeline and resolved discussions before merge; the GitHub protected-check set remains the authority for the GitHub downstream.
 
 ## Dependabot
 
@@ -37,7 +43,7 @@ npm run ci:verify
 npm run pr:ready
 ```
 
-This is what the required `ci-verify` gate runs before the audit step. See also AGENTS.md and root README.
+This is what the required `ci-verify` gate runs before the audit step. `npm run smoke:adapters` is available as the targeted host render-packet check, and `npm run smoke:host-state` is available as the targeted host-state binding check. See also AGENTS.md and root README.
 
 `npm run docs:pr` is available as a targeted check for doc-pack completeness, source-change documentation, append-only ledger preservation, documentation path references, and batch-prefixed PR titles.
 

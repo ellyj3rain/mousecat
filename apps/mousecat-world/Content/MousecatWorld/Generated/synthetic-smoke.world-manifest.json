@@ -1,0 +1,164 @@
+{
+  "schema": "mousecat.world-manifest/1",
+  "world": {
+    "id": "world-one-native-proof",
+    "displayName": "World One - Johto Continuum",
+    "sourceLabel": "Mousecat W1 browser-world migration proof",
+    "coordinateSystem": "source-x-z-horizontal-y-up-metres",
+    "playerSpawnMeters": [-128.0, 28.0, -96.0]
+  },
+  "terrain": {
+    "authority": "synthetic-fallback",
+    "columns": 129,
+    "rows": 129,
+    "cellSizeMeters": 4.0,
+    "baseHeightMeters": 3.0,
+    "primaryAmplitudeMeters": 11.0,
+    "secondaryAmplitudeMeters": 3.5,
+    "primaryFrequency": 0.0065,
+    "seed": 41273,
+    "waterLevelMeters": -5.0,
+    "collisionRadiusMeters": 180.0,
+    "lowColor": "#345A35",
+    "midColor": "#5A7C43",
+    "highColor": "#8B8B61",
+    "waterColor": "#276381",
+    "elevationControlPoints": [
+      { "positionMeters": [-176.0, -18.0], "radiusMeters": 94.0, "strengthMeters": -14.0 },
+      { "positionMeters": [112.0, 126.0], "radiusMeters": 138.0, "strengthMeters": 24.0 },
+      { "positionMeters": [178.0, -104.0], "radiusMeters": 82.0, "strengthMeters": 14.0 },
+      { "positionMeters": [-48.0, 162.0], "radiusMeters": 74.0, "strengthMeters": 9.0 },
+      { "positionMeters": [12.0, -174.0], "radiusMeters": 58.0, "strengthMeters": -8.0 }
+    ]
+  },
+  "regions": [
+    {
+      "id": "azalea-lowlands",
+      "displayName": "Azalea Lowlands",
+      "boundsMeters": [-256.0, -256.0, -22.0, 52.0],
+      "color": "#647A3B"
+    },
+    {
+      "id": "ilex-forest",
+      "displayName": "Ilex Forest",
+      "boundsMeters": [-256.0, 52.0, 44.0, 256.0],
+      "color": "#27583A"
+    },
+    {
+      "id": "goldenrod-basin",
+      "displayName": "Goldenrod Basin",
+      "boundsMeters": [-22.0, -256.0, 256.0, 38.0],
+      "color": "#8C7546"
+    },
+    {
+      "id": "ecruteak-highlands",
+      "displayName": "Ecruteak Highlands",
+      "boundsMeters": [44.0, 38.0, 256.0, 256.0],
+      "color": "#725D48"
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "azalea-civic-hall",
+      "displayName": "Azalea Civic Hall",
+      "kind": "civic",
+      "positionMeters": [-120.0, -70.0],
+      "sizeMeters": [34.0, 12.0, 24.0],
+      "yawDegrees": 8.0,
+      "color": "#9C704D"
+    },
+    {
+      "id": "azalea-market",
+      "displayName": "Azalea Market",
+      "kind": "settlement",
+      "positionMeters": [-74.0, -98.0],
+      "sizeMeters": [24.0, 8.0, 18.0],
+      "yawDegrees": -6.0,
+      "color": "#A58A5C"
+    },
+    {
+      "id": "ilex-field-station",
+      "displayName": "Ilex Field Station",
+      "kind": "station",
+      "positionMeters": [-84.0, 112.0],
+      "sizeMeters": [20.0, 7.0, 16.0],
+      "yawDegrees": 14.0,
+      "color": "#536A54"
+    },
+    {
+      "id": "goldenrod-exchange",
+      "displayName": "Goldenrod Exchange",
+      "kind": "civic",
+      "positionMeters": [108.0, -82.0],
+      "sizeMeters": [46.0, 18.0, 34.0],
+      "yawDegrees": -12.0,
+      "color": "#8F7358"
+    },
+    {
+      "id": "goldenrod-rail-depot",
+      "displayName": "Goldenrod Rail Depot",
+      "kind": "station",
+      "positionMeters": [174.0, -24.0],
+      "sizeMeters": [52.0, 10.0, 18.0],
+      "yawDegrees": 5.0,
+      "color": "#696C6C"
+    },
+    {
+      "id": "ecruteak-observatory",
+      "displayName": "Ecruteak Observatory",
+      "kind": "civic",
+      "positionMeters": [142.0, 146.0],
+      "sizeMeters": [30.0, 14.0, 28.0],
+      "yawDegrees": 32.0,
+      "color": "#6D5968"
+    }
+  ],
+  "groves": [
+    {
+      "id": "ilex-west",
+      "centerMeters": [-152.0, 140.0],
+      "radiusMeters": 72.0,
+      "count": 72,
+      "seed": 179,
+      "trunkColor": "#4A2D1B",
+      "canopyColor": "#245A2C"
+    },
+    {
+      "id": "ilex-east",
+      "centerMeters": [-14.0, 154.0],
+      "radiusMeters": 58.0,
+      "count": 54,
+      "seed": 283,
+      "trunkColor": "#51331E",
+      "canopyColor": "#2E6734"
+    },
+    {
+      "id": "azalea-ridge",
+      "centerMeters": [-188.0, -128.0],
+      "radiusMeters": 46.0,
+      "count": 30,
+      "seed": 487,
+      "trunkColor": "#563821",
+      "canopyColor": "#3B6B35"
+    },
+    {
+      "id": "ecruteak-grove",
+      "centerMeters": [88.0, 188.0],
+      "radiusMeters": 40.0,
+      "count": 34,
+      "seed": 601,
+      "trunkColor": "#43291C",
+      "canopyColor": "#365B34"
+    }
+  ],
+  "provenance": {
+    "authority": "migration-seed",
+    "generatedBy": "Mousecat W1-005 UE native shell",
+    "sourceCoordinateTransform": "source (x,y-up,z) metres -> UE (x,z,y-up) centimetres"
+  },
+  "extensions": {
+    "maps": [],
+    "portals": [],
+    "sourceAtlas": {}
+  }
+}

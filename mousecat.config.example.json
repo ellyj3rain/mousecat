@@ -1,8 +1,10 @@
 {
   "hostProfile": "local-dev",
+  "adapterProfile": "generic-mcp",
   "upstreams": {
     "neo": { "enabled": true },
     "github": { "enabled": true },
+    "gitlab": { "enabled": false },
     "z-library": { "enabled": false },
     "codex": { "enabled": true },
     "claude": { "enabled": true },
@@ -14,14 +16,31 @@
   "credentials": {
     "policy": "references-only"
   },
+  "state": {
+    "enabled": false,
+    "path": ".mousecat/state.json",
+    "maxEvents": 500,
+    "maxRoutePlans": 100
+  },
   "connectors": {
     "neo": {
       "enabled": false,
       "kind": "external-mcp",
-      "transport": "stdio",
-      "command": "node",
-      "args": ["<private-neo-root>/core/mcp/server.js"],
-      "cwd": "<private-neo-root>",
+      "transport": "http",
+      "url": "http://127.0.0.1:7473/mcp",
+      "tokenEnv": "NEO_RUNTIME_TOKEN",
+      "timeoutMs": 10000,
+      "cancellationGraceMs": 1000
+    },
+    "gitlab": {
+      "enabled": false,
+      "kind": "integration-adapter",
+      "transport": "cli-json",
+      "adapter": "gitlab-v4",
+      "executablePath": "/absolute/path/to/glab",
+      "executableSha256": "sha256-of-approved-glab-binary",
+      "defaultProject": "namespace/project",
+      "hostname": "gitlab.example.com",
       "timeoutMs": 10000
     }
   }

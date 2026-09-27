@@ -1,0 +1,105 @@
+/* OTL's color rules, expressed through Mousecat's semantic surface tokens.
+   Manuscript: warm charcoal / cream / brass. B&W: achromatic, true-black ground. */
+:root {
+  --page: #e9edf1;
+  --text-subtle: #53606c;
+  --text-strong: #34414d;
+  --on-accent: #ffffff;
+  --success: #287966;
+  --danger-soft: #fff3f1;
+  --danger-border: #efc0bb;
+  --hold-border: #a86d12;
+  --shadow: rgb(25 36 48 / 12%);
+  --shadow-soft: rgb(25 36 48 / 6%);
+  --backdrop: rgb(26 35 45 / 48%);
+}
+
+:root[data-theme="manuscript"] {
+  color-scheme: dark;
+  --page: #16120d;
+  --surface: #1f1a13;
+  --surface-subtle: #1b160f;
+  --surface-muted: #241e16;
+  --line: rgb(239 230 212 / 10%);
+  --line-strong: rgb(239 230 212 / 30%);
+  --text: #efe6d4;
+  --text-muted: #c9bea6;
+  --text-subtle: #c9bea6;
+  --text-strong: #fbf5e8;
+  --theme-accent: #e4d7be;
+  --theme-accent-hover: #fbf5e8;
+  --theme-accent-soft: #2a2318;
+  --theme-accent-border: #b8a988;
+  --on-accent: #16120d;
+  --success: #e4d7be;
+  --danger: #fbf5e8;
+  --danger-soft: #2a2318;
+  --danger-border: #b8a988;
+  --hold: #e4d7be;
+  --hold-soft: #2a2318;
+  --hold-border: #b8a988;
+  --shadow: rgb(0 0 0 / 25%);
+  --shadow-soft: rgb(0 0 0 / 15%);
+  --backdrop: rgb(0 0 0 / 65%);
+}
+
+:root[data-theme="bw"] {
+  color-scheme: dark;
+  --page: #000000;
+  --surface: #0c0c0c;
+  --surface-subtle: #060606;
+  --surface-muted: #131313;
+  --line: #1e1e1e;
+  --line-strong: #555555;
+  --text: #ededed;
+  --text-muted: #9a9a9a;
+  --text-subtle: #9a9a9a;
+  --text-strong: #ffffff;
+  --theme-accent: #d8d8d8;
+  --theme-accent-hover: #ffffff;
+  --theme-accent-soft: #1a1a1a;
+  --theme-accent-border: #8a8a8a;
+  --on-accent: #000000;
+  --success: #d8d8d8;
+  --danger: #ffffff;
+  --danger-soft: #1a1a1a;
+  --danger-border: #8a8a8a;
+  --hold: #d8d8d8;
+  --hold-soft: #1a1a1a;
+  --hold-border: #8a8a8a;
+  --shadow: rgb(0 0 0 / 25%);
+  --shadow-soft: rgb(0 0 0 / 15%);
+  --backdrop: rgb(0 0 0 / 70%);
+}
+
+/* Workflow accent metadata cannot repaint the selected neutral dark scheme. */
+:root:is([data-theme="manuscript"], [data-theme="bw"]),
+:root:is([data-theme="manuscript"], [data-theme="bw"]) :is(.widget, .draft-review-dialog)[data-accent] {
+  --accent: var(--theme-accent);
+  --accent-hover: var(--theme-accent-hover);
+  --accent-soft: var(--theme-accent-soft);
+  --accent-border: var(--theme-accent-border);
+}
+
+::selection { background: var(--accent); color: var(--on-accent); }
+input, textarea, select { accent-color: var(--accent); }
+input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1; }
+
+.settings-dialog {
+  width: min(580px, calc(100vw - 24px)); max-height: calc(100dvh - 32px);
+  margin: auto; padding: 24px; overflow: auto; border: 1px solid var(--line-strong);
+  border-radius: 12px; background: var(--surface); color: var(--text);
+}
+.settings-dialog::backdrop { background: var(--backdrop); }
+.settings-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.settings-heading h2 { margin: 0; font-size: 22px; }
+.appearance-options { border: 0; margin: 0; padding: 0; }
+.appearance-options legend { font-size: 16px; font-weight: 650; margin-bottom: 12px; }
+.appearance-choice { display: flex; gap: 12px; align-items: start; padding: 14px; margin: 8px 0; border: 1px solid var(--line-strong); border-radius: 8px; cursor: pointer; }
+.appearance-choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.appearance-choice:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.appearance-choice input { margin-top: 4px; flex: 0 0 auto; }
+.appearance-choice strong { display: block; }
+.appearance-choice small { display: block; margin-top: 4px; color: var(--text-muted); line-height: 1.5; }
+#appearance-status { margin: 16px 0 0; font-size: 13px; color: var(--text-muted); }
+@media (max-width: 600px) { .settings-dialog { padding: 18px; } }

@@ -15,6 +15,7 @@ test("local config loading tolerates BOM-prefixed JSON", async () => {
     const config = await loadConfig(path);
 
     assert.equal(config.hostProfile, "windows-local");
+    assert.equal(config.adapterProfile, "generic-mcp");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

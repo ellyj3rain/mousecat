@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mousecat.world-manifest/1",
+  "title": "Mousecat native world manifest",
+  "type": "object",
+  "required": ["schema", "world", "terrain", "regions", "landmarks", "groves"],
+  "properties": {
+    "schema": { "const": "mousecat.world-manifest/1" },
+    "world": {
+      "type": "object",
+      "required": ["id", "displayName", "sourceLabel", "playerSpawnMeters"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9._-]{1,96}$" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "sourceLabel": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "playerSpawnMeters": {
+          "description": "Source-axis [x, y-up, z] metres.",
+          "type": "array",
+          "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
+          "minItems": 3,
+          "maxItems": 3
+        }
+      }
+    },
+    "terrain": {
+      "type": "object",
+      "required": [
+        "authority", "columns", "rows", "cellSizeMeters", "baseHeightMeters", "primaryAmplitudeMeters",
+        "secondaryAmplitudeMeters", "primaryFrequency", "seed", "waterLevelMeters", "collisionRadiusMeters", "lowColor",
+        "midColor", "highColor", "waterColor", "elevationControlPoints"
+      ],
+      "properties": {
+        "authority": { "enum": ["sampled-source", "synthetic-fallback"] },
+        "heightSamplesMeters": {
+          "description": "Optional row-major source heights; required by runtime when authority is sampled-source.",
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "waterDepthSamplesMeters": {
+          "description": "Optional row-major water depth paired with height samples; 0 is dry.",
+          "type": "array",
+          "items": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "regions": { "type": "array", "minItems": 1, "maxItems": 128 },
+    "landmarks": { "type": "array", "maxItems": 512 },
+    "groves": { "type": "array", "maxItems": 64 }
+  },
+  "additionalProperties": true
+}

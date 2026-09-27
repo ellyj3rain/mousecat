@@ -5,6 +5,7 @@ import { UPSTREAMS } from "./catalog.mjs";
 export function defaultConfig() {
   return {
     hostProfile: "local-dev",
+    adapterProfile: "generic-mcp",
     upstreams: Object.fromEntries(
       UPSTREAMS.map((upstream) => [upstream.id, { enabled: upstream.defaultEnabled !== false }]),
     ),
@@ -12,6 +13,12 @@ export function defaultConfig() {
       policy: "references-only",
     },
     connectors: {},
+    state: {
+      enabled: false,
+      path: ".mousecat/state.json",
+      maxEvents: 500,
+      maxRoutePlans: 100,
+    },
   };
 }
 
@@ -31,6 +38,10 @@ function mergeConfig(base, override) {
     connectors: {
       ...base.connectors,
       ...(override?.connectors || {}),
+    },
+    state: {
+      ...base.state,
+      ...(override?.state || {}),
     },
   };
 }

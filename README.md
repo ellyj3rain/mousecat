@@ -1,32 +1,88 @@
 | Document | Mousecat README |
 |---|---|
-| Version | 0.1.5.0-alpha |
-| Timestamp | 2026-07-04 05:30 UTC / 22:30 PDT |
+| Version | 1.6.0.0-alpha |
+| Timestamp | 2026-09-26 01:00 UTC |
 | Status | ACTIVE - participant entry point. |
 
 # Mousecat
 
-Mousecat is one MCP server for AI coding hosts that need structured operator interaction, governed workflow chains, live multi-agent visualization, and routed access to an AI tool ecosystem. Hosts see one tool namespace. Mousecat owns routing, skill-framework buttons, work permits, policy, credential references, connector status, and live status.
+Mousecat is one MCP normalization server, nonlinear graphical operator surface, native playable-world runtime, and project-workbench foundation for AI coding hosts. A shared loopback process serves the browser and Streamable HTTP MCP from the same runtime, so Codex, Claude Code, Neo, or another MCP client can request operator judgment and receive the browser-submitted structured result. The Unreal runtime gives governed work a spatial world, while project-workbench contracts let hosts represent and author a target system from its own source model instead of depending on its production UI.
 
 Mousecat is PolyForm Perimeter 1.0.0-licensed, GZDS-governed source-available bridge code. It does not ship private Neo tools. A local ignored config can point Mousecat at a private Neo MCP server, then Mousecat discovers tools dynamically and forwards permitted calls at runtime.
 
 Mousecat uses a Kohai-aware root odometer: `VERSION` is `major.minor.kohai.patch-maturity`, with npm package metadata projected to `major.minor.kohai-maturity` when the root patch coordinate is zero. Governance automation and release-discipline maturation move Kohai; runtime or public contract expansion moves minor.
 
+ML reviews can include a declarative `mousecat.scene-preview/1` record. The
+shared review panel renders schematic places and people, a keyboard-accessible
+timeline, each person's supplied information and explicit communication status.
+Authored, recorded and projected provenance remains visible. The preview stops
+at the declared decision; stepping through it supplies no operator answer or
+new simulation fact.
+
 ## Quick Start
+
+On Windows, install the [desktop client](apps/mousecat-desktop/README.md):
+
+```powershell
+powershell -NoProfile -File scripts/install-desktop.ps1
+```
+
+Open **Mousecat** from the Desktop or Start menu. It shares questions and history
+with the browser and starts the local service when needed. Unanswered work
+survives service restarts without requiring the originating agent to reconnect.
+Closing the desktop window leaves the service running. Browser access remains
+available for users and hosts that prefer it.
+
+Use **Settings (gear) > Appearance** to choose **Manuscript** (warm charcoal,
+cream and brass), **B&W** (true black and neutral silver) or **Light**. Manuscript
+is the default. Changes apply immediately across questions, projects and history
+and persist in the current desktop or browser profile.
 
 ```powershell
 npm test
 node src/cli.mjs status
 node src/cli.mjs connectors
 node src/cli.mjs buttons
-node src/cli.mjs mcp
+node src/cli.mjs adapters
+node src/cli.mjs host-state cli
+node src/cli.mjs session total-recall
+node src/cli.mjs skill crucible Choose the next contract
+node src/cli.mjs operator
+node src/cli.mjs service status
 ```
 
-For MCP hosts, start:
+Start the shared graphical surface and Streamable HTTP MCP endpoint:
+
+```powershell
+node src/cli.mjs operator
+```
+
+The command prints both `url` and `mcpUrl`; register `mcpUrl` with each host. The checked-in `.Codex/settings.json` records the same shared-runtime boundary. Current Codex and Claude Code registration commands are:
+
+```powershell
+codex mcp add mousecat --url http://127.0.0.1:4317/mcp
+claude mcp add --transport http --scope user mousecat http://127.0.0.1:4317/mcp
+```
+
+The separate command below remains the initialized headless stdio compatibility path for diagnosis. It does not share state with the graphical process:
 
 ```powershell
 node src/cli.mjs mcp
 ```
+
+Use `operator --demo` for presentation testing, `--port <port>` when the default `4317` is occupied, and `operator --self-test` for a non-interactive smoke check.
+
+Install the same loopback runtime for the current user's login, then inspect or control its lifecycle without an administrator account:
+
+```powershell
+node src/cli.mjs --config mousecat.config.json service install
+node src/cli.mjs --config mousecat.config.json service status
+node src/cli.mjs --config mousecat.config.json service stop
+node src/cli.mjs --config mousecat.config.json service start
+node src/cli.mjs --config mousecat.config.json service uninstall
+```
+
+Windows uses a short LocalAppData launcher registered under the current-user Run key. Linux uses a user systemd unit, and macOS uses a LaunchAgent. Status validates the Mousecat snapshot schema rather than accepting any process that answers on the port.
 
 ## PR Readiness
 
@@ -36,7 +92,7 @@ Mousecat is AI-native and GZDS-governed. Contributions are expected to satisfy t
 npm run pr:ready
 ```
 
-That command runs tests, GitHub classifier tests, runtime smokes against `.github/mousecat.ci.config.json`, governance floor, governance ceiling, doc currency, the PR documentation runner, and strict hygiene. GitHub Actions runs the required `ci-verify` gate on push to `main` and on pull requests, then runs `npm audit --audit-level=high`. Pull requests also run chronology, PR-shape, and documentation-consistency gates, and CI uploads structured PR classification observations for review.
+That command runs tests, GitHub classifier tests, runtime smokes against `.github/mousecat.ci.config.json`, adapter render-packet, host-state binding, and operator-host smokes, governance floor, governance ceiling, doc currency, the PR documentation runner, and strict hygiene. GitHub Actions runs the required `ci-verify` gate on push to `main` and on pull requests, then runs `npm audit --audit-level=high`. Pull requests also run chronology, PR-shape, and documentation-consistency gates, and CI uploads structured PR classification observations for review. Open Ground GitLab mirrors the contribution gate through `.gitlab-ci.yml` on a dedicated public-group runner; its jobs require both `zero-local` and `open-ground` tags and never reuse a private-group runner.
 
 Install local governance hooks once per checkout:
 
@@ -53,11 +109,18 @@ The server exposes:
 
 | Tool | Purpose |
 |---|---|
-| `mousecat.widget` | Expose the generic operator-widget contract, availability, requests, typed responses, holds, and snapshots. |
+| `mousecat.history` | Search retained decisions, plans and methods; resolve exact revisions and backlinks; index explicitly registered project sources. |
+| `mousecat.projects` | Register and inspect source-owned project surfaces and their retained threads. |
+| `mousecat.workbench` | Inspect and operate registered project adapters within their declared effect and permit boundaries. |
+| `mousecat.widget` | Request, await, answer, hold, or inspect typed operator interactions. MCP callers request and await; graphical operator commands own answer and hold writes. |
+| `mousecat.skill` | Invoke built-in or registered operator-interaction skills, normalize chronology and lineage, and return typed results for contextual recursion. |
+| `mousecat.registry` | List or register permit-gated, namespace-owned declarative skill-framework and presentation descriptors. |
+| `mousecat.delegation` | Start permitted asynchronous upstream work from one capability-owned held skill seam, await its caller-only result, and rejoin a caller-interpreted seam through the existing widget. |
 | `mousecat.ask` | Create structured operator interaction sessions with atomic items and button payloads. |
 | `mousecat.session` | Start, snapshot, and reconstruct session dockets. |
 | `mousecat.queue` | Manage Mass-Assault style decision queues, held items, and long-chain lineage. |
 | `mousecat.visualize` | Return a live visualizer snapshot/event graph for IDE/app widgets. |
+| `mousecat.host-state` | Return a host-profile state binding packet with adapter metadata, command templates, and redacted public records. |
 | `mousecat.route` | Resolve upstream route plans and availability. |
 | `mousecat.bridge` | Read and summarize public upstream bridge contracts. |
 | `mousecat.invoke` | Permit-gated upstream invocation and external MCP forwarding boundary. |
@@ -66,11 +129,147 @@ The server exposes:
 
 ## First Surfaces
 
-Mousecat ships a generic operator-widget facade plus source-owned skill atoms for compatibility with existing governed workflows. Hosts can bind to widget controls, structured interaction shapes, and visualizer-safe event streams without knowing private workflow names. The same registry also defines skill frameworks, work-permit profiles, upstream descriptors, tool boundaries, and route policy.
+The History control opens a searchable cabinet of retained decisions, plans,
+source documents, reported results and proposed methods. Each record exposes
+its original context, answer, revision, outgoing references and backlinks.
+Follow a reference, use Back or Forward, then Return to review to resume an
+unfinished draft. Search can narrow by project, record kind, standing and date.
+Methods carry their purpose, applicability, procedure, known failures and
+supporting sources.
+
+Literal decision ids, evidence digests and source commit ids in review prose
+are clickthrough references. Existing plan text remains unchanged. Missing or
+ambiguous destinations open an explicit coverage view. Hosts may register
+bounded commit-id aliases on provenance-bearing reported records; collisions
+remain ambiguous and never replace an exact original interaction identity.
+
+History persists in ignored local state independently of the short event log.
+Coverage includes retained Mousecat interactions and explicitly indexed files
+declared by registered project surfaces. Older external transcripts become
+searchable when registered and indexed. Missing and ambiguous references remain
+visible. Host-authored methods and findings retain proposed or reported standing;
+the original operator response remains the authority for a decision.
+
+Mousecat ships a generic operator-widget facade, normalized skill and asynchronous delegation adapters, one nonlinear cross-session graphical interaction surface, one shared loopback MCP/browser runtime, one native Unreal world runtime, and the validated contract foundation for project workbenches. Hosts can request arbitrary ordered items and options without inheriting native question limits, then await typed results while Mousecat preserves provenance, redaction, lineage, and operator-only response writes.
+
+## Project Workbench Foundation
+
+The Project Workbench lets a host and operator inspect and author a project's
+meaningful objects without requiring the target application's normal UI.
+Conversation carries intent. A project adapter retains the project's own
+schemas and generation rules, while Mousecat binds the source revision,
+operation effect, permission, representation, draft, and receipt.
+
+The first source boundary validates project-adapter descriptors, bounded
+workbench sessions, and multi-view development representations. Each visual
+layer states whether it is a direct source fact, deterministic project
+projection, derived summary, illustration, or unresolved. Executable rendering
+code and secret-bearing adapter fields are rejected, and every declared write
+must name both its Mousecat permit and project-side authorization.
+
+Colonist Awareness is the proving adapter: an agent can search an exact saved
+planet, compose a connected starting region, show the landscape at the scales
+needed for judgment, and eventually stage the selected result into CA's current
+plan schema. The same contract applies to interaction flows, architecture,
+runtime traces, fixtures, data changes, and deployment topology without
+flattening those subjects into one generic model.
+
+Runtime adapter registration, connector-backed execution, representation
+delivery, and draft staging are not claimed yet. The accepted shape and first
+validators are documented in
+`design/mousecat-project-workbench-20260816-0254Z-1954PST.md`.
+
+## Skill Invocation Loop
+
+`mousecat.skill(action=invoke)` is the first-class host path for the source-owned Recursive Deliberation Framework and runtime-registered operator-interaction frameworks. Recursive Deliberation contains Crucible, Total Recall, and Mass Assault as contextually routed skills, not a fixed pipeline. The calling host model or configured upstream selects each compatible handoff from live context; Neo is optional rather than the default ontology or visualizer.
+
+`mousecat.registry(action=register)` accepts declarative framework, skill, intake, and presentation descriptors under an operator-interaction permit. Registrations are namespace-owned and revisioned, survive ignored local-state restarts, and cannot replace source-owned ids or inject executable presentation code. Registered operator-interaction skills use the same mapped-seam widget and structured-return contract; upstream tool execution remains separately permit-gated through Mousecat's connector boundary.
+
+The caller resumes or retries with the exact returned `continuation.arguments`, including its opaque capability token. Mousecat never reissues that capability from interaction identity alone. Answered and held responses carry source host, session, thread, chronology, and sequence lineage. The return contract explicitly sends Crucible back to interpretation and recursion, and Mass Assault back to lineage-order application followed by recall.
+
+## Asynchronous Delegation
+
+`mousecat.delegation(action=start)` accepts one item already held by `mousecat.skill`, validates the originating capability and host-session identity, checks the tool-invocation permit and connector route, commits only safe provenance, and returns immediately with a separate caller-held capability. Independent widget interactions remain available while work runs. When an HTTP MCP deadline elapses, Mousecat sends standard `notifications/cancelled`; notification acceptance and any later response to the original request remain non-authoritative. Retry-safe `status=cancelled` requires a separately negotiated `mousecat/cancellation-ack` extension status response that correlates the request and guarantees `sideEffects=none`. Without that response, the upstream outcome remains unknown and retry requires duplicate-side-effect acknowledgement. After interpreting a completed caller-only result, `rejoin` opens one lineage-bound Crucible seam in the existing widget under an operator-interaction permit. Raw payloads and results remain memory-only.
+
+## Graphical Operator Surface
+
+`node src/cli.mjs operator` starts one long-lived Mousecat runtime behind a loopback-only HTTP surface. The browser and `POST /mcp` use that same runtime. The browser presents every actionable item in one responsive, scrollable decision wall. An ordinal decision atlas maps multiple items inside their explicit source-lineage sections; a single item uses the available reading width. Cards expose the source-owned recommendation, description, source references, and response controls. Descriptions support text-only Markdown headings, paragraphs, lists and tables, plus explicit `<details>` / `<summary>` supporting sections. Tables stack into labeled rows on narrow screens. Other HTML remains literal text. Source identifiers live in an expandable section. Search spans propositions, options, and provenance; framework, session, and recall context remains available on demand from the same state engine.
+
+Decision access is nonlinear. Any open or deferred item from any interaction can be opened and answered without resolving earlier items first. Operators may return one answer immediately or prepare an arbitrary local draft set across the wall. Mousecat distinguishes ready drafts from drafts that need completion, then presents the selected answers, amendments, lineage sections, evidence, and originating interaction boundaries in a review drawer before return. Ready sets use bounded requests through the existing typed per-interaction contract; earlier successful requests remain committed if a later request fails. `Later` defers the selected item while preserving its caller wait and chronology; `Hold` records an intentional terminal hold for that item. Chronology informs provenance and optional sorting; it neither creates graph edges nor governs response eligibility.
+
+ML rulings may add a `mousecat.ml-review/1` record to the existing decision item. The open card first explains the human situation, the decision's place in the larger system, the causal path into play, the eventual player-visible consequence, and the precedent the answer sets. It then places the literal input beside the proposed learning and lists the exact approval effects, remaining exclusions, and evidence. The prepared-return review repeats that context. Mousecat validates and displays caller-owned claims without inventing an interpretation, and changing the review changes the skill invocation fingerprint.
+
+## Native Simulation Observatory
+
+The Simulation route accepts a locally registered `mousecat.native-view/1`
+producer without turning Mousecat into the simulation owner. It verifies native
+PNG identity, source session and monotonic cursors, then displays the current
+engine frame beside up to four retained activity views. The screens share one
+adjustable size, remain equal, and can be hidden or restored individually.
+Every screen keeps its frame age visible.
+
+A producer may attach bounded Activity, Attention, Memory and Needs groups to a
+retained frame. Each overlay carries its own source sample time, so the surface
+reports any lag between recorded state and pixels. Operators can toggle each
+group without changing the simulation. Camera, time, person selection, native
+panel and cognition requests continue through the declared command pack;
+view sizing and visibility remain client-only. Ended and stale runs stay
+inspectable but accept no source command.
+
+## Native World Runtime
+
+`apps/mousecat-world` is the Unreal Engine 5.8 production renderer for the playable world. Its World One compiler consumes receipt-verified source geography rather than browser-scene geometry: eight source maps currently provide semantic and traversal grids, source-relative placement, buildings and interiors, and 18 paired active portals. External warp endpoints remain recorded but inactive until their destination maps are present; walk-boundary seams stay continuous instead of becoming fake teleport doors.
+
+The present native foundation uses a two-meter horizontal voxel lattice, stepped terrain, hydrology, source-derived paths and structures, component-built vegetation, map-priority overlap resolution, streamed collision with destination prewarming, and a neutral human-scale voxel operator. Interiors and exteriors occupy the same world state, with open-roof treatment where an included interior shares an exterior footprint. This is the structurally mapped voxel foundation, not the final high-realism art or mutable-life simulation pass; hierarchical near-field detail, richer material and asset families, component mutation, camera-driven interior cutaways, agent simulation, and persistence remain active development scope.
+
+Launch the current Windows development package directly:
+
+```powershell
+apps\mousecat-world\Artifacts\Win64\Development\MousecatWorld.exe
+```
+
+Movement uses `WASD` or the left stick, camera uses the mouse or right stick, `Space` or the bottom face button jumps, and `Shift` or the left shoulder runs. Native source, export contracts, build tooling, and the authoritative World One manifest live together under `apps/mousecat-world`.
+
+## Host Adapter Harness
+
+`node src/cli.mjs adapters` returns `mousecat.adapter.render-packets/1` for generic MCP hosts, Codex, Claude Code, JetBrains, Cursor, and CLI consumers. Every profile points to the same Mousecat-owned summoned surface. Host packets describe origin and transport; Mousecat keeps interaction presentation, sequencing, accessibility, response capture, permit checks, route planning, state meaning, and private-upstream redaction.
+
+Harness authors can import the dependency-free SDK from `mousecat/sdk`. It initializes one Streamable HTTP MCP session, emits provider-neutral heartbeats, registers namespace-owned frameworks, invokes and awaits skills, and carries terminal result capabilities into contextual handoffs without reconstructing JSON-RPC envelopes.
+
+```javascript
+import { createMousecatClient, createMousecatHostAdapter } from "mousecat/sdk";
+
+const client = createMousecatClient({ endpoint: "http://127.0.0.1:4317/mcp" });
+const mousecat = createMousecatHostAdapter(client, {
+  profileId: "codex",
+  sessionId: "host-session-id",
+  threadId: "host-thread-id",
+});
+
+await mousecat.heartbeat({ objective: "Resolve the current architecture seam" });
+const invocation = await mousecat.invokeSkill({
+  skillRef: "crucible",
+  invocationId: "stable-host-invocation-id",
+  intake: { seams: [{ id: "architecture", prompt: "Which architecture should continue?" }] },
+});
+const result = await mousecat.awaitSkill(invocation, { waitMs: 30000 });
+```
+
+`runMousecatHostConformance` exercises that boundary as one reusable lifecycle: initialize transport, read runtime health, bind host identity, summon a Crucible decision, wait for its Mousecat response, inspect contextual continuation, optionally discover and execute a configured provider read, and close the host session. The returned `mousecat.sdk-host-conformance/1` receipt contains no response values or capability tokens. The packaged reference runner exposes the same proof to any shell-capable harness:
+
+```powershell
+mousecat-conformance --profile codex --session codex-proof --thread host-thread --gitlab-read
+```
+
+The command remains active until the operator answers its attributed decision in the standalone Mousecat surface. `--gitlab-read` is optional and proves the configured `gitlab.user.get` path through the same permit-gated runtime.
+
+Reference descriptors cover generic MCP, Codex, Claude Code, ChatGPT, OpenAI and Anthropic SDKs, Google GenAI and Antigravity, xAI and Grok Build, and Ollama. Unknown profile ids become custom MCP hosts. Adapter construction fixes host and session identity; per-call payloads cannot replace that identity or substitute Mousecat-issued continuation capabilities.
 
 ## Private Neo Connector
 
-Copy `mousecat.config.example.json` to ignored `mousecat.config.json`, enable `connectors.neo`, and point it at the local private Neo MCP server command. The checked-in example is disabled and uses placeholder paths. Use `node src/cli.mjs --config <path> <command>` to run a command against a specific public or local config.
+Copy `mousecat.config.example.json` to ignored `mousecat.config.json`, choose a known adapter descriptor or any custom host identifier, and enable `connectors.neo` only when Neo compatibility is wanted. Known descriptors cover generic MCP, Codex, Claude, ChatGPT, OpenAI and Anthropic SDKs, Google GenAI and Antigravity, xAI and Grok Build, Ollama, JetBrains, Cursor, and CLI clients. Unknown identifiers normalize through the generic MCP contract rather than being rejected.
+
+Set `state.enabled` to `true` in ignored local config when a host needs recursive dockets to survive process boundaries. Mousecat writes sessions, interactions, decision queues, route plans, public events, and credential references to `.mousecat/state.json` by default. The directory is ignored, credential values are never stored, secret-shaped fields are redacted, sensitive interactions are written without identifying metadata, prompts, options, or answers, and route-plan history is bounded by `state.maxRoutePlans`.
 
 ```powershell
 node src/cli.mjs connectors
@@ -78,9 +277,14 @@ node src/cli.mjs tools neo
 node src/cli.mjs resources neo
 node src/cli.mjs bridge neo
 node src/cli.mjs invoke neo <neo-tool-name> profileId=tool-invocation example=payload
+node scripts/neo-live-smoke.mjs --config mousecat.config.json
+node src/cli.mjs host-state cli
+node src/cli.mjs session total-recall
 ```
 
-Dynamic discovery comes from the configured MCP server's `tools/list` and `resources/list` responses. `mousecat.bridge` reads the public `mousecat_bridge_contract_v1` resource and returns a sanitized summary with public routes, boundary classes, stale-runtime policy, and withheld-surface labels. If an upstream MCP process reports `MCP_RUNTIME_STALE`, Mousecat returns `connector-runtime-stale` with `restartRequired: true` instead of treating it as an opaque JSON-RPC failure. Do not commit generated discovery output, local paths, credentials, or private tool schemas.
+Dynamic MCP discovery comes from the configured server's `tools/list` and `resources/list` responses over stdio or HTTP. Provider-neutral API and CLI integrations use source-owned `mousecat.integration-adapter/1` manifests over the distinct `cli-json` transport. Their capabilities appear through the same connector status, route, and `tools/list` surfaces; permit-gated capability execution enters only through `mousecat.invoke`, validates the active registry binding, and runs through a SHA-256-pinned executable with host-managed authentication. Integration capabilities are not delegation targets.
+
+HTTP connector summaries publish the cancellation handshake and a bounded `cancellationGraceMs` parameter from 100 through 5000 milliseconds, defaulting to 1000. `mousecat.bridge` reads the public `mousecat_bridge_contract_v1` resource and returns a sanitized summary with public routes, boundary classes, stale-runtime policy, and withheld-surface labels. If an upstream MCP endpoint reports `MCP_RUNTIME_STALE`, Mousecat returns `connector-runtime-stale` with `restartRequired: true` instead of treating it as an opaque JSON-RPC failure. `node scripts/neo-live-smoke.mjs --config mousecat.config.json` is the local live-connector smoke for an ignored private Neo config; it reports connector readiness, required public names, permit-gated forwarding, and sanitized runtime identity/doctor fields. Do not commit generated discovery output, local paths, credentials, raw runtime payloads, or private tool schemas.
 
 ## Source Policy
 
@@ -89,3 +293,31 @@ Mousecat core source is licensed under PolyForm Perimeter 1.0.0. The perimeter p
 ## Read First
 
 Read `CORE.md`, `ARCHITECTURE.md`, `GOVERNANCE.md`, `ROADMAP.md`, `SESSION_STATE.md`, and `AGENTS.md` before changing public tool names, connector semantics, permit semantics, credential policy, or skill-framework records.
+
+## Contextual reviews
+
+Projects opens a navigable group and subproject hierarchy. Enter a project to see
+its pending work, then open a work item to review its questions. Questions remains
+available as a direct view, including unassigned work. Sources sharing a project
+reference are collected under that project. History opens separately and returns
+to the same work; prepared drafts can be revised from any project view.
+
+ML review items display the situation, candidate content and response controls
+first. Supporting input, rationale and evidence expand on demand. Plan documents
+retain their reading layout. The host supplies meaning and typed choices; Mousecat
+owns their shared presentation and preserves the source content.
+
+Small question sets show named destinations and the currently viewed question;
+larger collections retain compact navigation. Framework and session details open
+through Work context. Project documents group by their human-facing labels with
+source attribution inside each entry. Work history preserves recorded outcomes;
+retained ordinary open/deferred questions remain answerable after a restart,
+even while the originating caller is disconnected. Redacted sensitive questions
+remain non-answerable; completed work stays in history.
+
+Callers should supply `projectRef` to `mousecat.skill` when the owning project is
+known. To contextualize existing work without reissuing questions, an explicitly
+registered project surface can list up to 256 unique `interactionIds` (nonempty
+strings of at most 512 characters). Associations affect navigation, preserve
+original ownership and grant no answer authority. Calling a skill or registering
+a project does not authorize editing the Mousecat platform.

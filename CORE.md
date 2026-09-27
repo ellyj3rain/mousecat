@@ -1,20 +1,26 @@
 | Document | Mousecat Core |
 |---|---|
-| Version | 0.1.0 |
-| Timestamp | 2026-06-26 01:17 UTC / 18:17 PST |
+| Version | 1.6.0.0-alpha |
+| Timestamp | 2026-09-26 01:00 UTC |
 | Status | ACTIVE - project identity. |
 
 # Mousecat Core
 
-Mousecat is a host-facing MCP control plane and open-source bridge. It normalizes upstream MCP servers, AI tools, operator-question workflows, live visualization streams, credentials posture, and tool-boundary policy behind one stable server without bundling private upstream implementations.
+Mousecat is a host-facing MCP normalization plane, nonlinear operator surface, native project world, and open-source bridge. It lets models in different harnesses request shared operator interactions, receive structured responses, mediate upstream capabilities, and work against a project's real model through source-bound development representations without bundling private implementations.
 
 ## Identity
 
-Mousecat is the organ between AI or agent hosts and the operator's tool ecosystem. A host sees one MCP server, one namespace, one widget stream, and one configuration surface. Mousecat owns upstream routing, profile selection, permission facts, availability, question queues, ratification flows, visualization events, redaction, provenance, audit, and external connector mediation.
+Mousecat is the organ between AI or agent hosts and the operator's tool ecosystem. A host sees one MCP server, one namespace, one cross-session graphical decision surface, and one configuration surface. Mousecat owns mapped-seam normalization, interaction navigation, response capture, redaction, provenance, routing facts, and connector mediation. The calling model owns recall, semantic seam mapping, option compilation, interpretation, recursion, and the next action.
 
-Mousecat does not ship private Neo tools or Ground Zero internal implementation knowledge. It ships the public connection layer: local configuration can point Mousecat at a private Neo MCP server, Mousecat can discover that server's tools dynamically, and permitted invocations can be forwarded at runtime.
+Mousecat does not ship private Neo tools or Ground Zero internal implementation knowledge. It ships the public connection layer: local configuration can point Mousecat at a private Neo MCP endpoint, Mousecat can discover that endpoint's tools dynamically, and permitted invocations can be forwarded at runtime.
 
 ## Audience
+
+Each operator owns a personal workspace shared by their connected agents.
+Desktop and browser are access paths to the same questions, plans, decisions and
+history. Work remains available independently of the agent that brought it in.
+Projects and skill frameworks provide their context through shared contracts;
+Mousecat's platform identity and navigation remain its own.
 
 Mousecat is for operators and builders using AI coding hosts such as JetBrains, Claude Code, Codex, Cursor, and command-line workflows. Its first value is making powerful workflows visible and governable while the user is actively working.
 
@@ -22,15 +28,25 @@ Mousecat is for operators and builders using AI coding hosts such as JetBrains, 
 
 | Component | Responsibility |
 |---|---|
-| MCP server | Exposes `mousecat.*` tools over JSON-RPC stdio. |
-| CLI | Runs the server and provides local status, buttons, queue, connector, and catalog checks. |
-| Skill catalog | Records atomic skill buttons for Crucible, Mass-Assault, and Total Recall. |
-| Skill frameworks | Groups atoms into reusable operator-decision, session-recall, and tool-boundary frameworks. |
+| MCP server | Exposes `mousecat.*` tools over headless stdio and the shared loopback `POST /mcp` endpoint. |
+| CLI | Runs the MCP and operator-host servers and provides local status, buttons, adapters, host-state bindings, session dockets, queue, connector, and catalog checks. |
+| Operator host | Owns one runtime shared by Streamable HTTP MCP callers and graphical operator commands. |
+| User service | Registers and manages that operator host at current-user login through native Windows, Linux, or macOS lifecycle mechanisms. |
+| Graphical operator | Renders every open or deferred item in one scrollable decision wall, maps explicit lineage and ordinals through a decision atlas, exposes recommendation and provenance, presents source-owned narrative and concrete ML review context when supplied, validates local drafts, and reviews bounded prepared returns through the existing command boundary. |
+| Skill invocation adapter | Routes built-in or registered operator-interaction skills through the canonical widget with deterministic chronology, opaque capabilities, lineage-rich returns, and contextual handoff. |
+| Delegation coordinator | Releases long permitted upstream work from the originating response window, distinguishes acknowledged cancellation from unknown timeout, keeps raw custody caller-capability gated, and rejoins interpreted output through the existing widget. |
+| Skill registry | Combines source-owned skills with permit-gated, namespace-owned runtime framework and presentation descriptors. |
+| Skill frameworks | Provides Recursive Deliberation for Crucible, Total Recall, and Mass Assault plus registered contextual operator-interaction frameworks. |
 | Work permits | Defines observer, operator-interaction, tool-invocation, and credential-steward permit profiles. |
+| Host adapter harness | Publishes one generic contract with known descriptors for OpenAI, Anthropic, Google, xAI, Ollama, IDE, CLI, and custom consumers without splitting widget semantics. |
+| SDK client | Gives harness authors executable heartbeat, framework registration, skill invocation, await, and contextual handoff helpers over the shared MCP endpoint. |
 | Connector layer | Discovers and forwards to locally configured external MCP servers such as a private Neo endpoint. |
+| Integration layer | Projects provider-neutral API or CLI manifests and executes recognized capabilities through permit-gated `mousecat.invoke`, pinned executables, and host-managed authentication. |
+| Project workbench contract | Defines project adapters, bounded workbench sessions, domain-owned operations, layered development representations, exactness classes, drafts, and source receipts. The current source validates these records; runtime adapter registration and execution remain the next implementation boundary. |
+| Local state | Optionally persists recursive session dockets, queues, bounded route plans, public events, and credential references under ignored `.mousecat/` state. |
 | Router | Resolves upstream plans for Neo, GitHub, Codex, Claude, browser, Z-Library, JetBrains, Cursor, and custom tools. |
 | Policy layer | Keeps invocation, credentials, redaction, provenance, and audit facts explicit. |
 
 ## Version
 
-The repository starts at `VERSION` `0.1.0`.
+The current root odometer is tracked in `VERSION`.

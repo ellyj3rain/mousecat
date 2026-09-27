@@ -1,14 +1,21 @@
 {
   "name": "mousecat",
-  "version": "0.1.5-alpha",
-  "description": "One MCP server for governed operator interaction, skill-framework routing, live visualization, and tool-boundary control.",
+  "version": "1.6.0-alpha",
+  "description": "A compact cross-harness MCP operator widget for normalized skill decisions and structured returns.",
   "type": "module",
   "bin": {
-    "mousecat": "./src/cli.mjs"
+    "mousecat": "./src/cli.mjs",
+    "mousecat-conformance": "./scripts/host-conformance.mjs"
+  },
+  "exports": {
+    ".": "./src/sdk/index.mjs",
+    "./sdk": "./src/sdk/index.mjs",
+    "./integration": "./src/integration/index.mjs",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "test": "node --test",
-    "verify": "npm test && npm run test:github-scripts && npm run smoke:status && npm run smoke:widget && npm run smoke:buttons && npm run smoke:connectors && npm run smoke:mcp",
+    "verify": "npm test && npm run test:github-scripts && npm run smoke:status && npm run smoke:widget && npm run smoke:registry && npm run smoke:skill && npm run smoke:delegation && npm run smoke:buttons && npm run smoke:adapters && npm run smoke:host-state && npm run smoke:connectors && npm run smoke:operator && npm run smoke:mcp && npm run smoke:sdk && npm run smoke:conformance && npm run smoke:integrations",
     "pr:ready": "npm run verify && npm run governance:floor && npm run governance:ceiling && npm run docs:check && npm run docs:pr && npm run hygiene:strict",
     "ci:verify": "npm run pr:ready",
     "test:github-scripts": "node --test .github/scripts/check-pr-chronology.test.mjs .github/scripts/check-pr-shape.test.mjs .github/scripts/collect-pr-outcome.test.mjs",
@@ -21,11 +28,22 @@
     "hooks:install": "node scripts/install-hooks.mjs",
     "hooks:check": "node scripts/install-hooks.mjs --check",
     "hygiene:strict": "node scripts/hygiene-strict.mjs",
+    "operator": "node src/cli.mjs operator",
+    "service": "node src/cli.mjs service status",
+    "smoke:registry": "node src/cli.mjs --config .github/mousecat.ci.config.json registry",
     "smoke:status": "node src/cli.mjs --config .github/mousecat.ci.config.json status",
     "smoke:widget": "node src/cli.mjs --config .github/mousecat.ci.config.json widget available",
+    "smoke:skill": "node src/cli.mjs --config .github/mousecat.ci.config.json skill crucible Smoke the normalized skill invocation contract",
+    "smoke:delegation": "node scripts/delegation-smoke.mjs",
     "smoke:buttons": "node src/cli.mjs --config .github/mousecat.ci.config.json buttons",
+    "smoke:adapters": "node src/cli.mjs --config .github/mousecat.ci.config.json adapters",
+    "smoke:host-state": "node src/cli.mjs --config .github/mousecat.ci.config.json host-state cli",
     "smoke:connectors": "node src/cli.mjs --config .github/mousecat.ci.config.json connectors",
-    "smoke:mcp": "node src/cli.mjs --config .github/mousecat.ci.config.json mcp --self-test"
+    "smoke:operator": "node src/cli.mjs --config .github/mousecat.ci.config.json operator --self-test",
+    "smoke:mcp": "node src/cli.mjs --config .github/mousecat.ci.config.json mcp --self-test",
+    "smoke:sdk": "node --test test/sdk-client.test.mjs",
+    "smoke:conformance": "node --test test/sdk-conformance.test.mjs",
+    "smoke:integrations": "node --test test/integration-contracts.test.mjs test/integration-runner.test.mjs test/integration-runtime.test.mjs"
   },
   "keywords": [
     "mcp",
@@ -40,6 +58,7 @@
   },
   "files": [
     "src",
+    "scripts/host-conformance.mjs",
     "README.md",
     "LICENSE",
     "CORE.md",
@@ -47,5 +66,8 @@
     "GOVERNANCE.md",
     "ROADMAP.md",
     "VERSION"
-  ]
+  ],
+  "dependencies": {
+    "lucide": "^1.24.0"
+  }
 }

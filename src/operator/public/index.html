@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en" data-theme="manuscript">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark light">
+    <script src="/appearance.js"></script>
+    <title>Mousecat</title>
+    <link rel="stylesheet" href="/operator.css">
+    <link rel="stylesheet" href="/native-view.css">
+    <link rel="stylesheet" href="/history.css">
+    <link rel="stylesheet" href="/appearance.css">
+    <script defer src="/vendor/lucide.js"></script>
+    <script type="module" src="/operator.js"></script>
+  </head>
+  <body>
+    <main id="widget" class="widget" aria-busy="true">
+      <header class="widget-header">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"><i data-lucide="layout-grid"></i></span>
+          <div class="brand-copy">
+            <h1>Mousecat</h1>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="projects-toggle" class="button secondary-button projects-toggle" type="button" aria-pressed="false">
+            <span id="projects-toggle-label">Projects</span>
+            <i data-lucide="folder-kanban"></i>
+          </button>
+          <button id="questions-toggle" class="button secondary-button" type="button" aria-pressed="false">Questions</button>
+          <button id="native-view-toggle" class="button secondary-button" type="button" aria-pressed="false">Simulation</button>
+          <button id="history-toggle" class="button secondary-button" type="button">History</button>
+          <button id="settings-toggle" class="button icon-button" type="button" aria-label="Settings" title="Settings" aria-haspopup="dialog"><i data-lucide="settings" aria-hidden="true"></i></button>
+          <span id="prepared-count" class="sr-only">0 drafts</span>
+          <span id="draft-state-status" class="sr-only" role="status" aria-live="polite">0 drafts</span>
+          <button id="return-prepared-button" class="button return-prepared-button command-button" type="button" disabled>
+            <span id="return-prepared-label">Review drafts</span>
+            <i data-lucide="panel-right-open"></i>
+          </button>
+          <span id="connection-status" class="connection" data-status="loading" role="status" aria-live="polite">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="connection-label">Connecting</span>
+          </span>
+        </div>
+      </header>
+
+      <div id="notice" class="notice" role="alert" hidden></div>
+      <div id="mutation-status" class="sr-only" role="status" aria-live="polite"></div>
+
+      <section id="idle-state" class="idle-state" aria-live="polite" hidden>
+        <span class="idle-icon" aria-hidden="true"><i data-lucide="circle-dashed"></i></span>
+        <div>
+          <h2>No decision waiting</h2>
+          <p>Mousecat will place the complete decision surface here when work arrives.</p>
+        </div>
+      </section>
+
+      <section id="decision-state" class="decision-workspace" aria-labelledby="workspace-title" hidden>
+        <nav id="question-breadcrumb" class="question-breadcrumb" aria-label="Question location"></nav>
+        <header class="workspace-header">
+          <div class="workspace-identity">
+            <h2 id="workspace-title">Open governance work</h2>
+            <p id="workspace-description" class="sr-only"></p>
+          </div>
+          <div class="workspace-progress">
+            <span id="progress-label" class="progress-label" role="status" aria-live="polite">0 resolved / 0</span>
+            <progress id="progress-value" value="0" max="1" aria-label="Resolution progress">0%</progress>
+            <button id="review-context-toggle" class="button text-button" type="button" aria-haspopup="dialog">Work context</button>
+          </div>
+        </header>
+
+
+        <div class="workspace-body">
+          <nav class="section-outline" aria-labelledby="outline-heading">
+            <div class="outline-header">
+              <h3 id="outline-heading">Questions</h3>
+            </div>
+            <label class="decision-search" for="decision-search">
+              <span class="sr-only">Find a decision</span>
+              <i data-lucide="search" aria-hidden="true"></i>
+              <input id="decision-search" type="search" placeholder="Search" autocomplete="off">
+            </label>
+            <div id="outline-list" class="outline-list"></div>
+            <p id="search-status" class="search-status" aria-live="polite"></p>
+          </nav>
+
+          <div id="decision-scroll" class="decision-scroll" tabindex="-1">
+            <p id="scope-empty" class="project-empty" hidden></p>
+            <div id="decision-wall" class="decision-wall"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="projects-state" class="projects-workspace" aria-labelledby="projects-heading" hidden>
+        <header class="workspace-header">
+          <div class="workspace-identity">
+            <span class="skill-label">Projects</span>
+            <h2 id="projects-heading">Your work</h2>
+            <p id="projects-description">Projects, their questions, and the decisions behind them.</p>
+          </div>
+        </header>
+        <div class="projects-body">
+          <nav id="project-nav" class="project-nav" aria-label="Registered projects"></nav>
+          <div id="project-detail" class="project-detail" tabindex="-1"></div>
+        </div>
+      </section>
+      <section id="native-view-state" class="native-workspace" aria-label="Simulation observation" hidden></section>
+    </main>
+
+    <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-heading">
+      <header class="settings-heading">
+        <h2 id="settings-heading">Settings</h2>
+        <button id="settings-close" class="button text-button" type="button">Done</button>
+      </header>
+      <fieldset class="appearance-options">
+        <legend>Appearance</legend>
+        <label class="appearance-choice"><input type="radio" name="appearance-theme" value="manuscript"><span><strong>Manuscript</strong><small>Warm charcoal, cream text and a brass accent.</small></span></label>
+        <label class="appearance-choice"><input type="radio" name="appearance-theme" value="bw"><span><strong>B&amp;W</strong><small>True black with neutral white and silver tones.</small></span></label>
+        <label class="appearance-choice"><input type="radio" name="appearance-theme" value="light"><span><strong>Light</strong><small>Pale surfaces with dark text.</small></span></label>
+      </fieldset>
+      <p id="appearance-status" role="status">Saved for this app or browser profile.</p>
+    </dialog>
+    <dialog id="review-context-dialog" class="review-context-dialog" aria-labelledby="review-context-heading">
+      <header class="context-dialog-header">
+        <div><h2 id="review-context-heading">Work context</h2><p><span id="skill-label"></span><span aria-hidden="true"> / </span><span id="source-label"></span></p></div>
+        <button id="review-context-close" class="button secondary-button" type="button">Close context</button>
+      </header>
+        <section id="context-details" class="context-details">
+          <p id="context-summary-label" class="context-summary-label"></p>
+          <div class="context-grid">
+            <section class="context-section framework-section" aria-labelledby="framework-heading">
+              <div class="panel-heading">
+                <span>Capabilities</span>
+                <h3 id="framework-heading">Framework</h3>
+              </div>
+              <select id="framework-picker" class="framework-picker" aria-label="Skill framework"></select>
+              <div id="skill-map" class="skill-map" aria-label="Framework skills"></div>
+              <p id="routing-rule" class="routing-rule"></p>
+            </section>
+            <section class="context-section" aria-labelledby="sessions-heading">
+              <div class="panel-heading">
+                <span>Cross-host</span>
+                <h3 id="sessions-heading">Sessions</h3>
+              </div>
+              <div id="session-list" class="session-list"></div>
+            </section>
+            <section class="context-section" aria-labelledby="threads-heading">
+              <div class="panel-heading">
+                <span>Recall</span>
+                <h3 id="threads-heading">Open seams</h3>
+              </div>
+              <div id="thread-list" class="thread-list"></div>
+            </section>
+          </div>
+        </section>
+    </dialog>
+
+    <dialog id="draft-review-dialog" class="draft-review-dialog" aria-labelledby="draft-review-heading" aria-describedby="draft-review-summary draft-review-boundary">
+      <div class="draft-review-shell">
+        <header class="draft-review-header">
+          <div>
+            <span>Operator review</span>
+            <h2 id="draft-review-heading" tabindex="-1">Prepared decision drafts</h2>
+            <p id="draft-review-summary">Review every local draft before anything is returned.</p>
+          </div>
+          <button id="close-draft-review" class="icon-button" type="button" aria-label="Close draft review">
+            <i data-lucide="x"></i>
+          </button>
+        </header>
+        <div class="draft-review-legend" aria-label="Draft readiness summary">
+          <span><i class="state-key ready" aria-hidden="true"></i><strong id="review-ready-count">0</strong> ready</span>
+          <span><i class="state-key incomplete" aria-hidden="true"></i><strong id="review-incomplete-count">0</strong> needs completion</span>
+        </div>
+        <div id="draft-review-list" class="draft-review-list"></div>
+        <div id="draft-review-status" class="sr-only" role="status" aria-live="polite"></div>
+        <footer class="draft-review-footer">
+          <p id="draft-review-boundary">Ready drafts return in bounded requests through their originating interactions. Earlier returns remain committed if a later request fails.</p>
+          <div>
+            <button id="cancel-draft-review" class="button secondary-button" type="button">Keep editing</button>
+            <button id="return-drafts-button" class="button submit-button command-button" type="button" disabled>
+              <span id="return-drafts-label">Return 0 ready</span>
+              <i data-lucide="send"></i>
+            </button>
+          </div>
+        </footer>
+      </div>
+    </dialog>
+    <dialog id="history-dialog" aria-labelledby="history-heading">
+      <header class="history-header">
+        <div><h2 id="history-heading">History</h2><p id="history-status" role="status"></p></div>
+        <div><button id="history-back" type="button" aria-label="Back in history">← Back</button><button id="history-forward" type="button" aria-label="Forward in history">Forward →</button><button id="history-close" type="button">Return to review</button></div>
+      </header>
+      <form id="history-search">
+        <label>Search<input name="query" type="search" placeholder="Find a decision, plan, answer or method"></label>
+        <label>Type<select name="kind"><option value="">All types</option></select></label>
+        <label>Project<select name="project"><option value="">All projects</option></select></label>
+        <label>Status<select name="standing"><option value="">All statuses</option></select></label>
+        <label>From<input name="from" type="date"></label><label>Through<input name="to" type="date"></label>
+        <button type="submit">Search history</button>
+      </form>
+      <div class="history-layout"><nav id="history-results" aria-label="History results"></nav><article id="history-reader" aria-label="History record"></article></div>
+    </dialog>
+  </body>
+</html>

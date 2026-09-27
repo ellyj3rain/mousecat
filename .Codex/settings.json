@@ -2,7 +2,9 @@
   "project": "Mousecat",
   "runtime": "node-esm",
   "mcp": {
-    "serverCommand": "node src/cli.mjs mcp",
+    "transport": "streamable-http",
+    "url": "http://127.0.0.1:4317/mcp",
+    "operatorCommand": "node src/cli.mjs operator",
     "toolNamespace": "mousecat"
   },
   "sourcePolicy": {

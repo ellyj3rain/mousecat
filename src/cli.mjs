@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 
+import { randomUUID } from "node:crypto";
+
 import { catalogSnapshot } from "./core/catalog.mjs";
 import { loadConfig } from "./core/config.mjs";
 import { connectorSummaries, discoverConnectorResources, discoverConnectorTools } from "./core/connectors.mjs";
 import { createMousecatRuntime } from "./core/runtime.mjs";
 import { selfTest, startStdioServer } from "./mcp/server.mjs";
+import { selfTestOperatorServer, startOperatorServer } from "./operator/server.mjs";
+import { manageUserService } from "./service/user-service.mjs";
 
 function print(value) {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
@@ -36,9 +40,45 @@ function parseGlobalOptions(argv) {
   return { argv: rest, configPath };
 }
 
+function parseOperatorOptions(argv) {
+  let port = 4317;
+  let demo = false;
+  let selfTest = false;
+  for (let index = 0; index < argv.length; index += 1) {
+    const value = argv[index];
+    if (value === "--port") {
+      const parsed = Number(argv[index + 1]);
+      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
+        throw new Error("--port must be an integer from 1 through 65535");
+      }
+      port = parsed;
+      index += 1;
+      continue;
+    }
+    if (value === "--demo") {
+      demo = true;
+      continue;
+    }
+    if (value === "--self-test") {
+      selfTest = true;
+      continue;
+    }
+    throw new Error(`Unknown operator option: ${value}`);
+  }
+  return { port, demo, selfTest };
+}
+
 async function main(argv = process.argv.slice(2)) {
   const parsed = parseGlobalOptions(argv);
   const [command = "status", ...rest] = parsed.argv;
+
+  if (command === "service") {
+    const action = rest[0] || "status";
+    const portIndex = rest.indexOf("--port");
+    const port = portIndex >= 0 ? Number(rest[portIndex + 1]) : 4317;
+    print(await manageUserService(action, { configPath: parsed.configPath, port }));
+    return;
+  }
 
   if (command === "mcp") {
     if (rest.includes("--self-test")) {
@@ -52,6 +92,27 @@ async function main(argv = process.argv.slice(2)) {
   const config = await loadConfig(parsed.configPath);
   const runtime = createMousecatRuntime({ config });
 
+  if (command === "operator") {
+    const operatorOptions = parseOperatorOptions(rest);
+    if (operatorOptions.selfTest) {
+      print(await selfTestOperatorServer({ config }));
+      return;
+    }
+    const app = await startOperatorServer({
+      runtime,
+      nativeViews: config.nativeViews,
+      port: operatorOptions.port,
+      demo: operatorOptions.demo,
+    });
+    print({ schema: app.schema, ok: true, url: app.url, mcpUrl: app.mcpUrl, host: app.host, port: app.port });
+    const close = async () => {
+      await app.close();
+    };
+    process.once("SIGINT", close);
+    process.once("SIGTERM", close);
+    return;
+  }
+
   if (command === "status") {
     print(await runtime.handleTool("mousecat.status", {}));
     return;
@@ -59,6 +120,11 @@ async function main(argv = process.argv.slice(2)) {
 
   if (command === "catalog") {
     print(catalogSnapshot());
+    return;
+  }
+
+  if (command === "registry") {
+    print(await runtime.handleTool("mousecat.registry", readJsonArg(rest.join(" "), { action: "list" })));
     return;
   }
 
@@ -91,6 +157,21 @@ async function main(argv = process.argv.slice(2)) {
     return;
   }
 
+  if (command === "adapters") {
+    print(catalogSnapshot().adapterRenderPackets);
+    return;
+  }
+
+  if (command === "host-state") {
+    const [profileId = "", limitRaw = ""] = rest;
+    const limit = /^\d+$/u.test(limitRaw) ? Number(limitRaw) : undefined;
+    print(await runtime.handleTool("mousecat.host-state", {
+      ...(profileId ? { profileId } : {}),
+      ...(limit ? { limit } : {}),
+    }));
+    return;
+  }
+
   if (command === "visualize") {
     print(await runtime.handleTool("mousecat.visualize", { includeEvents: true }));
     return;
@@ -105,9 +186,30 @@ async function main(argv = process.argv.slice(2)) {
     return;
   }
 
+  if (command === "skill") {
+    const [skillRef = "crucible", ...promptParts] = rest;
+    const prompt = promptParts.join(" ") || "Decision required";
+    print(await runtime.handleTool("mousecat.skill", {
+      action: "invoke",
+      skillRef,
+      source: { host: "cli", invocationId: randomUUID() },
+      intake: { seams: [{ id: "cli-seam", prompt }] },
+    }));
+    return;
+  }
+
   if (command === "ask") {
     const prompt = rest.join(" ") || "Decision required";
     print(await runtime.handleTool("mousecat.ask", { prompt, shape: "point", skillRef: "crucible.point" }));
+    return;
+  }
+
+  if (command === "session") {
+    const [action = "snapshot", sessionId = ""] = rest;
+    print(await runtime.handleTool("mousecat.session", {
+      action,
+      ...(sessionId ? { sessionId } : {}),
+    }));
     return;
   }
 
@@ -151,7 +253,7 @@ async function main(argv = process.argv.slice(2)) {
     ok: false,
     code: "unknown-command",
     command,
-    commands: ["status", "catalog", "connectors", "tools", "resources", "bridge", "buttons", "visualize", "widget", "ask", "queue", "route", "invoke", "credentials", "permits", "mcp"],
+    commands: ["status", "catalog", "registry", "connectors", "tools", "resources", "bridge", "buttons", "adapters", "host-state", "visualize", "widget", "skill", "ask", "session", "queue", "route", "invoke", "credentials", "permits", "operator", "service", "mcp"],
   });
   process.exitCode = 1;
 }

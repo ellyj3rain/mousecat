@@ -18,3 +18,7 @@ traces/
 artifacts/local/
 *.docx
 *.pdf
+apps/mousecat-desktop/bin/
+apps/mousecat-desktop/obj/
+apps/mousecat-desktop/tests/bin/
+apps/mousecat-desktop/tests/obj/

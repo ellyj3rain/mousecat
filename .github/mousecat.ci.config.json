@@ -1,4 +1,5 @@
 {
   "hostProfile": "ci",
+  "adapterProfile": "generic-mcp",
   "connectors": {}
 }
