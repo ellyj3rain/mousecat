@@ -207,18 +207,20 @@ PNG identity, source session and monotonic cursors, then displays the current
 engine frame beside up to four retained activity views. The screens share one
 adjustable size, remain equal, and can be hidden or restored individually. The
 person inspector can release its full width back to the screens, and that choice,
-panel size and visible data groups persist in the client profile. Every screen
-keeps its frame age visible.
+panel size, information opacity and visible data groups persist in the client
+profile. Every screen keeps its frame age visible.
 
 A producer may attach bounded Activity, Attention, Memory and Needs groups to a
-retained frame. Compact telemetry sits beneath the pixels and carries its own
-source sample time, so the surface reports any lag without covering the world.
-Operators can toggle each group without changing the simulation. Camera, time,
+retained frame. Compact telemetry sits inside its corresponding image and carries
+its own source sample time. A continuous opacity control changes the complete
+information layer from fully hidden to fully visible, while independent group
+controls determine what information exists on screen. The inspector presents
+the selected person's synopsis, live facts, provenance, events and cognition as
+separate visual structures instead of a raw diagnostic stream. Camera, time,
 person selection, native panel and cognition requests continue through the
-declared command pack; view sizing and visibility remain client-only. Delayed
-running frames remain controllable for a bounded interval, deliberate pauses can
-always resume, and ended runs freeze their final timing while remaining
-inspectable.
+declared command pack; view presentation remains client-only. Delayed running
+frames remain controllable for a bounded interval, deliberate pauses can always
+resume, and ended runs freeze their final timing while remaining inspectable.
 
 ## Native World Runtime
 

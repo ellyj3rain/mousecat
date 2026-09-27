@@ -45,6 +45,14 @@ export function installNativeView(root) {
   panelSize.value = Number.isInteger(preferredSize) && preferredSize >= 280 && preferredSize <= 640 && preferredSize % 40 === 0 ? preferredSize : 320;
   panelSize.setAttribute("aria-label", "Observatory panel size");
   const panelSizeValue = node("output", `${panelSize.value} px`, sizeControl); panelSizeValue.htmlFor = panelSize.id;
+  const opacityControl = node("label", undefined, observatoryTools, "native-panel-size native-info-opacity");
+  node("span", "Info opacity", opacityControl);
+  const infoOpacity = node("input", undefined, opacityControl); infoOpacity.type = "range"; infoOpacity.id = "native-observatory-info-opacity";
+  infoOpacity.min = "0"; infoOpacity.max = "100"; infoOpacity.step = "5";
+  const preferredOpacity = Number(readPreference("info-opacity", 55));
+  infoOpacity.value = Number.isInteger(preferredOpacity) && preferredOpacity >= 0 && preferredOpacity <= 100 && preferredOpacity % 5 === 0 ? preferredOpacity : 55;
+  infoOpacity.setAttribute("aria-label", "Information layer opacity");
+  const infoOpacityValue = node("output", `${infoOpacity.value}%`, opacityControl); infoOpacityValue.htmlFor = infoOpacity.id;
   const viewChooser = node("div", undefined, observatoryTools, "native-observatory-choice");
   node("span", "Views", viewChooser); const viewToggles = node("div", undefined, viewChooser, "native-observatory-toggles");
   const overlayChooser = node("div", undefined, observatoryTools, "native-observatory-choice");
@@ -64,16 +72,22 @@ export function installNativeView(root) {
   }
   const panelGrid = node("div", undefined, stage, "native-observatory-grid");
   stage.style.setProperty("--native-panel-size", `${panelSize.value}px`);
+  stage.style.setProperty("--native-info-opacity", String(Number(infoOpacity.value) / 100));
   panelSize.addEventListener("input", () => {
     stage.style.setProperty("--native-panel-size", `${panelSize.value}px`); panelSizeValue.textContent = `${panelSize.value} px`;
     writePreference("panel-size", Number(panelSize.value));
+  });
+  infoOpacity.addEventListener("input", () => {
+    stage.style.setProperty("--native-info-opacity", String(Number(infoOpacity.value) / 100));
+    infoOpacityValue.textContent = `${infoOpacity.value}%`;
+    writePreference("info-opacity", Number(infoOpacity.value));
   });
   const primaryPanel = node("article", undefined, panelGrid, "native-observatory-panel native-observatory-primary");
   const viewport = node("div", undefined, primaryPanel, "native-viewport");
   viewport.tabIndex = 0; viewport.setAttribute("aria-label", "Native simulation view. Arrow keys move the camera; mouse wheel or plus and minus zoom; space pauses or resumes.");
   const picture = node("img", undefined, viewport); picture.alt = "Native simulation frame"; picture.hidden = true; picture.draggable = false;
   const empty = node("p", "Waiting for the simulation feed.", viewport, "native-empty");
-  const primaryOverlay = node("div", undefined, primaryPanel, "native-panel-telemetry"); primaryOverlay.hidden = true;
+  const primaryOverlay = node("div", undefined, viewport, "native-panel-telemetry"); primaryOverlay.hidden = true;
   const primaryCaption = node("div", undefined, primaryPanel, "native-panel-caption");
   const primaryLabel = node("strong", "Current camera", primaryCaption), primaryAge = node("span", "No frame", primaryCaption);
   const noScreens = node("p", "Choose a view above to restore the observatory.", panelGrid, "native-observatory-empty"); noScreens.hidden = true;
@@ -118,7 +132,6 @@ export function installNativeView(root) {
   const personBody = node("div", undefined, details);
   const cognition = node("details", undefined, details, "native-detail-section native-cognition");
   cognition.open = true; cognition.hidden = true; cognition.dataset.section = "cognition";
-  details.insertBefore(cognition, personBody);
   node("summary", "Competing cognition", cognition);
   const cognitionAvailability = node("p", "", cognition, "native-source");
   const cognitionControls = node("details", undefined, cognition, "native-cognition-settings");
@@ -288,7 +301,7 @@ export function installNativeView(root) {
     container.dataset.signature = signature; container.dataset.count = String(groups.length); container.replaceChildren();
     for (const group of groups) {
       const section = node("section", undefined, container, "native-overlay-group"); section.dataset.overlay = group.id;
-      node("strong", group.label, section);
+      node("strong", group.label, section, "native-overlay-label");
       const rows = node("dl", undefined, section);
       for (const row of group.rows) {
         const item = node("div", undefined, rows, "native-overlay-value"); item.title = `${row.label}: ${row.value}`;
@@ -346,7 +359,7 @@ export function installNativeView(root) {
         const card = node("article", undefined, panelGrid, "native-observatory-panel native-feed-card");
         const media = node("div", undefined, card, "native-panel-media");
         const image = node("img", undefined, media); image.alt = ""; image.decoding = "async"; image.draggable = false;
-        const overlay = node("div", undefined, card, "native-panel-telemetry"); overlay.hidden = true;
+        const overlay = node("div", undefined, media, "native-panel-telemetry"); overlay.hidden = true;
         const caption = node("div", undefined, card, "native-panel-caption");
         const label = node("strong", "", caption), age = node("span", "", caption);
         value = { card, image, overlay, label, age, key: "", capturedAtUnixMs: 0 }; feedCards.set(feed.id, value);
@@ -373,22 +386,46 @@ export function installNativeView(root) {
     const focusedSection = personBody.contains(document.activeElement) ? document.activeElement.closest("details")?.dataset.section : null;
     const scroll = details.scrollTop; personBody.replaceChildren();
     if (!person) { node("p", "No person information has arrived.", personBody); return; }
-    node("p", person.summary, personBody, "native-person-summary");
+    const summaryLines = String(person.summary || "").split(/\r?\n/u).map(value => value.trim()).filter(Boolean);
+    if (summaryLines.length <= 1) node("p", summaryLines[0] || "No summary reported.", personBody, "native-person-summary");
+    else {
+      const profile = node("section", undefined, personBody, "native-person-profile");
+      const role = summaryLines.shift();
+      node("span", role.charAt(0).toLocaleUpperCase() + role.slice(1), profile, "native-person-role");
+      const synopsis = node("dl", undefined, personBody, "native-fact-grid native-person-synopsis");
+      for (const line of summaryLines) {
+        const colon = line.indexOf(":");
+        let label = colon > 0 ? line.slice(0, colon) : "Status", value = colon > 0 ? line.slice(colon + 1).trim() : line;
+        for (const [prefix, name] of [["Position from ", "Position source"], ["Recorded ", "Recorded"], ["Location ", "Location"]]) {
+          if (colon < 0 && line.startsWith(prefix)) { label = name; value = line.slice(prefix.length); break; }
+        }
+        const fact = node("div", undefined, synopsis, "native-fact");
+        node("dt", label, fact); node("dd", value, fact);
+      }
+    }
     for (const section of person.sections || []) {
       const group = node("details", undefined, personBody, "native-detail-section"); group.dataset.section = section.id;
       group.open = open.get(section.id) ?? true;
-      node("summary", section.label, group);
-      node("p", [section.perspective, section.source, section.status !== "available" ? section.status : ""].filter(Boolean).join(" · "), group, "native-source");
+      const heading = node("summary", undefined, group);
+      node("span", section.label, heading, "native-detail-title");
+      const sectionMeta = node("span", undefined, heading, "native-detail-meta");
+      if (section.perspective) node("span", section.perspective, sectionMeta, "native-meta-chip");
+      if (section.status !== "available") node("span", section.status, sectionMeta, "native-meta-chip native-meta-warning");
       if (section.message) node("p", section.message, group, "native-source");
-      const rows = node("dl", undefined, group);
-      for (const row of section.rows) { node("dt", row.label, rows); node("dd", row.value, rows); }
+      const rows = node("dl", undefined, group, "native-fact-grid");
+      for (const row of section.rows) {
+        const fact = node("div", undefined, rows, "native-fact");
+        node("dt", row.label, fact); node("dd", row.value, fact);
+      }
+      node("small", section.source, group, "native-provenance");
     }
     const events = node("details", undefined, personBody, "native-detail-section"); events.dataset.section = "events"; events.open = open.get("events") ?? true;
     node("summary", "Recent activity and dialogue", events);
     if (!person.events?.length) node("p", "No recorded events in this observation.", events, "native-source");
     for (const event of [...person.events || []].reverse()) {
       const row = node("article", undefined, events, "native-event");
-      node("strong", event.stage, row); node("span", ` · hour ${event.worldHours.toFixed(3)}`, row, "native-source");
+      const eventHead = node("header", undefined, row);
+      node("strong", event.stage, eventHead); node("time", `Hour ${event.worldHours.toFixed(3)}`, eventHead);
       node("p", event.summary, row); node("small", event.source, row);
     }
     details.scrollTop = scroll;
@@ -457,12 +494,26 @@ export function installNativeView(root) {
     if (!value.models.length) node("p", "No model state has been reported.", models, "native-source");
     for (const model of value.models) {
       const state = group(models, `model:${model.id}`, `${modelLabel(model.id)} · ${model.hypotheses.length} associations`, true);
-      node("p", `Version ${model.version}${model.omittedBeliefs ? ` · ${model.omittedBeliefs} beliefs omitted` : ""}${model.omittedHypotheses ? ` · ${model.omittedHypotheses} associations omitted` : ""}`, state, "native-source");
-      const beliefs = group(state, `beliefs:${model.id}`, `${model.beliefs.length} beliefs`);
-      for (const belief of model.beliefs) node("p", `${belief.label} · ${belief.status} · ${percent(belief.confidence)}`, beliefs, "native-source");
+      const modelMeta = node("div", undefined, state, "native-model-meta");
+      const modelVersion = node("span", model.version, modelMeta, "native-meta-chip"); modelVersion.title = "Model version";
+      node("span", `${model.beliefs.length} ${model.beliefs.length === 1 ? "belief" : "beliefs"}`, modelMeta, "native-meta-chip");
+      if (model.omittedBeliefs) node("span", `${model.omittedBeliefs} beliefs outside view`, modelMeta, "native-meta-chip native-meta-warning");
+      if (model.omittedHypotheses) node("span", `${model.omittedHypotheses} associations outside view`, modelMeta, "native-meta-chip native-meta-warning");
+      const beliefs = group(state, `beliefs:${model.id}`, "Beliefs");
+      for (const belief of model.beliefs) {
+        const item = node("article", undefined, beliefs, "native-belief");
+        node("p", belief.label, item);
+        const meta = node("div", undefined, item, "native-model-meta");
+        node("span", belief.status, meta, "native-meta-chip");
+        node("span", `${percent(belief.confidence)} confidence`, meta, "native-meta-chip");
+      }
       for (const hypothesis of model.hypotheses) {
         const item = group(state, `hypothesis:${model.id}:${hypothesis.id}`, hypothesis.label);
-        node("p", `${hypothesis.branch} · depth ${hypothesis.depth} · ${hypothesis.status} · confidence ${percent(hypothesis.confidence)}`, item, "native-source");
+        const meta = node("div", undefined, item, "native-model-meta");
+        node("span", hypothesis.branch, meta, "native-meta-chip");
+        node("span", `Depth ${hypothesis.depth}`, meta, "native-meta-chip");
+        node("span", hypothesis.status, meta, "native-meta-chip");
+        node("span", `${percent(hypothesis.confidence)} confidence`, meta, "native-meta-chip");
         node("p", "This association does not establish how to realize it.", item, "native-source");
         if (hypothesis.missing.length) {
           node("strong", "Still unknown", item);

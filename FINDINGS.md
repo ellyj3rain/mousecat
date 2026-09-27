@@ -549,3 +549,19 @@ inspector collapsible with persistent client preferences, separates delayed
 frames from disconnection, preserves Resume for an explicit pause, freezes final
 relative timing and stops its age interval, and backs ended-session successor
 discovery down to one poll per second.
+
+## F-062 | 2026-09-27 20:07 UTC / 13:07 PDT | Moving telemetry did not make screen information legible
+
+*Severity:* High
+
+*Finding:* A19.9.1 interpreted non-occlusion as moving telemetry below the image.
+It supplied no opacity control and retained a flat diagnostic stream in the
+person inspector. The resulting surface consumed separate vertical space while
+leaving raw version, belief, role, activity, reason, position, life state,
+location and memory lines without useful visual hierarchy.
+
+*Resolution:* A19.9.2 places telemetry within its source image as one persisted
+0-100% alpha layer, including a true zero state, while preserving independent
+group selection. The inspector projects synopsis lines, section rows, source
+metadata, events and cognition into distinct role, fact, provenance, timing,
+model and evidence structures, with immediate person state first.

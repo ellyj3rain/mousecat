@@ -38,15 +38,15 @@
 .native-viewport:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .native-viewport img, .native-panel-media > img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: contain; user-select: none; }
 .native-empty { color: #d6dce2; padding: 30px; text-align: center; max-width: 500px; }
-.native-panel-telemetry { display: grid; gap: 5px; padding: 6px 8px; color: #f4f1e8; background: #171a1c; border-top: 1px solid rgba(255, 255, 255, .12); }
+.native-panel-telemetry { position: absolute; inset: auto 0 0; z-index: 2; display: grid; gap: 5px; max-height: 48%; padding: 7px 9px; overflow: hidden; color: #fff; background: rgb(8 10 12 / .58); opacity: var(--native-info-opacity, .7); text-shadow: 0 1px 2px #000, 0 0 5px #000; pointer-events: none; }
 .native-panel-telemetry[hidden] { display: none; }
-.native-overlay-group { min-width: 0; display: flex; align-items: center; gap: 8px; }
-.native-overlay-group > strong { flex: none; padding: 2px 5px; color: #dedbd1; background: rgba(255, 255, 255, .07); border-radius: 999px; font-size: 8px; line-height: 1.2; text-transform: uppercase; letter-spacing: .06em; }
-.native-overlay-group dl { min-width: 0; display: flex; flex: 1; flex-wrap: wrap; gap: 3px 9px; margin: 0; font-size: 9px; line-height: 1.35; }
-.native-overlay-value { min-width: 0; display: inline-flex; gap: 4px; }
-.native-overlay-group dt { min-width: 0; overflow: hidden; color: #999e9f; text-overflow: ellipsis; white-space: nowrap; }
-.native-overlay-group dd { min-width: 0; margin: 0; overflow: hidden; color: #f4f1e8; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.native-overlay-age { justify-self: end; color: #999e9f; font-size: 8px; line-height: 1.1; }
+.native-overlay-group { min-width: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: start; gap: 5px 9px; }
+.native-overlay-label { padding-top: 1px; color: rgba(255, 255, 255, .72); font-size: 8px; line-height: 1.2; text-transform: uppercase; letter-spacing: .09em; }
+.native-overlay-group dl { min-width: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; font-size: 9px; line-height: 1.25; }
+.native-overlay-value { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 4px; }
+.native-overlay-group dt { min-width: 0; overflow: hidden; color: rgba(255, 255, 255, .66); text-overflow: ellipsis; white-space: nowrap; }
+.native-overlay-group dd { min-width: 0; margin: 0; overflow: hidden; color: #fff; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.native-overlay-age { justify-self: end; color: rgba(255, 255, 255, .62); font-size: 8px; line-height: 1.1; }
 .native-panel-caption { min-height: 29px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 6px 8px; box-sizing: border-box; }
 .native-panel-caption strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
 .native-panel-caption span { flex: none; color: var(--text-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
@@ -72,19 +72,33 @@
 .native-inspection-age, .native-source { font-size: 11px; color: var(--text-muted); margin: 4px 0; line-height: 1.5; overflow-wrap: anywhere; }
 .native-person-detail { min-height: 0; overflow-y: auto; scrollbar-gutter: stable; padding-right: 8px; flex: 1; font-size: 12px; overflow-wrap: anywhere; container-type: inline-size; }
 .native-person-detail h4 { margin: 12px 0 6px; font-size: 16px; }
-.native-person-summary { white-space: pre-line; line-height: 1.6; color: var(--text-muted); }
-.native-detail-section { border-top: 1px solid var(--line); padding: 10px 0; }
-.native-detail-section > summary { cursor: pointer; font-size: 13px; font-weight: 600; }
-.native-detail-section dl { display: grid; grid-template-columns: minmax(70px, .7fr) minmax(0, 1fr); gap: 6px 12px; line-height: 1.5; }
-.native-detail-section dt { color: var(--text-muted); }
-.native-detail-section dd { margin: 0; white-space: pre-wrap; }
+.native-person-profile { display: flex; align-items: center; min-height: 32px; margin: 2px 0 10px; }
+.native-person-role { display: inline-flex; padding: 4px 8px; color: var(--text-muted); background: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: 999px; font-size: 11px; line-height: 1.2; white-space: pre-line; }
+.native-person-summary { margin: 7px 0 11px; color: var(--text-muted); line-height: 1.55; white-space: pre-line; }
+.native-person-synopsis { margin-bottom: 12px; }
+.native-detail-section { margin: 7px 0; padding: 0 9px 9px; border: 1px solid var(--line); border-radius: 6px; background: color-mix(in srgb, var(--surface) 96%, var(--text) 4%); }
+.native-detail-section > summary, .native-cognition-group > summary { min-width: 0; cursor: pointer; }
+.native-detail-section > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 -9px; padding: 9px; font-size: 13px; font-weight: 650; }
+.native-detail-section > summary::marker { color: var(--text-muted); }
+.native-detail-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.native-detail-meta, .native-model-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.native-detail-meta { justify-content: flex-end; }
+.native-meta-chip { display: inline-flex; align-items: center; min-height: 18px; padding: 1px 5px; color: var(--text-muted); background: color-mix(in srgb, var(--surface) 82%, var(--text) 18%); border-radius: 999px; font-size: 9px; font-weight: 500; line-height: 1.2; }
+.native-meta-warning { color: var(--danger); }
+.native-fact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 125px), 1fr)); gap: 6px; margin: 1px 0 7px; }
+.native-fact { min-width: 0; padding: 7px 8px; background: color-mix(in srgb, var(--surface) 90%, var(--text) 10%); border-radius: 5px; }
+.native-fact dt { margin-bottom: 2px; color: var(--text-muted); font-size: 9px; line-height: 1.2; text-transform: uppercase; letter-spacing: .05em; }
+.native-fact dd { margin: 0; color: var(--text); font-size: 12px; font-weight: 600; line-height: 1.35; white-space: pre-wrap; }
+.native-provenance { display: block; color: var(--text-muted); font-size: 9px; text-align: right; }
 .native-event { padding: 8px 0; border-bottom: 1px solid var(--line); line-height: 1.5; }
+.native-event header { display: flex; justify-content: space-between; gap: 8px; }
+.native-event time { color: var(--text-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .native-event p { margin: 5px 0; white-space: pre-wrap; }
 .native-event small { color: var(--text-muted); }
 .native-cognition { line-height: 1.5; }
 .native-cognition [hidden] { display: none; }
-.native-cognition-settings, .native-cognition-group { margin-top: 10px; min-width: 0; }
-.native-cognition-settings > summary, .native-cognition-group > summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.native-cognition-settings, .native-cognition-group { margin-top: 8px; min-width: 0; }
+.native-cognition-settings > summary, .native-cognition-group > summary { cursor: pointer; font-weight: 600; padding: 5px 0; }
 .native-cognition-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; gap: 8px; margin: 10px 0; }
 .native-cognition-form label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .native-cognition-form input { width: 100%; box-sizing: border-box; }
@@ -95,6 +109,9 @@
 .native-cognition-model p { margin: 7px 0; white-space: pre-wrap; }
 .native-cognition-outcome { border-left: 2px solid var(--accent-border); padding-left: 9px; white-space: pre-wrap; }
 .native-cognition-group ul { padding-left: 18px; }
+.native-model-meta { margin: 5px 0 7px; }
+.native-belief { margin: 5px 0; padding: 7px 8px; background: color-mix(in srgb, var(--surface) 91%, var(--text) 9%); border-left: 2px solid var(--accent-border); border-radius: 4px; }
+.native-belief p { margin: 0 0 5px; color: var(--text); font-size: 12px; line-height: 1.4; }
 @container (max-width: 400px) {
   .native-cognition-comparison { grid-template-columns: minmax(0, 1fr); }
 }

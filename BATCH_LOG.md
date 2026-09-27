@@ -1771,3 +1771,25 @@ skips, 16 GitHub classifier tests, every runtime smoke, governance, documentatio
 and strict hygiene. The rebuilt installed Desktop and restarted port 4317 service
 pass the same browser checks. Version remains `1.6.0.0-alpha`; this repairs the
 existing A19.9 surface.
+
+## A19.9.2 - Observatory information legibility
+
+*Timestamp:* 2026-09-27 20:07 UTC / 13:07 PDT
+
+The prior repair moved telemetry but did not implement the requested opacity or
+improve the diagnostic presentation. Each screen now owns one in-image
+information layer with persisted 0-100% alpha, a 55% default and a true zero
+state. Activity, Attention, Memory and Needs selection remains independent from
+layer opacity.
+
+The person inspector no longer presents the summary and cognition model as a
+flat stream. It separates role, synopsis facts, live section facts, provenance,
+event timing, model version, belief status, confidence and association detail.
+Immediate person state appears before the deeper cognition tree.
+
+The focused native-view suite passes 62 assertions with two expected Windows
+symlink skips. Headless Chrome against the installed port 4317 service verifies
+the real three-screen ended session at 1680 by 950 and 760 by 900: default,
+zero and changed opacity, persistence through reload, inspector hierarchy, 52
+fact cards, no horizontal overflow, no page errors and no failed responses.
+Version remains `1.6.0.0-alpha` as an in-place A19.9 repair.

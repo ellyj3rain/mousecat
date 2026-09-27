@@ -32,9 +32,12 @@ person sections/events through the installed Desktop's Simulation route. One
 equal-panel observatory combines the current frame with bounded retained
 activity views. The operator adjusts their shared size, hides or restores each
 screen, collapses the person inspector, and independently toggles Activity,
-Attention, Memory and Needs telemetry. Telemetry uses a compact shelf below the
-pixels. Its data remains bound to the source sample timestamp preserved with
-that frame; frame age and state lag remain visible. These presentation choices
+Attention, Memory and Needs telemetry. Telemetry is an alpha-adjustable layer
+within its source image; zero opacity removes the complete layer and group
+selection remains independent. Its data stays bound to the source sample
+timestamp preserved with that frame. The inspector projects summary lines,
+bounded section rows, provenance, events and cognition into distinct visual
+structures without changing their source authority. These presentation choices
 do not publish simulation commands.
 
 The native view preserves frame identity, independent inspection age, source

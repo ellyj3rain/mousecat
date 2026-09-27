@@ -1,16 +1,25 @@
 | Document | Mousecat Session State |
 |---|---|
 | Version | 1.6.0.0-alpha |
-| Timestamp | 2026-09-27 19:41 UTC |
-| Status | ACTIVE - A19.9.1 observatory surface repair implemented, installed and fully verified. |
+| Timestamp | 2026-09-27 20:07 UTC |
+| Status | ACTIVE - A19.9.2 observatory information layer and inspector hierarchy implemented and browser verified. |
 
 # Session State
 
 ## Current State
 
-A19.9.1 repairs the first observatory composition. Activity, attention, memory
-and needs now occupy a compact telemetry shelf below each image instead of
-covering world pixels. The person inspector can be hidden from either the
+A19.9.2 corrects the remaining observatory presentation failure. Activity,
+attention, memory and needs now form one alpha-adjustable layer within each
+source image. Its persisted 0-100% opacity applies to the complete layer, with a
+55% default and a true zero state. The person inspector now separates role,
+summary facts, section facts, provenance, event time, model versions, beliefs,
+confidence and hypotheses into their own visual structures; immediate person
+state precedes the deeper cognition tree. The installed port 4317 service passes
+real-session browser checks at 1680 by 950 and 760 by 900 with opacity persistence,
+zero-opacity pixels, 52 projected fact cards, no page or HTTP errors, and no
+horizontal overflow.
+
+A19.9.1 repaired the first observatory composition. The person inspector can be hidden from either the
 workspace heading or its own close control; the stage immediately receives its
 width. Inspector visibility, panel size and telemetry choices persist locally.
 Ended sessions report final-frame and before-final timing without an advancing

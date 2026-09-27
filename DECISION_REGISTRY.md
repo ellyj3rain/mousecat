@@ -612,3 +612,16 @@ liveness closes; a deliberate pause always retains its resume command. Ended
 sessions preserve final relative timing and stop their age interval. These are
 shared Mousecat presentation and command-liveness rules and create no simulation
 judgment or dataset admission.
+
+## A19.9.2 - Screen information is one adjustable visual layer
+
+*Timestamp:* 2026-09-27 20:07 UTC / 13:07 PDT
+
+The operator clarified that opacity applied to the information within each
+screen and that moving the same raw output did not improve it. Each image
+therefore owns one continuous-alpha information layer. Opacity ranges from zero
+to full visibility and persists independently from the data-group selection.
+The selected-person inspector presents source facts according to their meaning:
+identity and immediate state first, bounded sections and provenance next, and
+the competing cognition model as deeper inspection. This presentation decision
+does not reinterpret simulation evidence or admit a training rule.
