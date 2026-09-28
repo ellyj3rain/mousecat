@@ -1831,3 +1831,29 @@ long attempt without changing the durable session or dataset-review contracts.
 
 Version remains `1.7.0.0-alpha` (npm `1.7.0-alpha`) as an in-place A20 display
 repair. The complete `npm run pr:ready` gate passes after this record is added.
+
+## A20.2 - Stable near-live observatory screens
+
+*Timestamp:* 2026-09-28 09:10 UTC / 02:10 PDT
+
+The observatory now presents source-reported feeds through stable equal-size
+screen slots. A slot, its telemetry sections and each fact row retain their DOM
+identity while the source rotates people through it. Updated native pixels
+decode off-screen before replacing the displayed image, so polling no longer
+blanks a tile or rebuilds its information layer.
+
+The freshest retained feed is labelled `Latest` and the redundant separate
+current-camera panel yields when a contact sheet exists. Screen toggles also
+retain their nodes when labels change. This is a presentation repair over the
+source-owned native frames; it does not create cameras, simulation state,
+behavioral verdicts or dataset authority.
+
+Version remains `1.7.0.0-alpha` (npm `1.7.0-alpha`) as an in-place A20 display
+repair. The complete `npm run pr:ready` gate passes 294 Node tests with two
+expected Windows symlink skips, every smoke, governance, documentation and
+strict-hygiene check. Headless Chrome against the installed port 4317 service
+observed four stable screen, image and telemetry-group identities across eight
+decoded image changes, with zero blank images or removed telemetry groups. The
+1680 by 950 and 760 by 900 layouts have no horizontal overflow. The ignored
+browser receipt SHA-256 is
+`5434ee642ff1884a1851a7016d798768b3751a2802903ae09e8a2a85fed94fc5`.

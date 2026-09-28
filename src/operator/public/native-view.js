@@ -281,7 +281,8 @@ export function installNativeView(root) {
     for (const value of feedCards.values()) value.card.remove();
     feedCards.clear(); hiddenScreens.clear(); screenSignature = ""; viewToggles.replaceChildren();
     primaryPanel.hidden = false; primaryLabel.textContent = "Current camera"; primaryAge.textContent = "No frame";
-    primaryOverlay.replaceChildren(); delete primaryOverlay.dataset.signature; primaryOverlay.hidden = true; noScreens.hidden = true;
+    primaryOverlay.replaceChildren(); primaryOverlay._nativeGroups = new Map(); primaryOverlay._nativeAge = null;
+    primaryOverlay.hidden = true; noScreens.hidden = true;
     picture.hidden = true; picture.removeAttribute("src"); empty.hidden = false; empty.textContent = "Waiting for the simulation feed.";
     personBody.replaceChildren(); cognitionBody.replaceChildren(); cognition.hidden = true;
     commandStatus.textContent = ""; summary.textContent = ""; sessionSettingsStatus.textContent = "";
@@ -355,24 +356,45 @@ export function installNativeView(root) {
   function renderOverlay(container, overlay, frameCapturedAtUnixMs) {
     const groups = (overlay?.groups || []).filter(group => visibleOverlays.has(group.id));
     const lag = overlay ? Math.max(0, frameCapturedAtUnixMs - overlay.capturedAtUnixMs) : 0;
-    const signature = JSON.stringify([groups, lag]);
-    if (container.dataset.signature === signature) return;
-    container.dataset.signature = signature; container.dataset.count = String(groups.length); container.replaceChildren();
+    const existing = container._nativeGroups || new Map(); container._nativeGroups = existing;
+    let age = container._nativeAge;
+    if (!age) { age = node("small", "", container, "native-overlay-age"); container._nativeAge = age; }
+    const active = new Set(); container.dataset.count = String(groups.length);
     for (const group of groups) {
-      const section = node("section", undefined, container, "native-overlay-group"); section.dataset.overlay = group.id;
-      node("strong", group.label, section, "native-overlay-label");
-      const rows = node("dl", undefined, section);
-      for (const row of group.rows) {
-        const item = node("div", undefined, rows, "native-overlay-value"); item.title = `${row.label}: ${row.value}`;
-        node("dt", row.label, item); node("dd", row.value, item);
+      active.add(group.id); let value = existing.get(group.id);
+      if (!value) {
+        const section = node("section", undefined, container, "native-overlay-group"); section.dataset.overlay = group.id;
+        const label = node("strong", "", section, "native-overlay-label"), rows = node("dl", undefined, section);
+        value = { section, label, rows, values: [] }; existing.set(group.id, value);
       }
+      value.section.hidden = false;
+      value.label.textContent = group.label;
+      for (let index = 0; index < group.rows.length; index += 1) {
+        const row = group.rows[index]; let item = value.values[index];
+        if (!item) {
+          const root = node("div", undefined, value.rows, "native-overlay-value");
+          item = { root, term: node("dt", "", root), detail: node("dd", "", root) }; value.values[index] = item;
+        }
+        item.root.title = `${row.label}: ${row.value}`;
+        if (item.term.textContent !== row.label) item.term.textContent = row.label;
+        if (item.detail.textContent !== row.value) item.detail.textContent = row.value;
+      }
+      while (value.values.length > group.rows.length) value.values.pop().root.remove();
     }
-    if (groups.length && lag >= 100) node("small", `State ${(lag / 1000).toFixed(1)}s before frame`, container, "native-overlay-age");
+    for (const [id, value] of existing) if (!active.has(id)) value.section.hidden = true;
+    let cursor = container.firstElementChild;
+    for (const group of groups) {
+      const section = existing.get(group.id).section;
+      if (section !== cursor) container.insertBefore(section, cursor || age);
+      cursor = section.nextElementSibling;
+    }
+    age.hidden = groups.length === 0 || lag < 100;
+    if (!age.hidden) age.textContent = `State ${(lag / 1000).toFixed(1)}s before frame`;
     container.hidden = groups.length === 0;
   }
 
   function renderViewToggles(screens) {
-    const signature = JSON.stringify(screens.map(screen => [screen.key, screen.label]));
+    const signature = JSON.stringify(screens.map(screen => screen.key));
     if (signature !== screenSignature) {
       screenSignature = signature; viewToggles.replaceChildren();
       for (const screen of screens) {
@@ -384,7 +406,10 @@ export function installNativeView(root) {
         });
       }
     }
+    const labels = new Map(screens.map(screen => [screen.key, screen.label]));
     for (const value of viewToggles.querySelectorAll("button")) {
+      value.textContent = labels.get(value.dataset.screen) || value.textContent;
+      value.title = `Show or hide ${value.textContent}`;
       value.setAttribute("aria-pressed", String(!hiddenScreens.has(value.dataset.screen)));
     }
   }
@@ -401,33 +426,44 @@ export function installNativeView(root) {
     const cameraNames = (next.view.camera?.personIds || []).map(id => next.view.people.find(person => person.id === id)?.label).filter(Boolean);
     const primaryName = primaryFeed?.label || cameraNames.join(", ") || "Current camera";
     const primaryDisplay = primaryName === "Current camera" ? primaryName : `Current: ${primaryName}`;
-    const feeds = reported.filter(value => value.image.file !== next.view.image.file && urls.has(value.id));
-    const screens = [{ key: "current", label: primaryDisplay },
-      ...feeds.map(feed => ({ key: `feed:${feed.id}`, label: feed.label }))];
+    const feeds = reported.filter(value => urls.has(value.id));
+    const slots = feeds.map((feed, index) => ({ feed, id: `slot:${index}`, key: `feed:${index}` }));
+    const screens = slots.length
+      ? slots.map(({ feed, key }, index) => ({ key, label: index === 0 ? `Latest: ${feed.label}` : feed.label }))
+      : [{ key: "current", label: primaryDisplay }];
     renderViewToggles(screens);
 
     primaryLabel.textContent = primaryDisplay;
-    primaryPanel.hidden = hiddenScreens.has("current");
+    primaryPanel.hidden = feeds.length > 0 || hiddenScreens.has("current");
     renderOverlay(primaryOverlay, primaryFeed?.overlay, next.view.capturedAtUnixMs);
 
-    const activeIds = new Set(feeds.map(value => value.id));
+    const activeIds = new Set(slots.map(value => value.id));
     for (const [id, value] of feedCards) if (!activeIds.has(id)) { value.card.remove(); feedCards.delete(id); }
-    for (const feed of feeds) {
-      let value = feedCards.get(feed.id);
+    for (let index = 0; index < slots.length; index += 1) {
+      const { feed, id, key: screenKey } = slots[index];
+      let value = feedCards.get(id);
       if (!value) {
         const card = node("article", undefined, panelGrid, "native-observatory-panel native-feed-card");
+        card.dataset.feedSlot = String(index);
         const media = node("div", undefined, card, "native-panel-media");
         const image = node("img", undefined, media); image.alt = ""; image.decoding = "async"; image.draggable = false;
         const overlay = node("div", undefined, media, "native-panel-telemetry"); overlay.hidden = true;
         const caption = node("div", undefined, card, "native-panel-caption");
         const label = node("strong", "", caption), age = node("span", "", caption);
-        value = { card, image, overlay, label, age, key: "", capturedAtUnixMs: 0 }; feedCards.set(feed.id, value);
+        value = { card, image, overlay, label, age, key: "", capturedAtUnixMs: 0 }; feedCards.set(id, value);
       }
-      value.label.textContent = feed.label; value.image.alt = `Retained native view: ${feed.label}`;
-      value.capturedAtUnixMs = feed.capturedAtUnixMs; value.card.hidden = hiddenScreens.has(`feed:${feed.id}`);
+      const latest = index === 0;
+      value.label.textContent = latest ? `Latest: ${feed.label}` : feed.label;
+      value.image.alt = `${latest ? "Latest" : "Recent"} native view: ${feed.label}`;
+      value.capturedAtUnixMs = feed.capturedAtUnixMs; value.card.hidden = hiddenScreens.has(screenKey);
       renderOverlay(value.overlay, feed.overlay, feed.capturedAtUnixMs);
       const key = `${feed.image.file}:${feed.image.sha256}`;
-      if (key !== value.key) { value.image.src = urls.get(feed.id); value.key = key; }
+      if (key !== value.key && key !== value.pendingKey) {
+        value.pendingKey = key; const candidate = new Image(); candidate.decoding = "async"; candidate.src = urls.get(feed.id);
+        candidate.decode().then(() => {
+          if (value.pendingKey === key) { value.image.src = candidate.src; value.key = key; value.pendingKey = ""; }
+        }, () => { if (value.pendingKey === key) value.pendingKey = ""; });
+      }
       panelGrid.insertBefore(value.card, noScreens);
     }
     noScreens.hidden = screens.some(screen => !hiddenScreens.has(screen.key));
