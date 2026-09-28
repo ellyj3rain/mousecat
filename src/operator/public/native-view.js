@@ -226,7 +226,9 @@ export function installNativeView(root) {
     const duration = value.attemptDurationSeconds < 3600
       ? `${Math.round(value.attemptDurationSeconds / 60 * 10) / 10} min`
       : `${Math.round(value.attemptDurationSeconds / 3600 * 10) / 10} hr`;
-    sessionFacts.textContent = `Attempt ${value.attempt} · world hour ${value.worldHours.toFixed(2)} · ${duration} per attempt`
+    const worldHours = value.status === "running" && Number.isFinite(current?.view.inspection?.worldHours)
+      ? current.view.inspection.worldHours : value.worldHours;
+    sessionFacts.textContent = `Attempt ${value.attempt} · world hour ${worldHours.toFixed(2)} · ${duration} per attempt`
       + (value.lastStopReason ? ` · ${value.lastStopReason}` : "");
     checkpoint.hidden = !value.canCheckpoint; continueSession.hidden = !value.canContinue;
     if (!sessionDirty && !sessionForm.contains(document.activeElement)) {

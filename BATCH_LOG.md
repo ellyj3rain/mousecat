@@ -1819,3 +1819,15 @@ source service verifies the real three-screen observatory at 1680 by 950 and 760
 by 900. The saved session exposes Continue, the closed settings expand to a
 120-minute attempt and automatic-continuation control, the mobile document has
 no horizontal overflow, and the page reports no runtime errors.
+
+## A20.1 - Live study clock coherence
+
+*Timestamp:* 2026-09-28 08:39 UTC / 01:39 PDT
+
+The running study strip now reads the current native observation clock instead
+of the supervisor's last durable checkpoint. Saved studies continue to read the
+supervisor-owned terminal clock. This keeps visible progress current during a
+long attempt without changing the durable session or dataset-review contracts.
+
+Version remains `1.7.0.0-alpha` (npm `1.7.0-alpha`) as an in-place A20 display
+repair. The complete `npm run pr:ready` gate passes after this record is added.
