@@ -625,3 +625,17 @@ The selected-person inspector presents source facts according to their meaning:
 identity and immediate state first, bounded sections and provenance next, and
 the competing cognition model as deeper inspection. This presentation decision
 does not reinterpret simulation evidence or admit a training rule.
+
+## A20 - Study duration and continuation remain producer-owned lifecycle state
+
+*Timestamp:* 2026-09-28 07:02 UTC / 00:02 PST
+
+Mousecat may display and forward bounded study-session operations only when the
+registered producer supplies exact current lifecycle state. A running session
+may checkpoint; a normally saved session may continue; settings may change the
+next finite attempt. The producer owns process launch, save validation, reload,
+automatic continuation and successor publication.
+
+The primary valid action stays visible. Duration and automatic continuation use
+progressive disclosure. No lifecycle action carries paths, executables, native
+simulation verbs, scenario verdicts or dataset admission.

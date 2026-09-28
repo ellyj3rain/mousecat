@@ -1,12 +1,21 @@
 | Document | Mousecat Session State |
 |---|---|
-| Version | 1.6.0.0-alpha |
-| Timestamp | 2026-09-27 20:07 UTC |
-| Status | ACTIVE - A19.9.2 observatory information layer and inspector hierarchy implemented and browser verified. |
+| Version | 1.7.0.0-alpha |
+| Timestamp | 2026-09-28 07:08 UTC |
+| Status | ACTIVE - A20 durable study-session controls implemented and verified. |
 
 # Session State
 
 ## Current State
+
+A20 adds durable study-session controls to the native observatory. A running
+attempt can request a normal save; a saved attempt can request verified
+continuation. Attempt duration and clean wall-time continuation are configurable
+inside an expandable section. Ended views accept only source-advertised session
+configuration or continuation, and all lifecycle requests retain the existing
+same-origin immutable command path. The complete 293-test repository gate and
+desktop/mobile source-service browser checks pass; expanded settings have no
+horizontal overflow or page errors.
 
 A19.9.2 corrects the remaining observatory presentation failure. Activity,
 attention, memory and needs now form one alpha-adjustable layer within each

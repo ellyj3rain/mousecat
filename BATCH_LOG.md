@@ -1793,3 +1793,29 @@ the real three-screen ended session at 1680 by 950 and 760 by 900: default,
 zero and changed opacity, persistence through reload, inspector hierarchy, 52
 fact cards, no horizontal overflow, no page errors and no failed responses.
 Version remains `1.6.0.0-alpha` as an in-place A19.9 repair.
+
+## A20 - Durable study-session controls
+
+*Timestamp:* 2026-09-28 07:02 UTC / 00:02 PST
+
+The Simulation route now accepts optional producer-owned durable session state.
+Running attempts expose Save session; normally saved attempts expose Continue
+session. Attempt duration and automatic continuation live inside an expandable
+Session settings section. The public contract bounds attempt duration from 30
+seconds through seven days, validates exact Boolean continuation state and
+admits lifecycle requests only when the source advertises their current use.
+
+Ended views remain write-closed except for saved-session continuation and
+configuration. Every request uses the existing same-origin, immutable,
+consecutive command transport. Mousecat receives no local path, executable,
+arbitrary command, save implementation or dataset authority. Successor selection
+continues to wait for a complete source frame.
+
+Version: `1.7.0.0-alpha` (npm `1.7.0-alpha`), minor for the additive public
+study-session and operator-control contract. The complete `npm run pr:ready`
+gate passes 293 Node tests with two expected Windows symlink skips, every smoke,
+governance, documentation and strict-hygiene check. Headless Chrome against the
+source service verifies the real three-screen observatory at 1680 by 950 and 760
+by 900. The saved session exposes Continue, the closed settings expand to a
+120-minute attempt and automatic-continuation control, the mobile document has
+no horizontal overflow, and the page reports no runtime errors.

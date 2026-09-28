@@ -1,25 +1,18 @@
 | Document | Mousecat Roadmap |
 |---|---|
-| Version | 1.6.0.0-alpha |
-| Timestamp | 2026-09-26 01:00 UTC |
+| Version | 1.7.0.0-alpha |
+| Timestamp | 2026-09-28 07:08 UTC |
 | Status | ACTIVE - project roadmap. |
 
 # Mousecat Roadmap
 
 ## Current Milestone
 
-A19.7 brings the OTL Manuscript and B&W color rules into shared Mousecat appearance
-settings, alongside Light. Preferences persist per client profile and cover every
-workflow through common semantic tokens.
-
-
-A19.6 makes the shared personal workspace available through a Windows desktop
-client as well as the browser. Pending questions remain actionable across service
-restarts independently of caller presence. Project context continues to use the
-generic interaction, skill and adapter contracts. This access work does not
-change ownership of the project-workbench or visualization tracks below.
-
-`[A19]` establishes Mousecat's native Unreal project world and the Project Workbench contract that lets conversational hosts inspect, compose, represent, and later stage project-native state without depending on the target product's UI.
+A20 gives native simulations a durable operator lifecycle in the observatory.
+Running sessions can checkpoint, normally saved sessions can continue, and
+finite attempt duration plus clean automatic continuation remain behind
+progressive disclosure. The source owns saves and successor readiness; Mousecat
+owns only bounded display and allowlisted lifecycle requests.
 
 ## Next Milestone
 

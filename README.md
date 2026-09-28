@@ -1,6 +1,6 @@
 | Document | Mousecat README |
 |---|---|
-| Version | 1.6.0.0-alpha |
+| Version | 1.7.0.0-alpha |
 | Timestamp | 2026-09-26 01:00 UTC |
 | Status | ACTIVE - participant entry point. |
 
@@ -221,6 +221,13 @@ person selection, native panel and cognition requests continue through the
 declared command pack; view presentation remains client-only. Delayed running
 frames remain controllable for a bounded interval, deliberate pauses can always
 resume, and ended runs freeze their final timing while remaining inspectable.
+
+When a producer supplies durable study-session state, the primary control is
+Save session during a running attempt or Continue session after a normal save.
+Attempt duration and clean wall-time continuation remain inside Session settings.
+Mousecat validates and forwards these bounded lifecycle requests; the producer
+owns saving, resumption and successor publication. Session operation remains
+unreviewed and has no dataset-admission control.
 
 ## Native World Runtime
 

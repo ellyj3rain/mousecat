@@ -113,7 +113,24 @@ export function installNativeView(root) {
   for (const [label, dx, dy] of [["←", -8, 0], ["↑", 0, -8], ["↓", 0, 8], ["→", 8, 0]]) {
     const b = button(label, "pan", { dx, dy }, pan); b.setAttribute("aria-label", `Move camera ${label}`);
   }
-  button("End run", "stop");
+  const endRun = button("End run", "stop");
+  const sessionBar = node("section", undefined, stage, "native-session-bar"); sessionBar.hidden = true;
+  const sessionFacts = node("p", "", sessionBar, "native-session-facts");
+  const sessionActions = node("div", undefined, sessionBar, "native-session-actions");
+  const checkpoint = button("Save session", "checkpoint", undefined, sessionActions);
+  const continueSession = button("Continue session", "continue", undefined, sessionActions);
+  const sessionSettings = node("details", undefined, sessionBar, "native-session-settings");
+  node("summary", "Session settings", sessionSettings);
+  const sessionForm = node("form", undefined, sessionSettings, "native-session-form");
+  const durationLabel = node("label", undefined, sessionForm);
+  node("span", "Attempt duration (minutes)", durationLabel);
+  const durationMinutes = node("input", undefined, durationLabel); durationMinutes.type = "number";
+  durationMinutes.min = "0.5"; durationMinutes.max = "10080"; durationMinutes.step = "0.5";
+  const autoLabel = node("label", undefined, sessionForm, "native-session-auto");
+  const autoContinue = node("input", undefined, autoLabel); autoContinue.type = "checkbox";
+  node("span", "Continue automatically after the time limit", autoLabel);
+  const applySession = node("button", "Apply", sessionForm, "button secondary-button"); applySession.type = "submit";
+  const sessionSettingsStatus = node("p", "", sessionSettings, "native-command-status"); sessionSettingsStatus.setAttribute("role", "status");
   const commandStatus = node("p", "", stage, "native-command-status"); commandStatus.setAttribute("role", "status");
   const summary = node("p", "", stage, "native-summary");
   const inspector = node("aside", undefined, body, "native-inspector"); inspector.id = "native-person-inspector"; inspector.setAttribute("aria-label", "People inspector");
@@ -163,6 +180,7 @@ export function installNativeView(root) {
   let waiting = null, posting = false, lastResult = null, imagesReceived = 0, rateStarted = performance.now();
   let feedError = null, postController = null;
   let cognitionSignature = "", settingsDirty = false, cognitionRequest = null;
+  let sessionDirty = false, sessionRequest = null;
   let registeredViews = [], registryCheckedAt = 0;
   const feedCards = new Map(), hiddenScreens = new Set();
   let screenSignature = "";
@@ -183,6 +201,44 @@ export function installNativeView(root) {
     if (!settingsValid() || applyCognition.disabled) return;
     void send("cognition", settingsValues());
   });
+
+  function sessionValues() {
+    return { attemptDurationSeconds: Math.round(Number(durationMinutes.value) * 60), autoContinue: autoContinue.checked };
+  }
+  function sessionSettingsValid() {
+    const value = sessionValues().attemptDurationSeconds;
+    return durationMinutes.value.trim() !== "" && durationMinutes.validity.valid
+      && Number.isSafeInteger(value) && value >= 30 && value <= 604800;
+  }
+  sessionForm.addEventListener("input", () => { sessionDirty = true; freshness(); });
+  sessionForm.addEventListener("submit", event => {
+    event.preventDefault();
+    if (!sessionSettingsValid() || applySession.disabled) return;
+    sessionRequest = { status: "sending", values: sessionValues() };
+    sessionSettingsStatus.textContent = "Sending session settings.";
+    void send("configure", sessionRequest.values);
+  });
+
+  function updateSession() {
+    const value = current?.view.study;
+    sessionBar.hidden = !value; endRun.hidden = Boolean(value);
+    if (!value) return;
+    const duration = value.attemptDurationSeconds < 3600
+      ? `${Math.round(value.attemptDurationSeconds / 60 * 10) / 10} min`
+      : `${Math.round(value.attemptDurationSeconds / 3600 * 10) / 10} hr`;
+    sessionFacts.textContent = `Attempt ${value.attempt} · world hour ${value.worldHours.toFixed(2)} · ${duration} per attempt`
+      + (value.lastStopReason ? ` · ${value.lastStopReason}` : "");
+    checkpoint.hidden = !value.canCheckpoint; continueSession.hidden = !value.canContinue;
+    if (!sessionDirty && !sessionForm.contains(document.activeElement)) {
+      durationMinutes.value = String(value.attemptDurationSeconds / 60);
+      autoContinue.checked = value.autoContinue;
+    }
+    if (sessionRequest?.sequence && current.view.commandResult?.sequence === sessionRequest.sequence) {
+      sessionRequest.status = current.view.commandResult.status;
+      sessionSettingsStatus.textContent = `${sessionRequest.status === "applied" ? "Applied" : "Rejected"}: ${current.view.commandResult.message}`;
+      if (sessionRequest.status === "applied") sessionDirty = false;
+    }
+  }
 
   function updateSettings() {
     const source = current?.view.people.find(person => person.id === selected)?.cognition?.settings;
@@ -219,14 +275,15 @@ export function installNativeView(root) {
   function resetRun() {
     current = null; selected = null; explicitPerson = false; waiting = null; lastResult = null;
     peopleSignature = personSignature = cognitionSignature = imageKey = "";
-    feedError = null; cognitionRequest = null; settingsDirty = false;
+    feedError = null; cognitionRequest = null; settingsDirty = false; sessionRequest = null; sessionDirty = false;
     for (const value of feedCards.values()) value.card.remove();
     feedCards.clear(); hiddenScreens.clear(); screenSignature = ""; viewToggles.replaceChildren();
     primaryPanel.hidden = false; primaryLabel.textContent = "Current camera"; primaryAge.textContent = "No frame";
     primaryOverlay.replaceChildren(); delete primaryOverlay.dataset.signature; primaryOverlay.hidden = true; noScreens.hidden = true;
     picture.hidden = true; picture.removeAttribute("src"); empty.hidden = false; empty.textContent = "Waiting for the simulation feed.";
     personBody.replaceChildren(); cognitionBody.replaceChildren(); cognition.hidden = true;
-    commandStatus.textContent = ""; summary.textContent = "";
+    commandStatus.textContent = ""; summary.textContent = ""; sessionSettingsStatus.textContent = "";
+    sessionBar.hidden = true; endRun.hidden = false;
     cameraSubject.textContent = "Camera state unavailable"; cameraSummary.textContent = "";
     inspectedName.textContent = "No person selected"; personTitle.textContent = "Inspect person";
   }
@@ -537,6 +594,9 @@ export function installNativeView(root) {
     imageAge.textContent = view.state === "ended" ? "Final frame" : "Frame " + (age < 1000 ? "just received" : (age / 1000).toFixed(1) + "s old");
     if (view.state === "ended") deliveryRate.textContent = "Run complete";
     for (const value of controlButtons) value.disabled = !commandable || posting;
+    checkpoint.disabled = posting || !view.study?.canCheckpoint || !commandable;
+    continueSession.disabled = posting || !view.study?.canContinue || view.state !== "ended";
+    applySession.disabled = posting || !view.study || !sessionSettingsValid();
     people.disabled = !view.people.length || posting;
     focus.disabled ||= !selected;
     panelOpen.disabled ||= !selected || !view.panels?.length;
@@ -581,7 +641,7 @@ export function installNativeView(root) {
     project.href = "#projects?" + new URLSearchParams({ project: next.binding.projectRef || "" });
     if (!view.people.some(person => person.id === selected)) { selected = null; explicitPerson = false; }
     if (!explicitPerson) selected = view.camera?.personIds[0] || selected || view.people[0]?.id || null;
-    selectPeople(); renderPerson(); renderCognition(); renderFeeds(next); freshness();
+    selectPeople(); renderPerson(); renderCognition(); renderFeeds(next); updateSession(); freshness();
     if (view.commandResult && (!lastResult || view.commandResult.sequence > lastResult.sequence)) {
       lastResult = view.commandResult;
       commandStatus.textContent = `${lastResult.status === "applied" ? "Applied" : "Rejected"}: ${lastResult.message}`;
@@ -595,7 +655,10 @@ export function installNativeView(root) {
 
   async function send(action, values = {}) {
     const age = current ? Date.now() - current.view.capturedAtUnixMs : Infinity;
-    if (!active || !current || posting || feedError || current.view.state === "ended" || (current.view.state !== "paused" && age >= 30000)) return;
+    const lifecycle = action === "continue" || action === "configure";
+    if (!active || !current || posting || feedError
+      || (current.view.state === "ended" && !lifecycle)
+      || (!lifecycle && current.view.state !== "paused" && age >= 30000)) return;
     if (action === "cognition") {
       if (!settingsValid() || !current.view.people.find(person => person.id === selected)?.cognition || ["pending", "sending"].includes(cognitionRequest?.status)) return;
       cognitionRequest = { values: { ...values }, sequence: null, status: "sending", message: "Sending settings request.",
@@ -627,10 +690,17 @@ export function installNativeView(root) {
         cognitionRequest.sequence = result.sequence; cognitionRequest.status = "pending";
         cognitionRequest.message = `Request ${result.sequence} awaiting the simulation.`; updateSettings();
       }
+      if (action === "configure" && sessionRequest) {
+        sessionRequest.sequence = result.sequence; sessionRequest.status = "pending";
+        sessionSettingsStatus.textContent = `Request ${result.sequence} awaiting the session.`;
+      }
     } catch (error) {
       if (expected === generation) commandStatus.textContent = error.name === "TimeoutError" ? "Request outcome unknown. Wait for the simulation's acknowledgement before trying again." : error.message;
       if (expected === generation && action === "cognition") {
         cognitionRequest.status = "unknown"; cognitionRequest.message = commandStatus.textContent; updateSettings();
+      }
+      if (expected === generation && action === "configure" && sessionRequest) {
+        sessionRequest.status = "unknown"; sessionSettingsStatus.textContent = commandStatus.textContent;
       }
     } finally {
       if (postController === requestController) { postController = null; posting = false; freshness(); }

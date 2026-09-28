@@ -52,8 +52,38 @@ closing and reopening the view. A paused producer continues publishing current
 snapshots so the connection remains observable. After three seconds without a
 fresh frame the view says **Stale**; after ten it says **Disconnected** and
 disables requests. An ended session retains its final image and accepts no
-requests. Source data always appears as **Unreviewed**; this view has no dataset
+requests unless it includes the optional durable study state described below.
+Source data always appears as **Unreviewed**; this view has no dataset
 admission or ratification controls.
+
+The optional `study` object carries one producer-owned durable session:
+
+```json
+"study": {
+  "id": "7a1819f5-5150-4f24-81f2-d20c03a99621",
+  "label": "Survival simulation",
+  "status": "saved",
+  "attempt": 3,
+  "attemptDurationSeconds": 3600,
+  "autoContinue": false,
+  "worldHours": 38.25,
+  "accumulatedWorldHours": 36.25,
+  "canCheckpoint": false,
+  "canContinue": true,
+  "updatedAtUnixMs": 1790000000000,
+  "lastStopReason": "wall-time-limit"
+}
+```
+
+Status is `starting`, `running`, `saved`, `continuing` or `failed`. Attempt
+duration is 30 through 604800 seconds. A running session alone can advertise
+`canCheckpoint`; a saved session alone can advertise `canContinue`. Mousecat
+shows the valid current action and places duration and automatic continuation in
+an expandable settings section. `checkpoint` has no fields. `continue` has no
+fields and is the only command accepted from an ended saved view. `configure`
+contains exact `attemptDurationSeconds` and Boolean `autoContinue` fields and can
+be sent while running or saved. The producer retains all save, reload, process,
+path and review authority.
 
 The optional `camera` object contains exactly `mode`, `personIds`, and `summary`.
 Mode is `automatic` or `manual`; the array contains at most five unique IDs
@@ -74,6 +104,9 @@ no camera-mode claim. Both `camera` and `commandResult` are independently option
 | F | `focus` with the selected `personId` |
 | R | `auto`, with no action-specific fields |
 | Escape | `stop` |
+| Save session | `checkpoint`, with no action-specific fields |
+| Continue session | `continue`, with no action-specific fields |
+| Session settings | `configure` with `attemptDurationSeconds` and `autoContinue` |
 
 Pan and focus request manual camera control, which the producer maintains until
 an `auto` request resumes its automatic activity camera. The UI reports the

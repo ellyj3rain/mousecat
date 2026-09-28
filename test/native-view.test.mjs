@@ -602,6 +602,42 @@ test("delayed running frames and deliberately paused sessions remain controllabl
   });
 });
 
+test("durable study sessions checkpoint, configure and continue through exact commands", async t => {
+  const f = await fixture(t), studyId = randomUUID();
+  f.view.study = { id: studyId, label: "Survival simulation", status: "running", attempt: 2,
+    attemptDurationSeconds: 3600, autoContinue: false, worldHours: 18.5, accumulatedWorldHours: 16.5,
+    canCheckpoint: true, canContinue: false, updatedAtUnixMs: Date.now(), lastStopReason: null };
+  await f.save(f.view);
+  const adapter = createNativeViews({ registryPath: f.registryPath });
+  const snapshot = await adapter.snapshot(f.row.id);
+  const payload = fields => ({ bindingId: snapshot.binding.bindingId, sessionId: f.row.sessionId,
+    requestId: randomUUID(), ...fields });
+  await adapter.command(f.row.id, payload({ action: "checkpoint" }));
+  await adapter.command(f.row.id, payload({ action: "configure", attemptDurationSeconds: 7200, autoContinue: true }));
+  assert.deepEqual(await f.command(1), { schema: "mousecat.native-view-command/1", sessionId: f.row.sessionId, sequence: 1, action: "checkpoint" });
+  assert.deepEqual(await f.command(2), { schema: "mousecat.native-view-command/1", sessionId: f.row.sessionId, sequence: 2,
+    action: "configure", attemptDurationSeconds: 7200, autoContinue: true });
+  const ended = structuredClone(f.view); ended.sequence = 2; ended.state = "ended"; ended.lastCommandSequence = 2;
+  ended.study = { ...ended.study, status: "saved", canCheckpoint: false, canContinue: true,
+    updatedAtUnixMs: Date.now(), lastStopReason: "wall-time-limit" };
+  await f.save(ended); await adapter.snapshot(f.row.id);
+  await adapter.command(f.row.id, payload({ action: "continue" }));
+  assert.equal((await f.command(3)).action, "continue");
+  await assert.rejects(adapter.command(f.row.id, payload({ action: "checkpoint" })));
+  for (const change of [
+    { attemptDurationSeconds: 29 }, { attemptDurationSeconds: 604801 }, { autoContinue: 1 },
+  ]) await assert.rejects(adapter.command(f.row.id, payload({ action: "configure", attemptDurationSeconds: 3600, autoContinue: false, ...change })));
+  for (const mutate of [
+    value => { value.study.status = "saved"; },
+    value => { value.study.attemptDurationSeconds = 29; },
+    value => { value.study.canContinue = true; },
+    value => { value.study.lastStopReason = "x".repeat(81); },
+  ]) {
+    const invalid = structuredClone(f.view); mutate(invalid);
+    assert.throws(() => validateNativeView(invalid));
+  }
+});
+
 test("registry rebinding invalidates the old browser binding", async t => {
   const f = await fixture(t), payload = await f.payload(), replacement = join(f.parent, "replacement");
   await mkdir(join(replacement, "commands"), { recursive: true });

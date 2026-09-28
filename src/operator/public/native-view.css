@@ -57,6 +57,18 @@
 .native-zoom span { font-size: 12px; font-variant-numeric: tabular-nums; min-width: 36px; text-align: center; }
 .native-controls { margin: 6px 0; align-items: center; }
 .native-controls .button, .native-person-controls .button { font-size: 12px; min-height: 32px; padding: 6px 9px; }
+.native-session-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px 14px; margin: 5px 0 7px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: color-mix(in srgb, var(--surface) 84%, transparent); }
+.native-session-bar[hidden] { display: none; }
+.native-session-facts { min-width: 0; margin: 0; color: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.native-session-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.native-session-actions .button { min-height: 30px; padding: 5px 9px; font-size: 11px; }
+.native-session-settings { grid-column: 1 / -1; font-size: 11px; }
+.native-session-settings > summary { width: max-content; color: var(--text-muted); cursor: pointer; }
+.native-session-form { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 14px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.native-session-form label { display: flex; align-items: center; gap: 7px; color: var(--text-muted); }
+.native-session-form label:not(.native-session-auto) { flex-direction: column; align-items: flex-start; gap: 4px; }
+.native-session-form input[type="number"] { width: 110px; }
+.native-session-auto input { margin: 0; }
 .native-controls button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-border); }
 .native-speeds, .native-pan { padding-right: 8px; border-right: 1px solid var(--line); }
 .native-summary, .native-command-status { font-size: 12px; line-height: 1.5; color: var(--text-muted); margin: 3px 0; overflow-wrap: anywhere; }
@@ -124,4 +136,7 @@
   .native-person-title { position: sticky; top: 0; z-index: 1; padding: 8px 0; background: var(--surface); }
   .native-workspace { padding: 10px; }
   .native-heading { gap: 8px; }
+  .native-session-bar { grid-template-columns: minmax(0, 1fr); }
+  .native-session-actions { justify-content: flex-start; }
+  .native-session-settings { grid-column: 1; }
 }

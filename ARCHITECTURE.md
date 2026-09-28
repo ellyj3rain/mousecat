@@ -1,6 +1,6 @@
 | Document | Mousecat Architecture |
 |---|---|
-| Version | 1.6.0.0-alpha |
+| Version | 1.7.0.0-alpha |
 | Timestamp | 2026-09-27 09:43 UTC |
 | Status | ACTIVE - system architecture. |
 
@@ -41,12 +41,14 @@ structures without changing their source authority. These presentation choices
 do not publish simulation commands.
 
 The native view preserves frame identity, independent inspection age, source
-camera state and explicit command outcomes. Ended feeds disable new commands;
-delayed running frames retain a bounded command interval, and a deliberate pause
-retains its resume path. The source-owned command pack supports bounded camera, time,
-selection, advertised panel and cognition requests. Same-origin requests become
-immutable consecutive command files; publication and native application are
-separate acknowledgements.
+camera state and explicit command outcomes. Delayed running frames retain a
+bounded command interval, and a deliberate pause retains its resume path. The
+source-owned command pack supports bounded camera, time, selection, advertised
+panel and cognition requests. Optional durable study state adds checkpoint,
+configuration and saved-session continuation. Ended views remain write-closed
+except for source-advertised configuration or continuation. Same-origin requests
+become immutable consecutive command files; publication and source application
+are separate acknowledgements.
 
 ## Flow
 

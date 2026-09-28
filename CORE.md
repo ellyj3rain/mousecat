@@ -1,6 +1,6 @@
 | Document | Mousecat Core |
 |---|---|
-| Version | 1.6.0.0-alpha |
+| Version | 1.7.0.0-alpha |
 | Timestamp | 2026-09-26 01:00 UTC |
 | Status | ACTIVE - project identity. |
 

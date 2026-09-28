@@ -565,3 +565,18 @@ location and memory lines without useful visual hierarchy.
 group selection. The inspector projects synopsis lines, section rows, source
 metadata, events and cognition into distinct role, fact, provenance, timing,
 model and evidence structures, with immediate person state first.
+
+## F-063 | 2026-09-28 07:02 UTC / 00:02 PST | Verified continuation had no operator session lifecycle
+
+*Severity:* High
+
+*Finding:* Native study attempts already saved and reopened the same world, but
+the observatory exposed only one running attempt. Duration lived in a command
+line, a completed feed could not request its verified continuation, and longer
+observation required manual launch and rebinding outside the surface.
+
+*Resolution:* A20 accepts bounded path-free session state, shows the one valid
+save or continue action, progressively discloses attempt duration and automatic
+continuation, and forwards exact lifecycle requests through the existing
+immutable command boundary. The simulation producer retains every save, reload,
+process and review decision.

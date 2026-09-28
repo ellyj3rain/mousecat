@@ -9,7 +9,7 @@ const LIVE_FRAME_MS = 3000;
 const DISCONNECTED_FRAME_MS = 30000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const HASH = /^[0-9a-f]{64}$/u;
-const ACTIONS = { pause: [], resume: [], speed: ["value"], zoom: ["value"], pan: ["dx", "dy"], focus: ["personId"], auto: [], stop: [], select: ["personId"], panel: ["panelId", "personId", "visible"], cognition: ["opponentShare", "opportunitiesPerHour", "maxDepth"] };
+const ACTIONS = { pause: [], resume: [], speed: ["value"], zoom: ["value"], pan: ["dx", "dy"], focus: ["personId"], auto: [], stop: [], checkpoint: [], continue: [], configure: ["attemptDurationSeconds", "autoContinue"], select: ["personId"], panel: ["panelId", "personId", "visible"], cognition: ["opponentShare", "opportunitiesPerHour", "maxDepth"] };
 
 // These templates are the entire browser write surface. The source translates
 // them into its own runtime commands; no arbitrary tool invocation is accepted.
@@ -84,6 +84,19 @@ function validateOverlay(value, ids) {
   }
 }
 
+function validateStudy(value) {
+  object(value, ["id", "label", "status", "attempt", "attemptDurationSeconds", "autoContinue",
+    "worldHours", "accumulatedWorldHours", "canCheckpoint", "canContinue", "updatedAtUnixMs", "lastStopReason"]);
+  requireValue(UUID.test(value.id)); string(value.label, 160, true);
+  requireValue(["starting", "running", "saved", "continuing", "failed"].includes(value.status));
+  integer(value.attempt); integer(value.attemptDurationSeconds, 30);
+  requireValue(value.attemptDurationSeconds <= 604800);
+  requireValue(typeof value.autoContinue === "boolean" && typeof value.canCheckpoint === "boolean" && typeof value.canContinue === "boolean");
+  scalar(value.worldHours); scalar(value.accumulatedWorldHours); integer(value.updatedAtUnixMs);
+  requireValue(value.lastStopReason === null || (typeof value.lastStopReason === "string" && value.lastStopReason.length <= 80));
+  requireValue(value.canCheckpoint === (value.status === "running") && value.canContinue === (value.status === "saved"));
+}
+
 export function parseNativeJson(raw) {
   requireValue(Buffer.byteLength(raw) <= MAX_JSON, "native-view-too-large");
   const value = JSON.parse(raw);
@@ -107,7 +120,7 @@ export function parseNativeJson(raw) {
 }
 
 export function validateNativeView(view) {
-  object(view, ["schema", "sessionId", "sequence", "capturedAtUnixMs", "image", "state", "title", "summary", "people", "lastCommandSequence"], ["camera", "commandResult", "inspection", "panels", "viewport", "feeds"]);
+  object(view, ["schema", "sessionId", "sequence", "capturedAtUnixMs", "image", "state", "title", "summary", "people", "lastCommandSequence"], ["camera", "commandResult", "inspection", "panels", "viewport", "feeds", "study"]);
   requireValue(view.schema === "mousecat.native-view/1" && UUID.test(view.sessionId));
   integer(view.sequence, 1); integer(view.capturedAtUnixMs); integer(view.lastCommandSequence);
   requireValue(["running", "paused", "ended"].includes(view.state));
@@ -185,6 +198,11 @@ export function validateNativeView(view) {
   if (Object.hasOwn(view, "panels")) {
     array(view.panels, 8); unique(view.panels.map(panel => panel.id));
     for (const panel of view.panels) { object(panel, ["id", "label"]); string(panel.id, 128, true); string(panel.label, 160); }
+  }
+  if (Object.hasOwn(view, "study")) {
+    validateStudy(view.study);
+    requireValue(view.study.status !== "saved" || view.state === "ended");
+    requireValue(!view.study.canCheckpoint || view.state !== "ended");
   }
   return view;
 }
@@ -277,7 +295,7 @@ export function createNativeViews(config = {}) {
   }
   async function publishCommand(id, payload) {
     const current = await snapshot(id), view = current.view;
-    object(payload, ["bindingId", "sessionId", "requestId", "action"], ["value", "dx", "dy", "personId", "panelId", "visible", "opponentShare", "opportunitiesPerHour", "maxDepth"]);
+    object(payload, ["bindingId", "sessionId", "requestId", "action"], ["value", "dx", "dy", "personId", "panelId", "visible", "opponentShare", "opportunitiesPerHour", "maxDepth", "attemptDurationSeconds", "autoContinue"]);
     requireValue(UUID.test(payload.requestId), "invalid-native-request");
     requireValue(payload.bindingId === current.binding.bindingId && payload.sessionId === view.sessionId, "native-binding-changed");
     const requestKey = `${payload.bindingId}:${payload.requestId}`;
@@ -287,9 +305,11 @@ export function createNativeViews(config = {}) {
       requireValue(previous.signature === signature, "native-request-id-reused");
       return previous.result;
     }
-    requireValue(view.state !== "ended" && (current.connection !== "disconnected" || view.state === "paused"), "native-view-not-live");
     const template = nativeViewCommandPack[payload.action];
     requireValue(template?.operatorSafe === true, "native-command-not-allowed");
+    const lifecycle = ["continue", "configure"].includes(payload.action);
+    requireValue((view.state !== "ended" && (current.connection !== "disconnected" || view.state === "paused"))
+      || (lifecycle && Boolean(view.study)), "native-view-not-live");
     object(payload, ["bindingId", "sessionId", "requestId", "action", ...template.fields]);
     if (payload.action === "speed") requireValue([1, 2, 3].includes(payload.value), "invalid-native-speed");
     if (payload.action === "zoom") requireValue([-1, 1].includes(payload.value) && Boolean(view.viewport), "invalid-native-zoom");
@@ -297,6 +317,11 @@ export function createNativeViews(config = {}) {
     if (template.fields.includes("personId")) requireValue(view.people.some(person => person.id === payload.personId), "native-person-unavailable");
     if (payload.action === "panel") requireValue(view.panels?.some(panel => panel.id === payload.panelId) && typeof payload.visible === "boolean", "native-panel-unavailable");
     if (payload.action === "cognition") requireValue(validCognitionControls(payload) && view.people.some(person => person.cognition), "invalid-native-cognition-command");
+    if (payload.action === "checkpoint") requireValue(view.study?.canCheckpoint === true && view.state !== "ended", "native-study-cannot-checkpoint");
+    if (payload.action === "continue") requireValue(view.study?.canContinue === true && view.state === "ended", "native-study-cannot-continue");
+    if (payload.action === "configure") requireValue(Boolean(view.study) && Number.isSafeInteger(payload.attemptDurationSeconds)
+      && payload.attemptDurationSeconds >= 30 && payload.attemptDurationSeconds <= 604800
+      && typeof payload.autoContinue === "boolean", "invalid-native-study-settings");
     const bound = await binding(id); requireValue(bound.bindingId === payload.bindingId, "native-binding-changed");
     const commands = resolve(bound.root, "commands"), info = await lstat(commands);
     requireValue(info.isDirectory() && !info.isSymbolicLink() && await realpath(commands) === commands, "unsafe-native-command-directory");
@@ -328,6 +353,9 @@ export function createNativeViews(config = {}) {
         if (priorTemplate.fields.includes("personId")) string(existing.personId, 128, true);
         if (existing.action === "panel") { string(existing.panelId, 128, true); requireValue(typeof existing.visible === "boolean", "native-command-collision"); }
         if (existing.action === "cognition") requireValue(validCognitionControls(existing), "native-command-collision");
+        if (existing.action === "configure") requireValue(Number.isSafeInteger(existing.attemptDurationSeconds)
+          && existing.attemptDurationSeconds >= 30 && existing.attemptDurationSeconds <= 604800
+          && typeof existing.autoContinue === "boolean", "native-command-collision");
       }
       finally { await unlink(temporary); }
     }
