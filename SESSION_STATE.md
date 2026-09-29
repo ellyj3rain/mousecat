@@ -8,7 +8,7 @@
 
 ## Current state
 
-A21/A21.1/A21.2 make synthetic presentation testing cover actual project, comparison,
+A21 through A21.3 make synthetic presentation testing cover actual project, comparison,
 evidence, history, draft and return flows. Evidence-bearing briefs remain visible,
 explicit ML evidence links reach indexed records, question families use their
 source titles, and narrow screens retain a visible human-review count. History
