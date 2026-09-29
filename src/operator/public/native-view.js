@@ -279,10 +279,8 @@ export function installNativeView(root) {
     sessionReview.dataset.state = value.reviewStatus || "";
     const reviewLabel = reviewLabels[value.reviewStatus] || "Review status unavailable";
     const reviewMessage = value.reviewMessage?.trim() || "";
-    const comparable = text => text.toLocaleLowerCase().replace(/[^a-z0-9]+/gu, " ").trim();
-    sessionReview.textContent = value.reviewStatus
-      ? `${reviewLabel}${reviewMessage && comparable(reviewMessage) !== comparable(reviewLabel) ? ` · ${reviewMessage}` : ""}`
-      : "";
+    const detailedReview = ["queued", "already-queued", "delayed", "not-eligible"].includes(value.reviewStatus);
+    sessionReview.textContent = value.reviewStatus ? (detailedReview && reviewMessage ? reviewMessage : reviewLabel) : "";
     checkpoint.hidden = !value.canCheckpoint; continueSession.hidden = !value.canContinue;
     if (!sessionDirty && !sessionForm.contains(document.activeElement)) {
       durationMinutes.value = String(value.attemptDurationSeconds / 60);

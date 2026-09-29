@@ -1910,3 +1910,16 @@ Version remains `1.7.0.0-alpha` (npm `1.7.0-alpha`) as an A20 reliability and
 review-awareness repair. The focused operator/native-view suite passes 85 tests
 with two expected Windows symlink skips. The complete `npm run pr:ready` gate
 and installed Desktop browser checks cover the final tree.
+
+## A20.3.1 - Concise terminal review state
+
+*Timestamp:* 2026-09-29 20:34 UTC / 13:34 PDT
+
+The terminal study strip now presents one review statement. Pending and empty
+handoffs use Mousecat's concise status label; queued, delayed and ineligible
+handoffs use the producer's bounded detail when it adds the count or failure
+condition. This removes the repeated no-review sentence observed after the
+installed A20.3 verification without changing review state or authority.
+
+Version remains `1.7.0.0-alpha` (npm `1.7.0-alpha`) as an A20 presentation
+repair. The installed browser check verifies the corrected saved-session copy.
