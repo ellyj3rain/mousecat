@@ -28,8 +28,12 @@ rescanned. Original provenance remains in the private repository.
 The original private repository retains twenty pull-request head refs to excluded
 history. Release preparation preserves it as a private archive and installs the
 sanitized history in a separate clean repository at the existing Mousecat URL.
-The clean repository must pass its history and credential scans before visibility
-changes. Copies already indexed outside GitHub are outside this cleanup's control.
+The fresh release clone's main and both retained PR heads passed the historical
+boundary and credential scans. Its A21.3 audit covered eighteen reachable commits
+and 387 blobs with zero excluded-input or credential findings. Excluded original
+commit/private blob lookups return 404 in the clean repository. All six protected
+GitHub checks passed, including browser contracts and CodeQL with zero findings.
+Copies already indexed outside GitHub are outside this cleanup's control.
 
 ## License and redistribution
 

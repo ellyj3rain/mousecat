@@ -2017,3 +2017,27 @@ outputs, and requires all notices and demo inputs before an archive is produced.
 The local document is retained outside npm's automatic README selection. Focused
 regressions cover the observed leak and missing notices; the new guard runs on
 package creation and publication. Version remains 1.7.1.0-alpha (npm 1.7.1-alpha).
+
+## [A21.4] - Verified release custody and publication handoff
+
+*Timestamp:* 2026-09-29 22:47 UTC / 15:47 PDT
+
+The clean repository now occupies the existing ellyj3rain/mousecat URL. The
+original repository, including twenty retained PR refs, remains private and
+archived; no source or decision provenance was destroyed. The release's two
+retained PR heads contain sanitized ancestry. A fresh clone's eighteen reachable
+commits and 387 blobs passed the historical boundary and credential scans; two
+source-authored materials remain outside text scanning. Excluded original commit
+and private blob lookups return 404 through the release repository.
+
+All six protected GitHub checks passed on A21.3, including browser contracts and
+CodeQL with zero findings. Desktop/native build evidence and license notices
+remain valid. The real npm archive contains 66 files and no forbidden inputs.
+SESSION_STATE now records the completed boundary instead of deferring it. The
+human's visibility change remains the next publication action; npm publication
+is separate. Version remains 1.7.1.0-alpha (npm 1.7.1-alpha).
+
+Fresh Windows checkout validation found Git converting the pinned Lucide notice
+to CRLF. A source attribute fixes that notice to LF so its complete text remains
+byte-identical to the dependency across checkouts. The existing floor comparison
+continues to enforce the pinned notice without relaxing the license check.
