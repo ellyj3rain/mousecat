@@ -31,3 +31,13 @@ jobs:
         uses: github/codeql-action/analyze@v4.37.4
         with:
           category: "/language:javascript"
+          output: .mousecat/codeql
+          upload: ${{ github.event.repository.private && 'never' || 'always' }}
+
+      - name: Retain private validation report
+        if: ${{ always() && github.event.repository.private }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: codeql-private-validation
+          path: .mousecat/codeql/*.sarif
+          if-no-files-found: error

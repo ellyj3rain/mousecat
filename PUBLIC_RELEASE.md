@@ -12,6 +12,7 @@ workspace remains local; demo answers are explicitly synthetic.
 | Dependency audit | `npm audit --audit-level=high`. |
 | Known privacy boundaries | `npm run release:check` scans all local Git refs for excluded inputs and operator paths; `-- --tree` checks only the current tree and explicitly reports its weaker scope. |
 | Browser contracts | `npm run test:browser` exercises four widths and all themes, evidence/history navigation, keyboard focus, preserved drafts and exact returns on isolated servers. |
+| CodeQL | Private validation retains the analysis as a SARIF artifact without requiring private Code Scanning entitlement. Public runs upload findings to GitHub Code Scanning. |
 | Package boundary | `npm pack --dry-run` includes demo inputs and license notices; private state and source-derived exports are outside the allowlist. |
 | Credential scan | Checksum-verified Gitleaks 8.30.1 found no credentials in the audited original main or sanitized base history. Final candidate history is scanned after its tree overlay. |
 | Privacy audit | Original-main review covered 13 commits and 336 blobs. Private host metadata, raw operator receipts, private-consumer dossier and source-derived exports were identified. Two authored binary materials were outside text scanning; their generator remains in source. |

@@ -1989,3 +1989,19 @@ the original repository and retained pull-request refs are preserved privately.
 CI runs the all-local-ref release check separately from credential scanning.
 Empty histories fail closed; the regression includes retained branches/tags and
 excluded environment inputs. Visibility and npm publication remain human actions.
+
+## [A21.2] - CodeQL validation works before the visibility change
+
+*Timestamp:* 2026-09-29 22:34 UTC / 15:34 PDT
+
+Historical CodeQL runs failed during upload because private Code Scanning was
+unavailable. The analysis now retains its SARIF report as a private validation
+artifact while the repository is private; public runs retain the normal Code
+Scanning upload. Analysis failures still fail the workflow. This repairs the
+existing CI entitlement mismatch without changing the scanner or query set.
+Final A21.1 checks passed 299 Node cases (297 pass, two Windows skips), all
+runtime/governance gates and zero dependency vulnerabilities. Node 20 passed
+315 cases (313 pass, two skips); the package contains 65 allowlisted files.
+The sanitized release tree matched the source tree, fourteen reachable commits
+passed the history boundary and checksum-verified Gitleaks found no credentials.
+Version remains 1.7.1.0-alpha (npm 1.7.1-alpha) for this CI repair.
