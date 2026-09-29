@@ -2005,3 +2005,15 @@ runtime/governance gates and zero dependency vulnerabilities. Node 20 passed
 The sanitized release tree matched the source tree, fourteen reachable commits
 passed the history boundary and checksum-verified Gitleaks found no credentials.
 Version remains 1.7.1.0-alpha (npm 1.7.1-alpha) for this CI repair.
+
+## [A21.3] - npm's actual archive must respect the public source boundary
+
+*Timestamp:* 2026-09-29 22:40 UTC / 15:40 PDT
+
+The installed checkout's ignored README.docx was selected automatically by npm
+despite the package allowlist. The prepack check now inspects npm's actual file
+list with scripts disabled, blocks private inputs and local document/database
+outputs, and requires all notices and demo inputs before an archive is produced.
+The local document is retained outside npm's automatic README selection. Focused
+regressions cover the observed leak and missing notices; the new guard runs on
+package creation and publication. Version remains 1.7.1.0-alpha (npm 1.7.1-alpha).
