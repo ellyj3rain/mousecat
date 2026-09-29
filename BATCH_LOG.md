@@ -1923,3 +1923,69 @@ installed A20.3 verification without changing review state or authority.
 
 Version remains `1.7.0.0-alpha` (npm `1.7.0-alpha`) as an A20 presentation
 repair. The installed browser check verifies the corrected saved-session copy.
+
+## [A21] - Public operator journeys and release boundary
+
+*Timestamp:* 2026-09-29 22:19 UTC / 15:19 PDT
+
+The synthetic demo now registers a project, source documents, observations,
+contextual competing-model review, follow-up plan, ranking and an earlier example
+answer through real project/history/widget contracts. The CLI uses a separate
+memory-only runtime, bypasses local configuration and supports a free loopback
+port. Package fixtures accompany the executable demo. Synthetic answers are
+not operator ratification or dataset admission.
+
+Evidence-bearing briefs no longer disappear when they cite their own reference.
+Explicit references within ML evidence share the document renderer. History
+clickthroughs focus the selected record and expose a section outline. Question
+families use literal interaction titles, named question rows display draft state,
+and narrow screens retain the review count. Mobile outline controls do not overlap.
+An isolated browser contract verifies the complete review journey, keyboard
+navigation, retained drafts, exact synthetic returns and layouts at four widths
+and all three themes. CI runs it independently and retains synthetic screenshots.
+
+Public source excludes private host substrate, the raw operator receipt and
+private-consumer examination, plus source-derived native-world exports. A public
+historical summary preserves product semantics; the native client defaults to
+synthetic data. New ignore/hygiene rules enforce these source boundaries. Full
+Lucide and WebView2 notices ship with npm and desktop outputs. Linked-worktree
+hook installation now resolves the shared Git directory correctly.
+
+The audited original history contains thirteen commits and 336 blobs. Pinned
+Gitleaks found no credentials; privacy review identified records outside the
+public connector boundary. A separate filtered history preserves chronology and
+leaves original provenance private. The existing GitHub repository retains twenty
+pull-request refs, so it remains private pending historical cleanup or clean-repo
+publication. No remote history rewrite, visibility change or npm publication occurred.
+
+Root version advances to 1.7.1.0-alpha (npm 1.7.1-alpha) for release discipline and
+operator presentation maturation. Focused tests and browser checks pass; the full
+readiness gate, audit, package and desktop checks cover the final assembled tree.
+
+## [A21.1] - Release-history proof stays distinct from tree hygiene
+
+*Timestamp:* 2026-09-29 22:40 UTC / 15:40 PDT
+
+The code-quality panel closed brief loss, mobile review visibility, history
+revision/missing-reference focus and stale public feature claims within A21.
+The follow-up adds an executable known-privacy-boundary check over every local
+Git ref. Its regression fixture proves that deleting a private input from HEAD
+still leaves historical exposure. Reports contain paths and blob identities,
+never source content, and expressly leave remote retained refs and credentials
+outside their proof. Current-tree-only scope is named rather than conflated
+with a public-ready repository. Gitleaks and the remote-ref audit remain separate.
+
+Final A21 verification passes 298 main Node cases (296 pass, two Windows skips),
+16 classifier cases, all runtime smokes, governance/docs/hygiene, audit with zero
+vulnerabilities, browser contracts at four widths across three themes, desktop
+Release publication with notices, and Unreal 5.8 Development compilation in a
+short isolated copy. Node 20 compatibility passes 314 cases (312 pass, two skips).
+No gameplay acceptance or live operator response is inferred. Version remains
+1.7.1.0-alpha (npm 1.7.1-alpha) for this hardening sub-batch.
+
+The human's subsequent instruction closes the historical cleanup now. A clean
+release repository replaces the publication source at the existing Mousecat URL;
+the original repository and retained pull-request refs are preserved privately.
+CI runs the all-local-ref release check separately from credential scanning.
+Empty histories fail closed; the regression includes retained branches/tags and
+excluded environment inputs. Visibility and npm publication remain human actions.

@@ -613,7 +613,7 @@ void AMousecatWorldBootstrap::Tick(float DeltaSeconds)
 
 bool AMousecatWorldBootstrap::ResolveAndLoadManifest()
 {
-	FString ManifestFileName = TEXT("WorldOne.region.json");
+	FString ManifestFileName = TEXT("synthetic-smoke.world-manifest.json");
 	FParse::Value(FCommandLine::Get(), TEXT("MousecatWorldManifest="), ManifestFileName);
 	ManifestFileName.TrimQuotesInline();
 	ManifestFileName.TrimStartAndEndInline();

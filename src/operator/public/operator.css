@@ -1838,8 +1838,7 @@ textarea:disabled {
   }
 
   .prepared-count,
-  .connection span:last-child,
-  .return-prepared-button span {
+  .connection span:last-child {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -1848,14 +1847,16 @@ textarea:disabled {
     clip: rect(0, 0, 0, 0);
   }
 
-  .connection,
-  .return-prepared-button {
+  .connection {
     width: 38px;
     min-width: 38px;
     min-height: 38px;
     padding: 0;
     justify-content: center;
   }
+
+  .return-prepared-button { width: auto; min-width: 38px; min-height: 38px; padding: 0 9px; }
+  .return-prepared-button svg { display: none; }
 
   .workspace-header {
     padding: 12px;
@@ -2260,10 +2261,14 @@ textarea:disabled {
 #review-context-toggle { grid-column: 2; grid-row: 1 / 3; min-height: 40px; font-size: 12px; padding: 8px; }
 .section-outline .outline-header { min-width: 0; }
 .atlas-question-label { display: none; }
+.atlas-question-state { display: none; }
 .atlas-family[data-named="true"] { padding: 0; border: 0; background: transparent; box-shadow: none; }
 .atlas-family[data-named="true"] .atlas-cells { display: flex; flex-direction: column; gap: 6px; }
 .atlas-family[data-named="true"] .atlas-cell { display: flex; align-items: start; gap: 9px; width: 100%; height: auto; min-height: 48px; padding: 11px 9px; text-align: left; font-size: 13px; line-height: 1.4; white-space: normal; }
 .atlas-family[data-named="true"] .atlas-question-label { display: block; }
+.atlas-family[data-named="true"] .atlas-cell { display: grid; grid-template-columns: auto minmax(0, 1fr); border-radius: 6px; gap: 3px 9px; }
+.atlas-family[data-named="true"] .atlas-question-state { display: block; grid-column: 2; font-size: 10px; font-weight: 500; opacity: 0.85; }
+.atlas-family[data-named="true"] .atlas-cell::after { display: none; }
 .atlas-family[data-named="true"] .atlas-ordinal { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .atlas-cell[aria-current="true"] { outline: 2px solid var(--accent); outline-offset: -2px; }
 .ml-review-learning h6 { text-transform: none; letter-spacing: normal; font-size: 14px; line-height: 1.45; }
@@ -2275,6 +2280,8 @@ textarea:disabled {
 .context-summary-label { margin: 0; padding: 0 20px 12px; }
 .review-context-dialog .context-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
 @media (max-width: 959px) {
+  .section-outline .outline-list { display: flex; gap: 8px; align-items: stretch; }
+  .section-outline .atlas-family { flex: 0 0 auto; width: max-content; }
   .atlas-family[data-named="true"] .atlas-cells { flex-direction: row; }
   .atlas-family[data-named="true"] .atlas-cell { width: 160px; flex: 0 0 160px; min-height: 56px; font-size: 12px; padding: 7px; }
 }

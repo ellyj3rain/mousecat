@@ -10,6 +10,7 @@ export function installHistory() {
   let controller;
   let returnHash = "";
   let renderedRoute = "";
+  let selectedRef = "";
   const viewStates = new Map();
   function captureView() {
     if (renderedRoute) viewStates.set(renderedRoute, {
@@ -51,7 +52,8 @@ export function installHistory() {
   function drawRecord(result) {
     reader.replaceChildren();
     if (!result.ok) {
-      element("h3", result.status === "ambiguous" ? "Several records match this reference" : "Reference not indexed", reader);
+      const title = element("h3", result.status === "ambiguous" ? "Several records match this reference" : "Reference not indexed", reader);
+      title.tabIndex = -1;
       element("p", "The reference is preserved. Its source may be missing, unregistered or outside the indexed coverage.", reader);
       for (const ref of result.candidates || []) link(reader, ref, ref);
       return;
@@ -93,7 +95,26 @@ export function installHistory() {
       const original = element("details", undefined, reader);
       element("summary", "Read original source data", original);
       element("pre", r.body, original);
-    } else reader.append(renderDescription(document, r.body));
+    } else {
+      const body = renderDescription(document, r.body);
+      const headings = [...body.querySelectorAll("h5")];
+      if (headings.length >= 2) {
+        const outline = element("details", undefined, reader); outline.className = "history-outline";
+        element("summary", "In this record", outline);
+        const nav = element("nav", undefined, outline); nav.setAttribute("aria-label", "Record sections");
+        for (const heading of headings) {
+          const jump = element("button", heading.textContent, nav); jump.type = "button";
+          jump.addEventListener("click", () => {
+            for (let parent = heading.parentElement; parent && parent !== body; parent = parent.parentElement) {
+              if (parent.tagName === "DETAILS") parent.open = true;
+            }
+            heading.tabIndex = -1;
+            heading.scrollIntoView({ block: "start" }); heading.focus({ preventScroll: true });
+          });
+        }
+      }
+      reader.append(body);
+    }
     connectionsHeading = element("h4", "Connected records", reader);
     if (!result.links.length) element("p", "No outgoing relationships recorded.", reader);
     for (const edge of result.links) {
@@ -116,6 +137,7 @@ export function installHistory() {
     reader.scrollTop = 0;
   }
   async function render() {
+    const listFocus = list.contains(document.activeElement) ? document.activeElement.getAttribute("href") : null;
     captureView();
     renderedRoute = "";
     const currentRoute = location.hash;
@@ -171,6 +193,11 @@ export function installHistory() {
       }
       renderedRoute = currentRoute;
       restoreView(currentRoute);
+      const ref = params.get("ref") || "";
+      const identity = ref ? JSON.stringify([ref, params.get("revision") || ""]) : "";
+      if (identity && identity !== selectedRef) reader.querySelector("h3")?.focus({ preventScroll: true });
+      else if (listFocus) [...list.querySelectorAll("a")].find(a => a.getAttribute("href") === listFocus)?.focus({ preventScroll: true });
+      selectedRef = identity;
     } catch (error) {
       if (error.name !== "AbortError" && current === request) {
         status.textContent = "History could not be loaded.";

@@ -1,7 +1,7 @@
 | Document | Mousecat Architecture |
 |---|---|
-| Version | 1.7.0.0-alpha |
-| Timestamp | 2026-09-27 09:43 UTC |
+| Version | 1.7.1.0-alpha |
+| Timestamp | 2026-09-29 22:19 UTC |
 | Status | ACTIVE - system architecture. |
 
 # Mousecat Architecture
@@ -177,12 +177,14 @@ Development representations contain one or more views whose layers independently
 declare `source-fact`, `deterministic-projection`, `derived-summary`,
 `illustration`, or `unknown` evidence.
 
-The current boundary validates those records and rejects executable or
-secret-bearing descriptor fields, write effects without project authorization,
-project mismatches, unbound operations, and projected layers without a named
-producer and revision. It does not yet register adapters in the shared runtime,
-execute project operations, or expose a new public MCP tool. Those capabilities
-land only with a real connector-backed read path and source invalidation.
+The contract validators reject executable or secret-bearing descriptor fields,
+write effects without project authorization, project mismatches, unbound operations,
+and projected layers without a named producer and revision.
+`src/core/project-workbench-runtime.mjs` connects registered adapters to bounded
+`mousecat.workbench` open, snapshot, operate and close paths. Operations carry
+source vectors and receipts; drift marks a representation stale. Stage-write and
+source-write effects remain closed. Fixture execution proves the shared runtime
+path; a target project's live acceptance remains independent evidence.
 
 Conversation remains the control plane. Host-native artifacts and the native
 Mousecat world are clients of the same semantic representation; neither may
@@ -265,3 +267,18 @@ The default runtime is local and memory-only. When ignored config sets `state.en
 ## User Service Lifecycle
 
 `mousecat service` keeps the shared loopback runtime available independently of any one AI host. Windows writes a short current-user Run command to a LocalAppData VBS launcher and verifies the recorded runner before termination. Linux writes and controls a user systemd unit through `enable --now`, `start`, `stop`, and `disable`. macOS bootstraps and boots out a current-user LaunchAgent. Start and stop report success only when the Mousecat snapshot identity reaches the requested running state.
+
+## Synthetic operator demonstration
+
+`src/operator/demo.mjs` registers `fixtures/operator-demo` through the existing
+project and history contracts, then supplies explicitly synthetic reviews. The
+CLI's demo path creates a memory-only runtime from default configuration and
+loads no saved state, native feeds or private connectors. Typed demonstration
+returns enter only that runtime's history. The package allowlist includes the
+fixture documents and observations so the installed package can run the same demo.
+
+Explicit record references share one text-only renderer across documents and ML
+evidence. Deliberate history navigation focuses the selected heading; an in-record
+outline jumps to supplied document sections. Small question outlines display
+literal titles and draft states. Narrow layouts retain the waiting-review count.
+Browser contracts exercise these mechanisms on isolated demo servers in CI.

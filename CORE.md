@@ -1,12 +1,12 @@
 | Document | Mousecat Core |
 |---|---|
-| Version | 1.7.0.0-alpha |
-| Timestamp | 2026-09-26 01:00 UTC |
+| Version | 1.7.1.0-alpha |
+| Timestamp | 2026-09-29 22:19 UTC |
 | Status | ACTIVE - project identity. |
 
 # Mousecat Core
 
-Mousecat is a host-facing MCP normalization plane, nonlinear operator surface, native project world, and open-source bridge. It lets models in different harnesses request shared operator interactions, receive structured responses, mediate upstream capabilities, and work against a project's real model through source-bound development representations without bundling private implementations.
+Mousecat is a host-facing MCP normalization plane, nonlinear operator surface, native project world, and source-available bridge. It lets models in different harnesses request shared operator interactions, receive structured responses, mediate upstream capabilities, and work against a project's real model through source-bound development representations without bundling private implementations.
 
 ## Identity
 
@@ -42,7 +42,7 @@ Mousecat is for operators and builders using AI coding hosts such as JetBrains, 
 | SDK client | Gives harness authors executable heartbeat, framework registration, skill invocation, await, and contextual handoff helpers over the shared MCP endpoint. |
 | Connector layer | Discovers and forwards to locally configured external MCP servers such as a private Neo endpoint. |
 | Integration layer | Projects provider-neutral API or CLI manifests and executes recognized capabilities through permit-gated `mousecat.invoke`, pinned executables, and host-managed authentication. |
-| Project workbench contract | Defines project adapters, bounded workbench sessions, domain-owned operations, layered development representations, exactness classes, drafts, and source receipts. The current source validates these records; runtime adapter registration and execution remain the next implementation boundary. |
+| Project workbench contract | Defines project adapters, bounded workbench sessions, domain-owned operations, layered development representations, exactness classes, drafts, and source receipts. The current runtime validates, registers and operates read/draft representations with source-vector receipts; stage-write and source-write remain closed. |
 | Local state | Optionally persists recursive session dockets, queues, bounded route plans, public events, and credential references under ignored `.mousecat/` state. |
 | Router | Resolves upstream plans for Neo, GitHub, Codex, Claude, browser, Z-Library, JetBrains, Cursor, and custom tools. |
 | Policy layer | Keeps invocation, credentials, redaction, provenance, and audit facts explicit. |

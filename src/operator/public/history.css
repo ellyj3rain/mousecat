@@ -31,6 +31,10 @@
 .history-notice { background: var(--hold-soft); padding: 10px; }
 .history-method-copy { white-space: pre-line; }
 .history-jump { display: block; margin: 14px 0; font-size: 12px !important; }
+.history-outline { border-block: 1px solid var(--line); padding: 10px 0; margin: 16px 0; }
+.history-outline summary { font-size: 12px; color: var(--text-muted); }
+.history-outline nav { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; }
+.history-outline nav button { text-align: left; font-size: 12px !important; }
 .history-pagination { display: flex; gap: 10px; margin-top: 14px; }
 .record-history-link { display: inline-block; margin: 0 20px 14px; color: var(--accent); font-size: 12px; }
 .inline-history-reference { display: inline-block; max-width: 100%; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; vertical-align: bottom; }

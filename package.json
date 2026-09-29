@@ -1,6 +1,6 @@
 {
   "name": "mousecat",
-  "version": "1.7.0-alpha",
+  "version": "1.7.1-alpha",
   "description": "A compact cross-harness MCP operator widget for normalized skill decisions and structured returns.",
   "type": "module",
   "bin": {
@@ -43,7 +43,9 @@
     "smoke:mcp": "node src/cli.mjs --config .github/mousecat.ci.config.json mcp --self-test",
     "smoke:sdk": "node --test test/sdk-client.test.mjs",
     "smoke:conformance": "node --test test/sdk-conformance.test.mjs",
-    "smoke:integrations": "node --test test/integration-contracts.test.mjs test/integration-runner.test.mjs test/integration-runtime.test.mjs"
+    "smoke:integrations": "node --test test/integration-contracts.test.mjs test/integration-runner.test.mjs test/integration-runtime.test.mjs",
+    "test:browser": "node scripts/operator-browser-check.mjs",
+    "release:check": "node scripts/public-release-check.mjs"
   },
   "keywords": [
     "mcp",
@@ -65,9 +67,16 @@
     "ARCHITECTURE.md",
     "GOVERNANCE.md",
     "ROADMAP.md",
-    "VERSION"
+    "VERSION",
+    "fixtures/operator-demo",
+    "THIRD_PARTY_NOTICES.md",
+    "licenses",
+    "PUBLIC_RELEASE.md"
   ],
   "dependencies": {
     "lucide": "^1.24.0"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
   }
 }

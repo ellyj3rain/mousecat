@@ -1,22 +1,24 @@
 | Document | Mousecat Roadmap |
 |---|---|
-| Version | 1.7.0.0-alpha |
-| Timestamp | 2026-09-28 07:08 UTC |
+| Version | 1.7.1.0-alpha |
+| Timestamp | 2026-09-29 22:19 UTC |
 | Status | ACTIVE - project roadmap. |
 
 # Mousecat Roadmap
 
 ## Current Milestone
 
-A20 gives native simulations a durable operator lifecycle in the observatory.
-Running sessions can checkpoint, normally saved sessions can continue, and
-finite attempt duration plus clean automatic continuation remain behind
-progressive disclosure. The source owns saves and successor readiness; Mousecat
-owns only bounded display and allowlisted lifecycle requests.
+A21 improves project review, evidence clickthroughs, question outlines and mobile
+review awareness. The public demo now exercises a complete synthetic review
+journey. Dependency notices, public fixtures and source hygiene form a checked
+release boundary. A separate sanitized history is prepared; the existing GitHub
+repository remains private while retained historical references are addressed.
 
 ## Next Milestone
 
-Connect the validated Project Workbench records to namespace-owned adapter registration and a connector-backed read-only session path. Prove inspect, find, compose, representation delivery, source invalidation, and session recovery with a bounded fixture adapter and the real Colonist Awareness world-authoring adapter before adding stage or apply writes.
+Complete public-history publication without exposing retained private records.
+Exercise the existing read/draft Project Workbench runtime with live target-project
+acceptance and source invalidation before introducing stage or source writes.
 
 ## Forward Work
 
@@ -27,7 +29,7 @@ Connect the validated Project Workbench records to namespace-owned adapter regis
 | Upstream connectors | Expand external MCP connector support beyond stdio and keep tool discovery dynamic. |
 | Private Neo bridge | Use ignored local config to connect to a private Neo MCP server without committing Neo internals. |
 | Credential providers | Bind credential references to OS keychain, environment, and host-managed identity without returning secret values. |
-| OSS release | Ratify package name, release boundary, contribution policy, and publication path. |
+| Source-available release | Publish verified source and synthetic examples with sanitized history, dependency notices and contribution checks. npm namespace/publication remains separately ratified. |
 
 ## Non-Goals
 

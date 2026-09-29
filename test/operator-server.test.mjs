@@ -785,9 +785,19 @@ test("operator demo and CLI smoke path use the real runtime", async () => {
   const status = runtime.status();
   const selfTest = await selfTestOperatorServer();
 
-  assert.equal(status.counts.interactions, 3);
-  assert.equal(status.counts.queueItems, 5);
-  assert.equal(status.counts.routePlans, 1);
+  assert.equal(status.counts.interactions, 4);
+  assert.equal(status.counts.queueItems, 2);
+  assert.equal(status.counts.routePlans, 0);
+  const observed = runtime.handleTool("mousecat.history", { ref: "source:operator-demo:observations.jsonl", permit: { profileId: "observer" } });
+  assert.equal(observed.ok, true);
+  assert.match(observed.record.body, /"synthetic":true/);
+  const result = runtime.handleTool("mousecat.history", { ref: "note:demo/trial-result", permit: { profileId: "observer" } });
+  assert.equal(result.links[0].status, "resolved");
+  const boundary = runtime.handleTool("mousecat.history", { ref: "demo-evidence-boundary", permit: { profileId: "observer" } });
+  assert.equal(boundary.record.standing, "answered");
+  assert.equal(boundary.record.items[0].response.selectedOption, "unknown");
+  seedOperatorDemo(runtime);
+  assert.equal(runtime.status().counts.interactions, 4);
   assert.equal(selfTest.schema, "mousecat.operator-self-test/1");
   assert.equal(selfTest.ok, true);
   assert.ok(selfTest.checks.interactions > 0);

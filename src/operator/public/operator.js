@@ -1,4 +1,5 @@
 import {
+  renderInlineReferences,
   planResponseBatches,
   recordKey,
   renderDescription,
@@ -295,7 +296,7 @@ function createMlFactGroup(title, facts, className = "") {
     const term = document.createElement("dt");
     term.textContent = fact.label;
     const detail = document.createElement("dd");
-    detail.textContent = fact.value;
+    renderInlineReferences(document, detail, fact.value);
     row.append(term, detail);
     list.append(row);
   }
@@ -366,7 +367,7 @@ function groupDecisionItems(interactions) {
           key: groupKey,
           interaction,
           familyRef,
-          label: familyLabel(item, familyRef),
+          label: splitTitle(item).family || (lineage.parentThreadId ? familyLabel(item, familyRef) : interaction.title || familyLabel(item, familyRef)),
           entries: [],
         });
       }
@@ -799,7 +800,6 @@ function createDecisionCard(entry, defaultOpen = false) {
   summary.append(kicker, title, proposition);
   const recommendation = item.prompt === REDACTED ? null : createRecommendationPreview(item);
   if (recommendation && !item.mlReview) summary.append(recommendation);
-  const evidenceRef = String(lineageFor(item).evidenceRef || "");
   disclosure.append(summary);
 
   const workspace = document.createElement("div");
@@ -819,7 +819,7 @@ function createDecisionCard(entry, defaultOpen = false) {
   historyLink.href = "#history?" + new URLSearchParams({ ref: interaction.interactionId });
   supporting.append(historyLink);
 
-  if (item.description && item.prompt !== REDACTED && (!evidenceRef || !String(item.description).includes(evidenceRef))) {
+  if (item.description && item.prompt !== REDACTED) {
     (item.mlReview ? supporting : material).append(renderDescription(document, item.description));
   }
   const provenance = createProvenance(item);
@@ -1094,7 +1094,9 @@ function renderDecisionAtlas(groups) {
       const label = document.createElement("span");
       label.className = "atlas-question-label";
       label.textContent = cardTitle(entry.item, entry.ordinal);
-      cell.append(ordinal, label);
+      const state = document.createElement("small");
+      state.className = "atlas-question-state";
+      cell.append(ordinal, label, state);
       cell.tabIndex = cells.childElementCount === 0 ? 0 : -1;
       cell.addEventListener("keydown", (event) => moveAtlasFocus(event, cell));
       cell.addEventListener("click", () => {
@@ -1395,6 +1397,7 @@ function updatePreparedState() {
     if (!entry) continue;
     const state = atlasStateFor(entry, key);
     cell.dataset.state = state.id;
+    cell.querySelector(".atlas-question-state").textContent = state.label;
     cell.setAttribute("aria-label", `Decision ${entry.ordinal}: ${cardTitle(entry.item, entry.ordinal)}. ${state.label}.`);
     cell.title = `${entry.ordinal}. ${cardTitle(entry.item, entry.ordinal)} — ${state.label}`;
   }

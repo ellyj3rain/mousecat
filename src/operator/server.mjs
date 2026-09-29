@@ -9,6 +9,8 @@ import { hostCommandPack } from "../core/catalog.mjs";
 import { createMousecatRuntime } from "../core/runtime.mjs";
 import { createNativeViews, parseNativeJson } from "../core/native-view.mjs";
 import { handleJsonRpc } from "../mcp/server.mjs";
+import { seedOperatorDemo } from "./demo.mjs";
+export { seedOperatorDemo } from "./demo.mjs";
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 4317;
@@ -293,133 +295,6 @@ export async function operatorSnapshot(runtime, options = {}) {
   };
 }
 
-export function seedOperatorDemo(runtime) {
-  const current = runtime.status();
-  if (current.counts.interactions > 0 || current.counts.queueItems > 0) return current;
-
-  runtime.handleTool("mousecat.session", {
-    action: "start",
-    sessionId: "a12-operator-demo",
-    facts: { surface: "graphical-operator", posture: "presentation-only" },
-  });
-  runtime.handleTool("mousecat.widget", {
-    action: "ask",
-    request: {
-      source: "neo.mass-assault",
-      sessionId: "a12-operator-demo",
-      interactionId: "a12-mass-assault-demo",
-      title: "Mass Assault",
-      skillRef: "mass-assault.queue",
-      items: [
-        {
-          id: "binding",
-          shape: "decision",
-          prompt: "Which host binding should receive the next graphical proof?",
-          options: [
-            { label: "Codex (Recommended)", value: "codex", description: "Keep the first host proof in the active development surface." },
-            { label: "Claude Code", value: "claude", description: "Exercise the second source-owned adapter contract." },
-            { label: "Generic MCP", value: "generic-mcp", description: "Keep the proof host-neutral." },
-          ],
-        },
-        {
-          id: "constraint",
-          shape: "freeform",
-          prompt: "Record the operator constraint that must survive the next recursive pass.",
-        },
-      ],
-      constraints: { maxItems: 5, recommendationFirst: true, allowFreeform: true },
-    },
-  });
-  runtime.handleTool("mousecat.widget", {
-    action: "ask",
-    request: {
-      source: "neo.spec-adjudicator",
-      sessionId: "a12-operator-demo",
-      interactionId: "a12-readiness-check",
-      title: "Readiness check",
-      items: [
-        {
-          id: "checks",
-          shape: "checklist",
-          prompt: "Confirm the proof boundary before host integration.",
-          options: [
-            { label: "Redacted state only", value: "redacted-state" },
-            { label: "No invocation control", value: "no-invoke" },
-            { label: "Browser verification", value: "browser-verification" },
-          ],
-        },
-      ],
-    },
-  });
-  runtime.handleTool("mousecat.widget", {
-    action: "ask",
-    request: {
-      source: "neo.execution-loop",
-      sessionId: "a12-operator-demo",
-      interactionId: "a12-integration-order",
-      title: "Integration order",
-      items: [{
-        id: "priority",
-        shape: "ranking",
-        prompt: "Rank the remaining integration proofs.",
-        options: [
-          { label: "Host binding", value: "host-binding" },
-          { label: "Security receipt", value: "security-receipt" },
-          { label: "Package proof", value: "package-proof" },
-        ],
-      }],
-    },
-  });
-  const queued = runtime.handleTool("mousecat.queue", {
-    action: "enqueue",
-    sessionId: "a12-operator-demo",
-    source: "neo.execution-loop",
-    items: [
-      { id: "verify-desktop", prompt: "Verify the graphical surface at the desktop viewport", shape: "review" },
-      { id: "verify-mobile", prompt: "Verify the graphical surface at the mobile viewport", shape: "review" },
-      {
-        id: "host-embed",
-        prompt: "Choose the first concrete host adapter",
-        shape: "decision",
-        options: [
-          { label: "Codex (Recommended)", value: "codex" },
-          { label: "Generic MCP", value: "generic-mcp" },
-        ],
-      },
-      {
-        id: "release-checks",
-        prompt: "Confirm the graphical release evidence",
-        shape: "checklist",
-        options: [
-          { label: "Desktop proof", value: "desktop" },
-          { label: "Mobile proof", value: "mobile" },
-          { label: "Server proof", value: "server" },
-        ],
-      },
-      {
-        id: "next-order",
-        prompt: "Rank the next host integration order",
-        shape: "ranking",
-        options: [
-          { label: "Codex", value: "codex" },
-          { label: "Claude Code", value: "claude" },
-          { label: "Generic MCP", value: "generic-mcp" },
-        ],
-      },
-    ],
-  });
-  runtime.handleTool("mousecat.queue", {
-    action: "hold",
-    itemId: queued.items[2].id,
-    reason: "Wait for browser evidence",
-  });
-  runtime.handleTool("mousecat.route", {
-    upstream: "neo",
-    capability: "infer_complexity_v1",
-    intent: "Adjudicate the first graphical operator surface",
-  });
-  return runtime.status();
-}
 
 async function serveStatic(pathname, response) {
   const asset = STATIC_FILES.get(pathname);

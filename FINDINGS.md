@@ -580,3 +580,31 @@ save or continue action, progressively discloses attempt duration and automatic
 continuation, and forwards exact lifecycle requests through the existing
 immutable command boundary. The simulation producer retains every save, reload,
 process and review decision.
+
+## F-064 | 2026-09-29 22:19 UTC / 15:19 PDT | Review evidence and mobile awareness were suppressed
+
+*Severity:* High
+
+*Finding:* A description containing its own evidence reference disappeared in full.
+Narrow layouts hid the review-count label. Generic outlines and old host-proof
+fixtures did not exercise current project/evidence/history behavior; keyboard
+history navigation discarded focus.
+
+*Resolution:* A21 preserves complete non-redacted briefs, renders explicit ML
+references, retains the mobile review count, names question families from source
+titles and restores meaningful record focus. Synthetic browser contracts exercise
+those mechanisms at four widths across all themes.
+
+## F-065 | 2026-09-29 22:19 UTC / 15:19 PDT | Current-tree hygiene did not establish historical privacy
+
+*Severity:* High
+
+*Finding:* Private host metadata, raw operator receipts and private-consumer
+research were tracked alongside source-derived native-world exports. Required
+Lucide/WebView2 dependency notices were not explicitly shipped. GitHub retains
+pull-request references to old records even after a current-tree cleanup.
+
+*Resolution:* A21 removes private inputs, ships synthetic examples and full notices,
+and enforces source hygiene. A separate scrubbed history preserves chronology.
+The existing repo remains private until its retained historical references are
+removed or publication moves to clean history in a separate repository.

@@ -31,6 +31,12 @@ const packageProjection = projectRootVersionToPackageVersion(version);
 failIf(errors, pkg.license !== "SEE LICENSE IN LICENSE", "package.json license must point to the in-repo PolyForm Perimeter license.");
 failIf(errors, !license.includes("PolyForm Perimeter License 1.0.0"), "LICENSE must contain the PolyForm Perimeter 1.0.0 text.");
 failIf(errors, !license.includes("Required Notice:"), "LICENSE must carry a Required Notice line.");
+for (const path of ["THIRD_PARTY_NOTICES.md", "licenses/lucide.txt", "licenses/webview2-license.txt", "licenses/webview2-notice.txt"]) {
+  failIf(errors, !fileExists(path), `${path} must ship with Mousecat.`);
+}
+if (fileExists("licenses/lucide.txt")) {
+  failIf(errors, readText("licenses/lucide.txt") !== readText("node_modules/lucide/LICENSE"), "Lucide notice must match the installed pinned package verbatim.");
+}
 failIf(errors, !rootVersion.ok, rootVersion.violation || "VERSION must use Mousecat's Kohai-aware root form.");
 failIf(errors, !packageProjection.ok, packageProjection.error || "VERSION must project to npm package metadata.");
 if (packageProjection.ok) {

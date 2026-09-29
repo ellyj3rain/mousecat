@@ -1,5 +1,25 @@
 export const OPERATOR_BATCH_BYTES = 224 * 1024;
 
+// Explicit record references only. Caller text never becomes HTML or a remote URL.
+export function renderInlineReferences(document, element, text) {
+  element.textContent = String(text || "");
+  const references = /\[([^\]]+)\]\(mousecat:([^\s)]+)\)|\bskill-[a-f0-9]{16}\b|\b(?:[a-z][a-z0-9-]*:)*(?:plan-sha256|content-sha256):[a-f0-9]{64}\b|\b[a-f0-9]{64}\b|\b[a-f0-9]{40}\b/gu;
+  if (typeof text !== "string" || !references.test(text)) return element;
+  element.textContent = "";
+  let offset = 0;
+  references.lastIndex = 0;
+  for (const match of text.matchAll(references)) {
+    const before = document.createElement("span"); before.textContent = text.slice(offset, match.index); element.append(before);
+    const link = document.createElement("a"); link.textContent = match[1] || match[0];
+    link.href = "#history?" + new URLSearchParams({ ref: match[2] || match[0] });
+    link.className = "inline-history-reference";
+    element.append(link);
+    offset = match.index + match[0].length;
+  }
+  const tail = document.createElement("span"); tail.textContent = text.slice(offset); element.append(tail);
+  return element;
+}
+
 // A deliberately small, text-only document grammar. Host content never becomes HTML.
 // Supported: headings, paragraphs, lists, tables and explicit details/summary blocks.
 export function renderDescription(document, value) {
@@ -10,22 +30,7 @@ export function renderDescription(document, value) {
   const current = () => parents[parents.length - 1];
   function node(tag, text, parent = current()) {
     const element = document.createElement(tag);
-    element.textContent = text;
-    const references = /\[([^\]]+)\]\(mousecat:([^\s)]+)\)|\bskill-[a-f0-9]{16}\b|\b(?:[a-z][a-z0-9-]*:)*(?:plan-sha256|content-sha256):[a-f0-9]{64}\b|\b[a-f0-9]{64}\b|\b[a-f0-9]{40}\b/gu;
-    if (typeof text === "string" && references.test(text)) {
-      element.textContent = "";
-      let offset = 0;
-      references.lastIndex = 0;
-      for (const match of text.matchAll(references)) {
-        const before = document.createElement("span"); before.textContent = text.slice(offset, match.index); element.append(before);
-        const link = document.createElement("a"); link.textContent = match[1] || match[0];
-        link.href = "#history?" + new URLSearchParams({ ref: match[2] || match[0] });
-        link.className = "inline-history-reference";
-        element.append(link);
-        offset = match.index + match[0].length;
-      }
-      const tail = document.createElement("span"); tail.textContent = text.slice(offset); element.append(tail);
-    }
+    renderInlineReferences(document, element, text);
     parent.append(element);
     return element;
   }

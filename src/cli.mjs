@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 
 import { catalogSnapshot } from "./core/catalog.mjs";
-import { loadConfig } from "./core/config.mjs";
+import { defaultConfig, loadConfig } from "./core/config.mjs";
 import { connectorSummaries, discoverConnectorResources, discoverConnectorTools } from "./core/connectors.mjs";
 import { createMousecatRuntime } from "./core/runtime.mjs";
 import { selfTest, startStdioServer } from "./mcp/server.mjs";
@@ -48,8 +48,8 @@ function parseOperatorOptions(argv) {
     const value = argv[index];
     if (value === "--port") {
       const parsed = Number(argv[index + 1]);
-      if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
-        throw new Error("--port must be an integer from 1 through 65535");
+      if (!Number.isInteger(parsed) || parsed < 0 || parsed > 65535) {
+        throw new Error("--port must be an integer from 0 through 65535");
       }
       port = parsed;
       index += 1;
@@ -89,18 +89,19 @@ async function main(argv = process.argv.slice(2)) {
     return;
   }
 
-  const config = await loadConfig(parsed.configPath);
+  const operatorOptions = command === "operator" ? parseOperatorOptions(rest) : null;
+  const demo = operatorOptions?.demo === true;
+  const config = demo ? defaultConfig() : await loadConfig(parsed.configPath);
   const runtime = createMousecatRuntime({ config });
 
   if (command === "operator") {
-    const operatorOptions = parseOperatorOptions(rest);
     if (operatorOptions.selfTest) {
       print(await selfTestOperatorServer({ config }));
       return;
     }
     const app = await startOperatorServer({
       runtime,
-      nativeViews: config.nativeViews,
+      nativeViews: demo ? undefined : config.nativeViews,
       port: operatorOptions.port,
       demo: operatorOptions.demo,
     });

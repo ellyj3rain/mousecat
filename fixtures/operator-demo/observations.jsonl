@@ -1,0 +1,2 @@
+{"id":"water-trial-1","synthetic":true,"actor":"Rowan","action":"inspect-sink","outcome":"water-available","followUp":"unobserved","proposedTarget":"inspect before searching elsewhere"}
+{"id":"water-trial-2","synthetic":true,"actor":"Mika","action":"search-cupboard","outcome":"no-bottled-water","followUp":"unobserved","proposedTarget":"reconsider a repeated unsuccessful search"}

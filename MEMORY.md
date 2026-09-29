@@ -19,6 +19,9 @@ Use this file as the local doc-pack index.
 | `DECISION_REGISTRY.md` | Append-only decision history. |
 | `FINDINGS.md` | Append-only findings. |
 | `AGENTS.md` | Codex operating context for this repo. |
+| `PUBLIC_RELEASE.md` | Public-release checks, license notices and historical privacy boundary. |
+| `THIRD_PARTY_NOTICES.md` | Bundled dependency licensing and notice ownership. |
+| `design/operator-world.md` | Public historical summary of the spatial-world proposal. |
 | `design/mousecat-project-workbench-20260816-0254Z-1954PST.md` | Accepted Project Workbench direction, project-adapter ontology, representation laws, and first executable boundary. |
 | `src/core/connectors.mjs` | External MCP connector bridge and dynamic discovery surface. |
 | `src/core/mcp-client.mjs` | Minimal stdio MCP client for local/private upstreams. |

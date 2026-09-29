@@ -17,6 +17,9 @@ const forbiddenPaths = [
   /^traces\//u,
   /^artifacts\/local\//u,
   /^\.mousecat\//u,
+  /^\.neo(?:-sandboxes)?\//u,
+  /^design\/.*decision-receipt.*\.json$/u,
+  /^apps\/mousecat-world\/Content\/MousecatWorld\/Generated\/.*\.region(?:\.receipt)?\.json$/u,
   /^\.env(?:\.|$)/u,
   /\.(sqlite|sqlite3|db|docx|pdf)$/u,
 ];

@@ -54,6 +54,9 @@ jobs:
       - name: Run PR readiness surface
         run: npm run pr:ready
 
+      - name: Verify public history boundary
+        run: npm run release:check
+
       - name: npm audit (fail on high/critical)
         run: npm audit --audit-level=high
 
@@ -88,3 +91,28 @@ jobs:
 
       - name: Runtime compatibility tests
         run: npm test
+
+  browser-contracts:
+    name: browser-contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify synthetic operator clickthroughs
+        run: npm run test:browser
+      - name: Upload synthetic browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: operator-browser-contracts
+          path: .mousecat/browser-check
+          if-no-files-found: ignore

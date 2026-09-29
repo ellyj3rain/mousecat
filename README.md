@@ -1,25 +1,48 @@
 | Document | Mousecat README |
 |---|---|
-| Version | 1.7.0.0-alpha |
-| Timestamp | 2026-09-26 01:00 UTC |
+| Version | 1.7.1.0-alpha |
+| Timestamp | 2026-09-29 22:19 UTC |
 | Status | ACTIVE - participant entry point. |
 
 # Mousecat
 
-Mousecat is one MCP normalization server, nonlinear graphical operator surface, native playable-world runtime, and project-workbench foundation for AI coding hosts. A shared loopback process serves the browser and Streamable HTTP MCP from the same runtime, so Codex, Claude Code, Neo, or another MCP client can request operator judgment and receive the browser-submitted structured result. The Unreal runtime gives governed work a spatial world, while project-workbench contracts let hosts represent and author a target system from its own source model instead of depending on its production UI.
+Mousecat gives AI coding hosts and their operator one local workspace for questions,
+source evidence, decision history and live simulation feeds. Codex, Claude Code,
+Neo and other MCP clients can bring work into the same responsive surface and
+receive the operator's structured response. One loopback process serves the
+browser, Windows desktop and Streamable HTTP MCP endpoint. Optional project
+adapters and a native Unreal client preserve each producer's source authority.
 
 Mousecat is PolyForm Perimeter 1.0.0-licensed, GZDS-governed source-available bridge code. It does not ship private Neo tools. A local ignored config can point Mousecat at a private Neo MCP server, then Mousecat discovers tools dynamically and forwards permitted calls at runtime.
 
 Mousecat uses a Kohai-aware root odometer: `VERSION` is `major.minor.kohai.patch-maturity`, with npm package metadata projected to `major.minor.kohai-maturity` when the root patch coordinate is zero. Governance automation and release-discipline maturation move Kohai; runtime or public contract expansion moves minor.
 
-ML reviews can include a declarative `mousecat.scene-preview/1` record. The
-shared review panel renders schematic places and people, a keyboard-accessible
-timeline, each person's supplied information and explicit communication status.
-Authored, recorded and projected provenance remains visible. The preview stops
-at the declared decision; stepping through it supplies no operator answer or
-new simulation fact.
+ML reviews carry the caller's situation, model proposals, evidence and the effects
+of the human response. Recorded scene-preview data remains validated and retained
+with explicit provenance; the retired schematic renderer is not presented as a
+live simulation. The Simulation view displays actual producer-supplied native
+frames and source-timed information, with adjustable panels and per-camera tools.
 
 ## Quick Start
+
+Install Node.js 20 or newer, clone this repository and install the pinned dependencies:
+
+```powershell
+npm ci
+```
+
+Try the current interface with entirely synthetic work:
+
+```powershell
+node src/cli.mjs operator --demo --port 0
+```
+
+Open the printed `url`. The demo has a project, a comparison review, a follow-up
+plan, indexed evidence and an earlier example answer. Follow an evidence link,
+return to the draft, and inspect a prepared answer before returning it. Demo
+answers stay in a separate memory-only runtime; restarting resets it. Local
+configuration, connectors and saved questions are not loaded by this command.
+Port zero chooses a free loopback port, so the demo can coexist with your workspace.
 
 On Windows, install the [desktop client](apps/mousecat-desktop/README.md):
 
@@ -70,7 +93,7 @@ The separate command below remains the initialized headless stdio compatibility 
 node src/cli.mjs mcp
 ```
 
-Use `operator --demo` for presentation testing, `--port <port>` when the default `4317` is occupied, and `operator --self-test` for a non-interactive smoke check.
+Use `--port <port>` when the default `4317` is occupied and `operator --self-test` for a non-interactive smoke check.
 
 Install the same loopback runtime for the current user's login, then inspect or control its lifecycle without an administrator account:
 
@@ -174,9 +197,11 @@ plan schema. The same contract applies to interaction flows, architecture,
 runtime traces, fixtures, data changes, and deployment topology without
 flattening those subjects into one generic model.
 
-Runtime adapter registration, connector-backed execution, representation
-delivery, and draft staging are not claimed yet. The accepted shape and first
-validators are documented in
+The runtime supports namespace-owned adapter registration, connector-backed
+read/draft operations, representation delivery and source invalidation through
+`mousecat.workbench`. Stage-write and source-write effects remain closed. Fixture
+acceptance does not establish live target-project acceptance. The accepted
+contract direction is documented in
 `design/mousecat-project-workbench-20260816-0254Z-1954PST.md`.
 
 ## Skill Invocation Loop
@@ -231,17 +256,21 @@ unreviewed and has no dataset-admission control.
 
 ## Native World Runtime
 
-`apps/mousecat-world` is the Unreal Engine 5.8 production renderer for the playable world. Its World One compiler consumes receipt-verified source geography rather than browser-scene geometry: eight source maps currently provide semantic and traversal grids, source-relative placement, buildings and interiors, and 18 paired active portals. External warp endpoints remain recorded but inactive until their destination maps are present; walk-boundary seams stay continuous instead of becoming fake teleport doors.
-
+`apps/mousecat-world` is the optional Unreal Engine 5.8 native client source. Its
+compiler accepts receipt-verified local exports, including semantic/traversal
+grids, source-relative placement, buildings, interiors and paired portals.
+The public default is a synthetic procedural smoke world. Real project exports
+are supplied locally and are not bundled as public fixture data. External warp
+endpoints remain inactive until their destination maps are supplied.
 The present native foundation uses a two-meter horizontal voxel lattice, stepped terrain, hydrology, source-derived paths and structures, component-built vegetation, map-priority overlap resolution, streamed collision with destination prewarming, and a neutral human-scale voxel operator. Interiors and exteriors occupy the same world state, with open-roof treatment where an included interior shares an exterior footprint. This is the structurally mapped voxel foundation, not the final high-realism art or mutable-life simulation pass; hierarchical near-field detail, richer material and asset families, component mutation, camera-driven interior cutaways, agent simulation, and persistence remain active development scope.
 
-Launch the current Windows development package directly:
+After building a local Windows development package, launch it directly:
 
 ```powershell
 apps\mousecat-world\Artifacts\Win64\Development\MousecatWorld.exe
 ```
 
-Movement uses `WASD` or the left stick, camera uses the mouse or right stick, `Space` or the bottom face button jumps, and `Shift` or the left shoulder runs. Native source, export contracts, build tooling, and the authoritative World One manifest live together under `apps/mousecat-world`.
+Movement uses `WASD` or the left stick, camera uses the mouse or right stick, `Space` or the bottom face button jumps, and `Shift` or the left shoulder runs. Native source, export contracts, build tooling and the synthetic public manifest live under `apps/mousecat-world`; project exports are supplied locally.
 
 ## Host Adapter Harness
 
@@ -299,9 +328,28 @@ Dynamic MCP discovery comes from the configured server's `tools/list` and `resou
 
 HTTP connector summaries publish the cancellation handshake and a bounded `cancellationGraceMs` parameter from 100 through 5000 milliseconds, defaulting to 1000. `mousecat.bridge` reads the public `mousecat_bridge_contract_v1` resource and returns a sanitized summary with public routes, boundary classes, stale-runtime policy, and withheld-surface labels. If an upstream MCP endpoint reports `MCP_RUNTIME_STALE`, Mousecat returns `connector-runtime-stale` with `restartRequired: true` instead of treating it as an opaque JSON-RPC failure. `node scripts/neo-live-smoke.mjs --config mousecat.config.json` is the local live-connector smoke for an ignored private Neo config; it reports connector readiness, required public names, permit-gated forwarding, and sanitized runtime identity/doctor fields. Do not commit generated discovery output, local paths, credentials, raw runtime payloads, or private tool schemas.
 
+## Browser verification
+
+```powershell
+npx playwright install chromium
+npm run test:browser
+```
+
+Windows checks use installed Microsoft Edge. Linux and macOS checks use
+Playwright Chromium. The check starts isolated synthetic servers, exercises
+project/evidence/history navigation, keyboard focus, draft preservation and exact
+returns at four screen sizes, checks all three themes, and closes every fixture.
+It never connects to your installed service. GitHub CI runs the same browser
+contracts and retains synthetic screenshots as test artifacts.
+
 ## Source Policy
 
 Mousecat core source is licensed under PolyForm Perimeter 1.0.0. The perimeter posture permits use, modification, and distribution under the published terms while reserving competing-product use outside the grant. Runtime transcripts, private host state, credential values, Z-Library session state, upstream caches, and generated local artifacts stay out of Git.
+
+See [third-party notices](THIRD_PARTY_NOTICES.md) for the icon and desktop dependency
+terms, and [release readiness](PUBLIC_RELEASE.md) for verification and the historical
+privacy boundary. PolyForm Perimeter is source available; its noncompete restriction
+means it is not an OSI-approved open-source license.
 
 ## Read First
 

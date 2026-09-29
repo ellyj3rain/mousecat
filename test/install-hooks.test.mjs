@@ -39,3 +39,17 @@ test("checkHooks reports stale hook bodies", () => {
 
   assert.deepEqual(checkHooks(root), { ok: false, missing: [], stale: ["pre-push"] });
 });
+
+test("linked worktrees install and verify hooks in the shared Git directory", () => {
+  const root = mkdtempSync(join(tmpdir(), "mousecat-linked-hooks-"));
+  const common = join(root, "repository.git");
+  const linked = join(common, "worktrees", "linked");
+  const checkout = join(root, "checkout");
+  mkdirSync(linked, { recursive: true });
+  mkdirSync(checkout);
+  writeFileSync(join(checkout, ".git"), "gitdir: ../repository.git/worktrees/linked\n");
+  writeFileSync(join(linked, "commondir"), "../..\n");
+  const installed = installHooks(checkout);
+  assert.deepEqual(installed, HOOKS.map(name => join(common, "hooks", name)));
+  assert.deepEqual(checkHooks(checkout), { ok: true, missing: [], stale: [] });
+});

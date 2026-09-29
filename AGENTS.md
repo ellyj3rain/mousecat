@@ -1,6 +1,6 @@
 # Mousecat
 
-Mousecat is an open-source-ready MCP normalization plane. It gives AI coding hosts one server and one namespace for operator interaction, governed decision queues, live visualization, routed upstream access, credential references, skill frameworks, work permits, and tool-boundary control.
+Mousecat is a source-available MCP normalization plane. It gives AI coding hosts one server and one namespace for operator interaction, governed decision queues, live visualization, routed upstream access, credential references, skill frameworks, work permits, and tool-boundary control.
 
 ## Operating Conventions
 

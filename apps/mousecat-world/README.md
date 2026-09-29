@@ -8,7 +8,11 @@ Open `MousecatWorld.uproject` with Unreal Engine 5.8 and choose **Play Standalon
 
 The current Windows Development package launches from the local Windows executable in the ignored Artifacts build directory.
 
-The default manifest is the authoritative export at `Content/MousecatWorld/Generated/WorldOne.region.json`. Sampled-source manifests are promoted only when the sibling `<base>.receipt.json` binds the selected filename, exact byte count, SHA-256, world ID, first region ID, and export semantic hash. The compact `Content/MousecatWorld/Generated/synthetic-smoke.world-manifest.json` remains an explicit receipt-free procedural smoke fixture, never the World One acceptance source. A packaged build stages the generated directory as NonUFS data. Select another generated manifest at launch with a filename only:
+The public default is `Content/MousecatWorld/Generated/synthetic-smoke.world-manifest.json`,
+an explicit receipt-free procedural smoke fixture. Project-derived exports and
+their receipts are local inputs. Sampled-source manifests are promoted only when
+a sibling `<base>.receipt.json` binds the selected filename, exact byte count,
+SHA-256, world ID, first region ID and export semantic hash. A packaged build stages the generated directory as NonUFS data. Select another generated manifest at launch with a filename only:
 
 ```powershell
 MousecatWorld.exe -MousecatWorldManifest=another-world.json
@@ -16,7 +20,7 @@ MousecatWorld.exe -MousecatWorldManifest=another-world.json
 
 Directory traversal and non-JSON names are rejected. The loader also rejects missing files, files over 4 MiB, sampled-source receipts over 64 KiB, invalid JSON, the wrong schema, receipt mismatches, non-finite coordinates, unsafe counts, and out-of-bounds content before any world geometry is promoted. Unknown top-level and nested extension fields are tolerated in the source JSON but ignored and discarded by this runtime slice.
 
-This is a native runtime foundation: authoritative terrain, hydrology, bounded collision streaming, movement, camera, receipt-verified ingestion, source-map semantics and traversal, mapped surfaces, component-built structures and vegetation, and paired interior portals are live. World One currently decodes eight source maps, 5,540 semantic cells, 1,883 passable cells, 50 portal records, 18 active included-map portal endpoints, 24 recorded external warp endpoints, and eight continuous walk-boundary seams.
+This is a native runtime foundation: authoritative terrain, hydrology, bounded collision streaming, movement, camera, receipt-verified ingestion, source-map semantics and traversal, mapped surfaces, component-built structures and vegetation, and paired interior portals are live. A prior local source-derived acceptance run decoded eight maps and paired interior portals. That private export is not bundled in public source; the synthetic fixture is a smoke check rather than proof of a project world.
 
 Map, town, city, route, forest, gatehouse, and interior records remain semantic authorities rather than fake pins or colliding envelopes. Their decoded grids now drive two-meter terrain-aligned floors, paths, water, walls, structures, vegetation, ledges, and portal anchors. Higher-priority interiors and gatehouses suppress only overlapping lower-priority subcells, so partially overlapped exterior shells and doors remain intact. Walk boundaries stay spatially continuous; only paired included-map warp endpoints become runtime portals. A developer can still opt into small, non-colliding diagnostic locators with `-MousecatWorldShowSemanticMarkers`.
 

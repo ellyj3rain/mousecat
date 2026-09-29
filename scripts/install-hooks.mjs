@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -59,20 +59,26 @@ npm audit --audit-level=high
   throw new Error(`unknown hook "${name}"`);
 }
 
-function hookPath(repoRoot, name) {
-  return resolve(repoRoot, ".git", "hooks", name);
+function hooksDirectory(repoRoot) {
+  let gitDir = resolve(repoRoot, ".git");
+  if (!existsSync(gitDir)) throw new Error(`not a git checkout: ${repoRoot}`);
+  if (statSync(gitDir).isFile()) {
+    const pointer = /^gitdir: (.+)$/mu.exec(readFileSync(gitDir, "utf8"));
+    if (!pointer) throw new Error("invalid Git directory pointer");
+    gitDir = resolve(repoRoot, pointer[1].trim());
+  }
+  const commonDir = resolve(gitDir, "commondir");
+  if (existsSync(commonDir)) gitDir = resolve(gitDir, readFileSync(commonDir, "utf8").trim());
+  return resolve(gitDir, "hooks");
 }
 
 export function installHooks(repoRoot = REPO_ROOT) {
-  const hooksDir = resolve(repoRoot, ".git", "hooks");
-  if (!existsSync(resolve(repoRoot, ".git"))) {
-    throw new Error(`not a git checkout: ${repoRoot}`);
-  }
+  const hooksDir = hooksDirectory(repoRoot);
   mkdirSync(hooksDir, { recursive: true });
 
   const installed = [];
   for (const name of HOOKS) {
-    const target = hookPath(repoRoot, name);
+    const target = resolve(hooksDir, name);
     writeFileSync(target, hookBody(name), "utf8");
     chmodSync(target, 0o755);
     installed.push(target);
@@ -81,10 +87,11 @@ export function installHooks(repoRoot = REPO_ROOT) {
 }
 
 export function checkHooks(repoRoot = REPO_ROOT) {
+  const hooksDir = hooksDirectory(repoRoot);
   const missing = [];
   const stale = [];
   for (const name of HOOKS) {
-    const target = hookPath(repoRoot, name);
+    const target = resolve(hooksDir, name);
     if (!existsSync(target)) {
       missing.push(name);
       continue;

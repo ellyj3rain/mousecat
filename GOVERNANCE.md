@@ -1,7 +1,7 @@
 | Document | Mousecat Governance |
 |---|---|
-| Version | 1.7.0.0-alpha |
-| Timestamp | 2026-09-26 01:00 UTC |
+| Version | 1.7.1.0-alpha |
+| Timestamp | 2026-09-29 22:19 UTC |
 | Status | ACTIVE - operating discipline. |
 
 # Mousecat Governance

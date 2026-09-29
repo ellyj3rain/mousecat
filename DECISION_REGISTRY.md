@@ -639,3 +639,21 @@ automatic continuation and successor publication.
 The primary valid action stays visible. Duration and automatic continuation use
 progressive disclosure. No lifecycle action carries paths, executables, native
 simulation verbs, scenario verdicts or dataset admission.
+
+## [A21] - Public preparation preserves human review and private provenance
+
+*Timestamp:* 2026-09-29 22:19 UTC / 15:19 PDT
+
+The operator requested improved Mousecat fixtures, clickthroughs and outlines,
+current-project quality, private-material removal and correct licensing before
+making the repository public again. Review needs durable visibility even before
+an answer draft exists. This authorization covers shared operator presentation,
+synthetic examples, release checks and privacy cleanup; the operator retains the
+visibility decision. Routine implementation is not an additional human-review gate.
+
+PolyForm Perimeter 1.0.0 remains the ratified license. Third-party notices travel
+with redistributed code. Public demonstration uses synthetic inputs and isolated
+state. Private source dossiers and raw operator records stay outside the public
+tree; original provenance remains private rather than being treated as public
+fixtures. Historical PR refs must be addressed before the existing repo changes
+visibility. No model evaluation, dataset admission or npm publication is inferred.
