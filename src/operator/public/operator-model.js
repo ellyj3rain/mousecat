@@ -94,6 +94,22 @@ export function recordKey(...parts) {
   return JSON.stringify(parts.map((part) => String(part)));
 }
 
+export function reviewAttention(interactions = [], draftKeys = []) {
+  const prepared = new Set(draftKeys);
+  const entries = [];
+  for (const interaction of interactions) {
+    for (const item of interaction?.items || []) {
+      if (!["open", "deferred"].includes(item?.status)) continue;
+      const key = recordKey(interaction.interactionId, item.id);
+      entries.push({ key, interactionId: interaction.interactionId,
+        projectRef: interaction.projectRef || null, itemId: item.id,
+        prepared: prepared.has(key) });
+    }
+  }
+  return { waiting: entries.length, prepared: entries.filter(entry => entry.prepared).length,
+    unprepared: entries.filter(entry => !entry.prepared).length, first: entries[0] || null };
+}
+
 export function shapeUsesOptionSelection(item) {
   return !["ranking", "parameter", "continuum"].includes(item?.shape);
 }

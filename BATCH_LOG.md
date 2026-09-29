@@ -1857,3 +1857,56 @@ decoded image changes, with zero blank images or removed telemetry groups. The
 1680 by 950 and 760 by 900 layouts have no horizontal overflow. The ignored
 browser receipt SHA-256 is
 `5434ee642ff1884a1851a7016d798768b3751a2802903ae09e8a2a85fed94fc5`.
+
+## A20.3 - Terminal study and review awareness
+
+*Timestamp:* 2026-09-29 19:41 UTC / 12:41 PDT
+
+A native study that has stopped now reads as a terminal session instead of an
+ever-aging live feed. Saved sessions show their fixed final-frame time, final
+person sample and available continuation. Interrupted studies show the absolute
+time of the last complete frame and stop their client-side age timer. Polling
+continues so a repaired or successor feed can still replace that frame.
+Save session remains available from the durable study state even when image
+delivery has stopped, so a stale renderer cannot lock the operator out of the
+lifecycle control needed to end the attempt safely.
+
+Every camera tile now carries its own Info, Focus and Hide controls. Info hides
+only that tile's telemetry. Focus expands one feed to the full observatory width
+and keeps the same live image stream and tools; leaving focus restores the other
+feeds. The existing view toggles can restore a hidden tile. This provides a
+fluid overview and individual inspection surface without creating another
+simulation mode or changing what the observer publishes.
+
+The study contract now carries the producer's bounded review handoff state.
+Mousecat distinguishes preparation, a queued human review, a delayed handoff,
+an attempt with no reviewable outcomes and an attempt that never became verified
+evidence. This status sits beside the durable session controls and cannot admit
+data or choose a model.
+
+The global Review control now counts every open or deferred decision item,
+whether or not a local response draft exists. New work updates the document
+title and an accessible live region immediately; when desktop notification
+permission already exists, a hidden window also raises a notification. Mousecat
+never asks for notification permission. Selecting Review opens prepared answers
+when present and otherwise moves directly to the first waiting decision.
+
+The repaired real study is displayed as saved at world hour 2.2500 with
+continuation available and a fixed terminal clock. Its terminal review contains
+no completed model disagreement. A separate verified cognition corpus queued
+15 completed disagreements as two actor-trajectory decisions while retaining
+1,348 episodes without an observed outcome in sequestration. Both handoffs
+retain zero training rows and zero teaching targets.
+
+Headless Edge checks at 1680 by 950 and 760 by 900 exercise four equally sized
+feeds, per-screen Info, full-width Focus and restoration, the inspector toggle,
+fixed terminal timing, reachable continuation and zero horizontal overflow. A
+separate disconnected-running fixture at 1280 by 850 holds one absolute
+last-frame time, disables ordinary camera commands, leaves Save session enabled and
+publishes its exact lifecycle request. Neither pass recorded a page error,
+console error or failed request.
+
+Version remains `1.7.0.0-alpha` (npm `1.7.0-alpha`) as an A20 reliability and
+review-awareness repair. The focused operator/native-view suite passes 85 tests
+with two expected Windows symlink skips. The complete `npm run pr:ready` gate
+and installed Desktop browser checks cover the final tree.

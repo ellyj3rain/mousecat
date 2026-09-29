@@ -86,7 +86,8 @@ function validateOverlay(value, ids) {
 
 function validateStudy(value) {
   object(value, ["id", "label", "status", "attempt", "attemptDurationSeconds", "autoContinue",
-    "worldHours", "accumulatedWorldHours", "canCheckpoint", "canContinue", "updatedAtUnixMs", "lastStopReason"]);
+    "worldHours", "accumulatedWorldHours", "canCheckpoint", "canContinue", "updatedAtUnixMs", "lastStopReason"],
+    ["reviewStatus", "reviewMessage", "reviewInteractionId"]);
   requireValue(UUID.test(value.id)); string(value.label, 160, true);
   requireValue(["starting", "running", "saved", "continuing", "failed"].includes(value.status));
   integer(value.attempt); integer(value.attemptDurationSeconds, 30);
@@ -94,6 +95,12 @@ function validateStudy(value) {
   requireValue(typeof value.autoContinue === "boolean" && typeof value.canCheckpoint === "boolean" && typeof value.canContinue === "boolean");
   scalar(value.worldHours); scalar(value.accumulatedWorldHours); integer(value.updatedAtUnixMs);
   requireValue(value.lastStopReason === null || (typeof value.lastStopReason === "string" && value.lastStopReason.length <= 80));
+  if (Object.hasOwn(value, "reviewStatus")) {
+    requireValue(["pending", "queued", "already-queued", "no-reviewable-outcomes", "delayed", "not-eligible"].includes(value.reviewStatus));
+    string(value.reviewMessage, 512);
+    if (Object.hasOwn(value, "reviewInteractionId")) string(value.reviewInteractionId, 160, true);
+    requireValue(["queued", "already-queued"].includes(value.reviewStatus) === Object.hasOwn(value, "reviewInteractionId"));
+  }
   requireValue(value.canCheckpoint === (value.status === "running") && value.canContinue === (value.status === "saved"));
 }
 
@@ -307,7 +314,7 @@ export function createNativeViews(config = {}) {
     }
     const template = nativeViewCommandPack[payload.action];
     requireValue(template?.operatorSafe === true, "native-command-not-allowed");
-    const lifecycle = ["continue", "configure"].includes(payload.action);
+    const lifecycle = ["checkpoint", "continue", "configure"].includes(payload.action);
     requireValue((view.state !== "ended" && (current.connection !== "disconnected" || view.state === "paused"))
       || (lifecycle && Boolean(view.study)), "native-view-not-live");
     object(payload, ["bindingId", "sessionId", "requestId", "action", ...template.fields]);

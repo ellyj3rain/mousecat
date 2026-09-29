@@ -11,6 +11,7 @@ import {
   operatorCommandBodyBytes,
   planResponseBatches,
   recordKey,
+  reviewAttention,
   resolveActiveSkillRef,
   shapeUsesOptionSelection,
 } from "../src/operator/public/operator-model.js";
@@ -73,6 +74,16 @@ test("operator decision identity preserves arbitrary namespace boundaries", () =
   ];
 
   assert.equal(new Set(keys).size, keys.length);
+});
+
+test("review attention counts actionable items independently of prepared drafts", () => {
+  const interactions = [{ interactionId: "review-1", projectRef: "project:test", items: [
+    { id: "open", status: "open" }, { id: "later", status: "deferred" }, { id: "done", status: "answered" },
+  ] }];
+  const state = reviewAttention(interactions, [recordKey("review-1", "open")]);
+  assert.deepEqual(state, { waiting: 2, prepared: 1, unprepared: 1,
+    first: { key: recordKey("review-1", "open"), interactionId: "review-1",
+      projectRef: "project:test", itemId: "open", prepared: true } });
 });
 
 test("operator snapshot and shell carry concrete ML review context", async (t) => {

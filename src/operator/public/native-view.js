@@ -89,7 +89,12 @@ export function installNativeView(root) {
   const empty = node("p", "Waiting for the simulation feed.", viewport, "native-empty");
   const primaryOverlay = node("div", undefined, viewport, "native-panel-telemetry"); primaryOverlay.hidden = true;
   const primaryCaption = node("div", undefined, primaryPanel, "native-panel-caption");
-  const primaryLabel = node("strong", "Current camera", primaryCaption), primaryAge = node("span", "No frame", primaryCaption);
+  const primaryMeta = node("div", undefined, primaryCaption, "native-panel-meta");
+  const primaryLabel = node("strong", "Current camera", primaryMeta), primaryAge = node("span", "No frame", primaryMeta);
+  const primaryTools = node("div", undefined, primaryCaption, "native-panel-tools");
+  const primaryInfo = node("button", "Info", primaryTools); primaryInfo.type = "button";
+  const primaryFocus = node("button", "Focus", primaryTools); primaryFocus.type = "button";
+  const primaryHide = node("button", "Hide", primaryTools); primaryHide.type = "button";
   const noScreens = node("p", "Choose a view above to restore the observatory.", panelGrid, "native-observatory-empty"); noScreens.hidden = true;
   const frameState = node("div", undefined, stage, "native-frame-state");
   const imageAge = node("span", "No frame received", frameState);
@@ -116,6 +121,7 @@ export function installNativeView(root) {
   const endRun = button("End run", "stop");
   const sessionBar = node("section", undefined, stage, "native-session-bar"); sessionBar.hidden = true;
   const sessionFacts = node("p", "", sessionBar, "native-session-facts");
+  const sessionReview = node("p", "", sessionBar, "native-session-review"); sessionReview.hidden = true;
   const sessionActions = node("div", undefined, sessionBar, "native-session-actions");
   const checkpoint = button("Save session", "checkpoint", undefined, sessionActions);
   const continueSession = button("Continue session", "continue", undefined, sessionActions);
@@ -182,8 +188,39 @@ export function installNativeView(root) {
   let cognitionSignature = "", settingsDirty = false, cognitionRequest = null;
   let sessionDirty = false, sessionRequest = null;
   let registeredViews = [], registryCheckedAt = 0;
-  const feedCards = new Map(), hiddenScreens = new Set();
-  let screenSignature = "";
+  const feedCards = new Map(), hiddenScreens = new Set(), mutedScreens = new Set();
+  let screenSignature = "", focusedScreen = null;
+
+  function toggleScreenFocus(key) {
+    focusedScreen = focusedScreen === key ? null : key;
+    if (current) renderFeeds(current);
+  }
+
+  function toggleScreenInfo(key) {
+    if (mutedScreens.has(key)) mutedScreens.delete(key); else mutedScreens.add(key);
+    if (current) renderFeeds(current);
+  }
+
+  function hideScreen(key) {
+    hiddenScreens.add(key);
+    if (focusedScreen === key) focusedScreen = null;
+    if (current) renderFeeds(current);
+  }
+
+  function updatePanelTools(value, key) {
+    const focused = focusedScreen === key;
+    value.card.classList.toggle("native-panel-focused", focused);
+    value.focus.textContent = focused ? "Exit focus" : "Focus";
+    value.focus.setAttribute("aria-pressed", String(focused));
+    value.info.setAttribute("aria-pressed", String(!mutedScreens.has(key)));
+    value.info.title = mutedScreens.has(key) ? "Show this screen's information" : "Hide this screen's information";
+    value.hide.title = "Hide this screen";
+  }
+
+  const primaryToolsState = { card: primaryPanel, focus: primaryFocus, info: primaryInfo, hide: primaryHide };
+  primaryFocus.addEventListener("click", () => toggleScreenFocus("current"));
+  primaryInfo.addEventListener("click", () => toggleScreenInfo("current"));
+  primaryHide.addEventListener("click", () => hideScreen("current"));
 
   const modelLabel = id => id === "ordinary" ? "Ordinary" : id === "associative" ? "Associative" : id;
   const percent = value => `${Math.round(value * 1000) / 10}%`;
@@ -228,8 +265,24 @@ export function installNativeView(root) {
       : `${Math.round(value.attemptDurationSeconds / 3600 * 10) / 10} hr`;
     const worldHours = value.status === "running" && Number.isFinite(current?.view.inspection?.worldHours)
       ? current.view.inspection.worldHours : value.worldHours;
-    sessionFacts.textContent = `Attempt ${value.attempt} · world hour ${worldHours.toFixed(2)} · ${duration} per attempt`
+    sessionFacts.textContent = `Attempt ${value.attempt} · ${value.status} · world hour ${worldHours.toFixed(2)} · ${duration} per attempt`
       + (value.lastStopReason ? ` · ${value.lastStopReason}` : "");
+    const reviewLabels = {
+      pending: "Preparing completed outcomes for human review",
+      queued: "Human review is waiting",
+      "already-queued": "Human review is waiting",
+      "no-reviewable-outcomes": "No completed model disagreements need review",
+      delayed: "Review handoff is delayed",
+      "not-eligible": "This attempt did not produce verified review evidence",
+    };
+    sessionReview.hidden = !value.reviewStatus;
+    sessionReview.dataset.state = value.reviewStatus || "";
+    const reviewLabel = reviewLabels[value.reviewStatus] || "Review status unavailable";
+    const reviewMessage = value.reviewMessage?.trim() || "";
+    const comparable = text => text.toLocaleLowerCase().replace(/[^a-z0-9]+/gu, " ").trim();
+    sessionReview.textContent = value.reviewStatus
+      ? `${reviewLabel}${reviewMessage && comparable(reviewMessage) !== comparable(reviewLabel) ? ` · ${reviewMessage}` : ""}`
+      : "";
     checkpoint.hidden = !value.canCheckpoint; continueSession.hidden = !value.canContinue;
     if (!sessionDirty && !sessionForm.contains(document.activeElement)) {
       durationMinutes.value = String(value.attemptDurationSeconds / 60);
@@ -279,7 +332,8 @@ export function installNativeView(root) {
     peopleSignature = personSignature = cognitionSignature = imageKey = "";
     feedError = null; cognitionRequest = null; settingsDirty = false; sessionRequest = null; sessionDirty = false;
     for (const value of feedCards.values()) value.card.remove();
-    feedCards.clear(); hiddenScreens.clear(); screenSignature = ""; viewToggles.replaceChildren();
+    feedCards.clear(); hiddenScreens.clear(); mutedScreens.clear(); focusedScreen = null; screenSignature = ""; viewToggles.replaceChildren();
+    panelGrid.dataset.focused = "false";
     primaryPanel.hidden = false; primaryLabel.textContent = "Current camera"; primaryAge.textContent = "No frame";
     primaryOverlay.replaceChildren(); primaryOverlay._nativeGroups = new Map(); primaryOverlay._nativeAge = null;
     primaryOverlay.hidden = true; noScreens.hidden = true;
@@ -349,12 +403,16 @@ export function installNativeView(root) {
       const offset = Math.max(0, current.view.capturedAtUnixMs - capturedAtUnixMs);
       return offset < 1000 ? "final frame" : `${(offset / 1000).toFixed(1)}s before final`;
     }
+    if (current?.connection === "disconnected" || feedError) {
+      return `captured ${new Date(capturedAtUnixMs).toLocaleString()}`;
+    }
     const age = Math.max(0, Date.now() - capturedAtUnixMs);
     return age < 1000 ? "just received" : `${(age / 1000).toFixed(1)}s old`;
   }
 
-  function renderOverlay(container, overlay, frameCapturedAtUnixMs) {
-    const groups = (overlay?.groups || []).filter(group => visibleOverlays.has(group.id));
+  function renderOverlay(container, overlay, frameCapturedAtUnixMs, screenKey) {
+    const groups = mutedScreens.has(screenKey) ? []
+      : (overlay?.groups || []).filter(group => visibleOverlays.has(group.id));
     const lag = overlay ? Math.max(0, frameCapturedAtUnixMs - overlay.capturedAtUnixMs) : 0;
     const existing = container._nativeGroups || new Map(); container._nativeGroups = existing;
     let age = container._nativeAge;
@@ -402,6 +460,7 @@ export function installNativeView(root) {
         value.dataset.screen = screen.key; value.title = `Show or hide ${screen.label}`;
         value.addEventListener("click", () => {
           if (hiddenScreens.has(screen.key)) hiddenScreens.delete(screen.key); else hiddenScreens.add(screen.key);
+          if (hiddenScreens.has(screen.key) && focusedScreen === screen.key) focusedScreen = null;
           if (current) renderFeeds(current);
         });
       }
@@ -431,11 +490,15 @@ export function installNativeView(root) {
     const screens = slots.length
       ? slots.map(({ feed, key }, index) => ({ key, label: index === 0 ? `Latest: ${feed.label}` : feed.label }))
       : [{ key: "current", label: primaryDisplay }];
+    if (focusedScreen && !screens.some(screen => screen.key === focusedScreen)) focusedScreen = null;
+    panelGrid.dataset.focused = String(Boolean(focusedScreen));
     renderViewToggles(screens);
 
     primaryLabel.textContent = primaryDisplay;
-    primaryPanel.hidden = feeds.length > 0 || hiddenScreens.has("current");
-    renderOverlay(primaryOverlay, primaryFeed?.overlay, next.view.capturedAtUnixMs);
+    primaryPanel.hidden = feeds.length > 0 || hiddenScreens.has("current")
+      || Boolean(focusedScreen && focusedScreen !== "current");
+    renderOverlay(primaryOverlay, primaryFeed?.overlay, next.view.capturedAtUnixMs, "current");
+    updatePanelTools(primaryToolsState, "current");
 
     const activeIds = new Set(slots.map(value => value.id));
     for (const [id, value] of feedCards) if (!activeIds.has(id)) { value.card.remove(); feedCards.delete(id); }
@@ -449,14 +512,26 @@ export function installNativeView(root) {
         const image = node("img", undefined, media); image.alt = ""; image.decoding = "async"; image.draggable = false;
         const overlay = node("div", undefined, media, "native-panel-telemetry"); overlay.hidden = true;
         const caption = node("div", undefined, card, "native-panel-caption");
-        const label = node("strong", "", caption), age = node("span", "", caption);
-        value = { card, image, overlay, label, age, key: "", capturedAtUnixMs: 0 }; feedCards.set(id, value);
+        const meta = node("div", undefined, caption, "native-panel-meta");
+        const label = node("strong", "", meta), age = node("span", "", meta);
+        const tools = node("div", undefined, caption, "native-panel-tools");
+        const info = node("button", "Info", tools); info.type = "button";
+        const focus = node("button", "Focus", tools); focus.type = "button";
+        const hide = node("button", "Hide", tools); hide.type = "button";
+        value = { card, image, overlay, label, age, info, focus, hide, screenKey,
+          key: "", capturedAtUnixMs: 0 }; feedCards.set(id, value);
+        info.addEventListener("click", () => toggleScreenInfo(value.screenKey));
+        focus.addEventListener("click", () => toggleScreenFocus(value.screenKey));
+        hide.addEventListener("click", () => hideScreen(value.screenKey));
       }
       const latest = index === 0;
+      value.screenKey = screenKey;
       value.label.textContent = latest ? `Latest: ${feed.label}` : feed.label;
       value.image.alt = `${latest ? "Latest" : "Recent"} native view: ${feed.label}`;
-      value.capturedAtUnixMs = feed.capturedAtUnixMs; value.card.hidden = hiddenScreens.has(screenKey);
-      renderOverlay(value.overlay, feed.overlay, feed.capturedAtUnixMs);
+      value.capturedAtUnixMs = feed.capturedAtUnixMs;
+      value.card.hidden = hiddenScreens.has(screenKey) || Boolean(focusedScreen && focusedScreen !== screenKey);
+      renderOverlay(value.overlay, feed.overlay, feed.capturedAtUnixMs, screenKey);
+      updatePanelTools(value, screenKey);
       const key = `${feed.image.file}:${feed.image.sha256}`;
       if (key !== value.key && key !== value.pendingKey) {
         value.pendingKey = key; const candidate = new Image(); candidate.decoding = "async"; candidate.src = urls.get(feed.id);
@@ -626,13 +701,21 @@ export function installNativeView(root) {
     if (!active || !current) return;
     refreshFeedAges();
     const view = current.view, age = Math.max(0, Date.now() - view.capturedAtUnixMs);
-    const commandable = view.state !== "ended" && !feedError && (view.state === "paused" || age < 30000);
-    connection.textContent = feedError ? "Feed unavailable" : view.state === "ended" ? "Run ended" : view.state === "paused" ? "Paused" : age >= 30000 ? "Disconnected" : age >= 3000 ? "Delayed frame" : "Running";
-    connection.dataset.state = feedError ? "stale" : view.state === "ended" ? "ended" : view.state === "paused" ? "paused" : age >= 3000 ? "stale" : "live";
-    imageAge.textContent = view.state === "ended" ? "Final frame" : "Frame " + (age < 1000 ? "just received" : (age / 1000).toFixed(1) + "s old");
+    const disconnected = view.state !== "ended" && view.state !== "paused"
+      && (Boolean(feedError) || current.connection === "disconnected" || age >= 30000);
+    const commandable = view.state !== "ended" && !feedError && !disconnected;
+    connection.textContent = feedError ? "Feed unavailable" : view.state === "ended"
+      ? (view.study?.status === "saved" ? "Session saved" : "Run ended")
+      : view.state === "paused" ? "Paused" : disconnected
+        ? (view.study ? "Session interrupted" : "Disconnected") : age >= 3000 ? "Delayed frame" : "Running";
+    connection.dataset.state = feedError || disconnected ? "stale" : view.state === "ended" ? "ended" : view.state === "paused" ? "paused" : age >= 3000 ? "stale" : "live";
+    imageAge.textContent = view.state === "ended" ? "Final frame" : disconnected
+      ? `Last frame ${new Date(view.capturedAtUnixMs).toLocaleString()}`
+      : "Frame " + (age < 1000 ? "just received" : (age / 1000).toFixed(1) + "s old");
     if (view.state === "ended") deliveryRate.textContent = "Run complete";
+    else if (disconnected) deliveryRate.textContent = "No live frames";
     for (const value of controlButtons) value.disabled = !commandable || posting;
-    checkpoint.disabled = posting || !view.study?.canCheckpoint || !commandable;
+    checkpoint.disabled = posting || !view.study?.canCheckpoint;
     continueSession.disabled = posting || !view.study?.canContinue || view.state !== "ended";
     applySession.disabled = posting || !view.study || !sessionSettingsValid();
     people.disabled = !view.people.length || posting;
@@ -654,11 +737,13 @@ export function installNativeView(root) {
     const inspection = view.inspection;
     if (!inspection?.sequence) inspectionAge.textContent = inspection?.message || "Person information has not been sampled.";
     else {
-      const referenceTime = view.state === "ended" ? view.capturedAtUnixMs : Date.now();
+      const referenceTime = view.state === "ended" || disconnected ? view.capturedAtUnixMs : Date.now();
       const detailAge = Math.max(0, referenceTime - inspection.capturedAtUnixMs) / 1000;
-      const timing = view.state === "ended" ? (detailAge < 1 ? "final sample" : detailAge.toFixed(1) + "s before final") : detailAge.toFixed(1) + "s old";
+      const timing = view.state === "ended" ? (detailAge < 1 ? "final sample" : detailAge.toFixed(1) + "s before final")
+        : disconnected ? (detailAge < 1 ? "last complete sample" : detailAge.toFixed(1) + "s before last frame")
+        : detailAge.toFixed(1) + "s old";
       inspectionAge.textContent = "Person information: " + inspection.status
-        + (view.state !== "ended" && detailAge >= 3 ? " \u00b7 stale" : "") + " \u00b7 " + timing
+        + (view.state !== "ended" && !disconnected && detailAge >= 3 ? " \u00b7 stale" : "") + " \u00b7 " + timing
         + (inspection.omittedPeople ? " \u00b7 " + inspection.omittedPeople + " people outside this sample" : "")
         + (inspection.omittedEvents ? " \u00b7 " + inspection.omittedEvents + " events omitted" : "");
       if (inspection.status !== "available" && inspection.message) inspectionAge.textContent += " \u00b7 " + inspection.message;
@@ -667,7 +752,7 @@ export function installNativeView(root) {
 
   function update(next) {
     current = next; const view = next.view;
-    setFreshnessTimer(view.state !== "ended");
+    setFreshnessTimer(view.state !== "ended" && next.connection !== "disconnected");
     title.textContent = next.binding.label || view.title;
     summary.textContent = view.summary;
     const cameraNames = (view.camera?.personIds || []).map(id => view.people.find(person => person.id === id)?.label).filter(Boolean);
@@ -693,8 +778,8 @@ export function installNativeView(root) {
 
   async function send(action, values = {}) {
     const age = current ? Date.now() - current.view.capturedAtUnixMs : Infinity;
-    const lifecycle = action === "continue" || action === "configure";
-    if (!active || !current || posting || feedError
+    const lifecycle = action === "checkpoint" || action === "continue" || action === "configure";
+    if (!active || !current || posting || (feedError && !lifecycle)
       || (current.view.state === "ended" && !lifecycle)
       || (!lifecycle && current.view.state !== "paused" && age >= 30000)) return;
     if (action === "cognition") {
@@ -812,6 +897,7 @@ export function installNativeView(root) {
       update(next);
       const elapsed = performance.now() - rateStarted;
       if (next.view.state === "ended") deliveryRate.textContent = "Run complete";
+      else if (next.connection === "disconnected") deliveryRate.textContent = "No live frames";
       else if (elapsed >= 2000) { deliveryRate.textContent = (1000 * imagesReceived / elapsed).toFixed(1) + " images/s"; imagesReceived = 0; rateStarted = performance.now(); }
       if (next.view.state === "ended" || next.connection === "disconnected") {
         const successor = await findSuccessor(signal);

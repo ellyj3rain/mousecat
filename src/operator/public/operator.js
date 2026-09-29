@@ -2,6 +2,7 @@ import {
   planResponseBatches,
   recordKey,
   renderDescription,
+  reviewAttention,
   resolveActiveSkillRef,
   shapeUsesOptionSelection,
 } from "/operator-model.js";
@@ -99,6 +100,8 @@ const familySectionByKey = new Map();
 let atlasScrollFrame = null;
 let currentAtlasFamilyKey = null;
 let reviewRenderSignature = null;
+let lastReviewCount = null;
+const baseDocumentTitle = document.title || "Mousecat";
 
 function actionable(item) {
   return ["open", "deferred"].includes(item?.status);
@@ -1353,12 +1356,28 @@ function updatePreparedState() {
   const count = records.length;
   const readyCount = records.filter((record) => record.state === "ready").length;
   const incompleteCount = count - readyCount;
-  elements.preparedCount.textContent = count === 1 ? "1 draft" : `${count} drafts`;
-  const draftStateMessage = `${count} draft${count === 1 ? "" : "s"}: ${readyCount} ready, ${incompleteCount} need${incompleteCount === 1 ? "s" : ""} completion.`;
+  const attention = reviewAttention(pendingInteractions(currentSnapshot), drafts.keys());
+  elements.preparedCount.textContent = `${attention.waiting} review${attention.waiting === 1 ? "" : "s"} waiting, ${count} draft${count === 1 ? "" : "s"}`;
+  const draftStateMessage = `${attention.waiting} review${attention.waiting === 1 ? "" : "s"} waiting. ${count} draft${count === 1 ? "" : "s"}: ${readyCount} ready, ${incompleteCount} need${incompleteCount === 1 ? "s" : ""} completion.`;
   if (elements.draftStateStatus.textContent !== draftStateMessage) elements.draftStateStatus.textContent = draftStateMessage;
-  elements.returnPreparedLabel.textContent = count === 1 ? "Review 1 draft" : `Review ${count} drafts`;
-  elements.returnPreparedButton.dataset.empty = String(count === 0);
-  elements.returnPreparedButton.disabled = count === 0 || busy || offline;
+  elements.returnPreparedLabel.textContent = attention.waiting ? `Review ${attention.waiting} waiting`
+    : count ? `Review ${count} draft${count === 1 ? "" : "s"}` : "Review clear";
+  elements.returnPreparedButton.title = attention.waiting
+    ? `${attention.waiting} decision${attention.waiting === 1 ? "" : "s"} need human review; ${count} draft${count === 1 ? "" : "s"} prepared.`
+    : count ? `${count} local draft${count === 1 ? "" : "s"} remain available.` : "No decisions are waiting for review.";
+  elements.returnPreparedButton.dataset.empty = String(attention.waiting === 0 && count === 0);
+  elements.returnPreparedButton.dataset.attention = String(attention.waiting > 0);
+  elements.returnPreparedButton.disabled = (attention.waiting === 0 && count === 0) || busy || offline;
+  document.title = attention.waiting ? `(${attention.waiting}) ${baseDocumentTitle}` : baseDocumentTitle;
+  if (attention.waiting > 0 && attention.waiting !== lastReviewCount) {
+    if (lastReviewCount === null || attention.waiting > lastReviewCount) {
+      elements.draftStateStatus.textContent = `${attention.waiting} human review${attention.waiting === 1 ? "" : "s"} waiting now. ${count} draft${count === 1 ? "" : "s"} prepared.`;
+      if (document.hidden && globalThis.Notification?.permission === "granted") {
+        try { new globalThis.Notification("Mousecat review waiting", { body: `${attention.waiting} decision${attention.waiting === 1 ? "" : "s"} need your evaluation.` }); } catch { /* title and live region remain authoritative */ }
+      }
+    }
+  }
+  lastReviewCount = attention.waiting;
   for (const card of elements.decisionWall.querySelectorAll(".decision-card")) {
     const record = statesByKey.get(card.dataset.itemKey);
     card.dataset.draftState = record?.state || "none";
@@ -1480,11 +1499,6 @@ function renderIdle(snapshot) {
   elements.searchStatus.textContent = "0 decisions visible";
   elements.idleState.hidden = false;
   elements.decisionState.hidden = true;
-  elements.preparedCount.textContent = "0 drafts";
-  const draftStateMessage = "0 drafts: 0 ready, 0 need completion.";
-  if (elements.draftStateStatus.textContent !== draftStateMessage) elements.draftStateStatus.textContent = draftStateMessage;
-  elements.returnPreparedLabel.textContent = "Review drafts";
-  elements.returnPreparedButton.dataset.empty = "true";
   elements.sourceLabel.textContent = `${snapshot.status.hostProfile || "local"} / ${snapshot.status.adapterProfile || "generic-mcp"}`;
   setBusy(false);
 }
@@ -1872,7 +1886,22 @@ elements.decisionSearch.addEventListener("input", applySearch);
 elements.reviewContextToggle.addEventListener("click", () => elements.reviewContextDialog.showModal());
 elements.reviewContextClose.addEventListener("click", () => elements.reviewContextDialog.close());
 elements.decisionScroll.addEventListener("scroll", scheduleAtlasPositionUpdate, { passive: true });
-elements.returnPreparedButton.addEventListener("click", openDraftReview);
+function openReviewAttention() {
+  captureAllDrafts();
+  if (evaluatedDrafts().length > 0) { openDraftReview(); return; }
+  const interactions = pendingInteractions(currentSnapshot);
+  const firstInteraction = interactions.find(interaction => interaction.items?.some(actionable));
+  const firstItem = firstInteraction?.items?.find(actionable);
+  if (!firstInteraction || !firstItem) return;
+  const project = firstInteraction.projectRef
+    || [...projectModel(currentSnapshot).projects.values()].find(value => value.threads.has(firstInteraction.interactionId))?.ref;
+  elements.decisionSearch.value = "";
+  location.hash = questionRoute(project, firstInteraction.interactionId);
+  readWorkspaceRoute();
+  requestAnimationFrame(() => revealDecision(draftKey(firstInteraction, firstItem)));
+}
+
+elements.returnPreparedButton.addEventListener("click", openReviewAttention);
 elements.closeDraftReview.addEventListener("click", () => elements.draftReviewDialog.close());
 elements.cancelDraftReview.addEventListener("click", () => elements.draftReviewDialog.close());
 elements.returnDraftsButton.addEventListener("click", () => void returnPreparedResponses());

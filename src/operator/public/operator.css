@@ -1389,6 +1389,19 @@ textarea:disabled {
   min-height: 36px;
 }
 
+.return-prepared-button[data-attention="true"] {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.return-prepared-button[data-attention="true"]::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
 .secondary-button {
   color: var(--text-strong);
   background: var(--surface);

@@ -606,7 +606,8 @@ test("durable study sessions checkpoint, configure and continue through exact co
   const f = await fixture(t), studyId = randomUUID();
   f.view.study = { id: studyId, label: "Survival simulation", status: "running", attempt: 2,
     attemptDurationSeconds: 3600, autoContinue: false, worldHours: 18.5, accumulatedWorldHours: 16.5,
-    canCheckpoint: true, canContinue: false, updatedAtUnixMs: Date.now(), lastStopReason: null };
+    canCheckpoint: true, canContinue: false, updatedAtUnixMs: Date.now(), lastStopReason: null,
+    reviewStatus: "pending", reviewMessage: "Preparing completed outcomes for human review." };
   await f.save(f.view);
   const adapter = createNativeViews({ registryPath: f.registryPath });
   const snapshot = await adapter.snapshot(f.row.id);
@@ -619,7 +620,8 @@ test("durable study sessions checkpoint, configure and continue through exact co
     action: "configure", attemptDurationSeconds: 7200, autoContinue: true });
   const ended = structuredClone(f.view); ended.sequence = 2; ended.state = "ended"; ended.lastCommandSequence = 2;
   ended.study = { ...ended.study, status: "saved", canCheckpoint: false, canContinue: true,
-    updatedAtUnixMs: Date.now(), lastStopReason: "wall-time-limit" };
+    updatedAtUnixMs: Date.now(), lastStopReason: "wall-time-limit", reviewStatus: "queued",
+    reviewMessage: "Two trajectories await human disposition.", reviewInteractionId: "skill-review" };
   await f.save(ended); await adapter.snapshot(f.row.id);
   await adapter.command(f.row.id, payload({ action: "continue" }));
   assert.equal((await f.command(3)).action, "continue");
@@ -632,10 +634,34 @@ test("durable study sessions checkpoint, configure and continue through exact co
     value => { value.study.attemptDurationSeconds = 29; },
     value => { value.study.canContinue = true; },
     value => { value.study.lastStopReason = "x".repeat(81); },
+    value => { value.study.reviewStatus = "queued"; },
+    value => { value.study.reviewMessage = "x".repeat(513); },
   ]) {
     const invalid = structuredClone(f.view); mutate(invalid);
     assert.throws(() => validateNativeView(invalid));
   }
+});
+
+test("a stale image cannot lock out the durable save request", async t => {
+  const f = await fixture(t), studyId = randomUUID();
+  const staleAt = Date.now() - 60_000;
+  f.view.capturedAtUnixMs = staleAt;
+  f.view.inspection.capturedAtUnixMs = staleAt;
+  for (const person of f.view.people) for (const event of person.events || []) event.capturedAtUnixMs = staleAt;
+  for (const feed of f.view.feeds || []) {
+    feed.capturedAtUnixMs = staleAt;
+    if (feed.overlay) feed.overlay.capturedAtUnixMs = staleAt;
+  }
+  f.view.study = { id: studyId, label: "Survival simulation", status: "running", attempt: 2,
+    attemptDurationSeconds: 3600, autoContinue: false, worldHours: 18.5, accumulatedWorldHours: 16.5,
+    canCheckpoint: true, canContinue: false, updatedAtUnixMs: Date.now(), lastStopReason: null };
+  await f.save(f.view);
+  const adapter = createNativeViews({ registryPath: f.registryPath }), snapshot = await adapter.snapshot(f.row.id);
+  assert.equal(snapshot.connection, "disconnected");
+  const result = await adapter.command(f.row.id, { bindingId: snapshot.binding.bindingId,
+    sessionId: f.row.sessionId, requestId: randomUUID(), action: "checkpoint" });
+  assert.equal(result.status, "requested");
+  assert.equal((await f.command(1)).action, "checkpoint");
 });
 
 test("registry rebinding invalidates the old browser binding", async t => {
