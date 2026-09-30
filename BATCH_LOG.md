@@ -2104,3 +2104,31 @@ Independent review also closed a delayed-decode race: a newer source selection
 returning to the loaded image invalidates the previous pending decode. The actual
 browser holds that image response and verifies it cannot replace the current
 picture or add a delivery after it is superseded.
+
+## [A23] - Movable simulation feed windows with redock
+
+*Timestamp:* 2026-09-30 10:04 UTC / 03:04 PDT
+
+Focus opens the selected native feed in a real movable, resizable desktop window.
+Redock and title-bar close return its original live tile, gestures and tools.
+The same-origin child shell shares the originating poller, source binding,
+command owner and deduplicated delivery measurement. Detached feeds remain live
+while the main route opens Questions or Reviews. Source replacement and desktop
+shutdown retire child windows; ended feeds retain final state and disable native
+commands. Tools and View settings disclose display and camera controls on demand.
+
+The desktop validates exact loopback origin and bounded view/binding/screen
+identity, completes native popup deferrals and shares the opener's WebView2
+environment/profile. No GPU-disabling or forced software flag is introduced.
+Browser and native acceptance use only isolated synthetic producers and profiles.
+Root version advances to 1.9.0.0-alpha, npm projection 1.9.0-alpha, for the added
+operator window contract. Generated probe output remains ignored.
+
+Full readiness passes 312 Node cases (307 pass; two Windows, two opt-in browser
+and one opt-in native-window case skipped), runtime smokes and governance,
+documentation and hygiene gates. Explicit graphical acceptance passes both
+browser checks at 1680, 760, 390 and 320 pixels and the actual isolated native
+window probe. The desktop build is warning-free; the dependency audit is clear.
+Independent review corrected successor selection while Questions or Reviews
+remain active: source replacement retires the old windows without rewriting
+the human's route. A real-browser successor regression verifies that boundary.

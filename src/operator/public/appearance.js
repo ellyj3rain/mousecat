@@ -29,9 +29,11 @@
   document.addEventListener("DOMContentLoaded", () => {
     const dialog = document.querySelector("#settings-dialog");
     const button = document.querySelector("#settings-toggle");
-    button.addEventListener("click", () => dialog.showModal());
-    document.querySelector("#settings-close").addEventListener("click", () => dialog.close());
-    dialog.addEventListener("close", () => button.focus());
+    if (dialog && button) {
+      button.addEventListener("click", () => dialog.showModal());
+      document.querySelector("#settings-close")?.addEventListener("click", () => dialog.close());
+      dialog.addEventListener("close", () => button.focus());
+    }
     for (const input of document.querySelectorAll('input[name="appearance-theme"]')) {
       input.addEventListener("change", () => { if (input.checked) apply(input.value); });
     }

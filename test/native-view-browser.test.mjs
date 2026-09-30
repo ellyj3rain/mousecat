@@ -52,12 +52,21 @@ test("regional native tiles retain focus and route independent camera controls a
       await page.goto(app.url + "#native-view");
       await page.locator('.native-feed-card[data-site-id="farm"]').waitFor({ state: "visible" });
       const details = page.getByRole("button", { name: "Hide details", exact: true }); if (await details.isVisible()) await details.click();
-      const farm = page.locator('.native-feed-card[data-site-id="farm"]');
-      await farm.getByRole("button", { name: "Focus", exact: true }).click();
+      const popout = page.waitForEvent("popup");
+      await page.locator('.native-feed-card[data-site-id="farm"]').getByRole("button", { name: "Focus", exact: true }).click();
+      const detached = await popout;
+      await detached.setViewportSize({ width, height: 640 });
+      detached.on("pageerror", error => errors.push(error.message));
+      const detachedRequests = []; detached.on("request", request => {
+        if (/\/api\/native-views(?:$|\/[^/]+\/(?:snapshot|command))/u.test(new URL(request.url()).pathname)) detachedRequests.push(request.url());
+      });
+      const farm = detached.locator('.native-feed-card[data-site-id="farm"]');
+      await farm.waitFor({ state: "visible" });
+      await farm.locator(".native-panel-menu > summary").click();
       assert.equal(await page.locator(".native-camera strong").innerText(), "Camera follows Casey");
       assert.equal(await page.locator(".native-camera span").innerText(), "farm");
       await farm.getByRole("button", { name: "Camera", exact: true }).click();
-      assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 1);
+      assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 2);
       const verify = async (action, operate) => {
         const expected = view.lastCommandSequence + 1;
         await operate();
@@ -79,11 +88,11 @@ test("regional native tiles retain focus and route independent camera controls a
       await verify("pan", () => farm.getByRole("button", { name: "Move this view →", exact: true }).click());
       await verify("auto", () => farm.getByRole("button", { name: "Follow activity", exact: true }).click());
       const media = farm.locator(".native-panel-media");
-      await verify("pan", async () => { await media.focus(); await page.keyboard.press("ArrowLeft"); });
-      await verify("zoom", async () => { await media.hover(); await page.mouse.wheel(0, 100); });
+      await verify("pan", async () => { await media.focus(); await detached.keyboard.press("ArrowLeft"); });
+      await verify("zoom", async () => { await media.hover(); await detached.mouse.wheel(0, 100); });
       await verify("pan", async () => {
         const box = await media.boundingBox(), x = box.x + box.width / 2, y = box.y + box.height / 2;
-        await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + 70, y, { steps: 3 }); await page.mouse.up();
+        await detached.mouse.move(x, y); await detached.mouse.down(); await detached.mouse.move(x + 70, y, { steps: 3 }); await detached.mouse.up();
       });
       if (width === 1680) {
         await page.waitForFunction(() => document.querySelector(".native-frame-state span:last-child")?.textContent === "0.0 images/s");
@@ -92,7 +101,7 @@ test("regional native tiles retain focus and route independent camera controls a
         await writeFile(join(producer, file), changed);
         view.feeds.find(feed => feed.siteId === "farm").image = { file, sha256: createHash("sha256").update(changed).digest("hex"), width: 1, height: 1 };
         view.sequence += 1; view.capturedAtUnixMs = Date.now(); await save();
-        await page.waitForFunction(() => document.querySelector('[data-site-id="farm"] img')?.src.includes("farm-updated.png"));
+        await detached.waitForFunction(() => document.querySelector('[data-site-id="farm"] img')?.src.includes("farm-updated.png"));
         await page.waitForFunction(() => parseFloat(document.querySelector(".native-frame-state span:last-child")?.textContent) > 0);
         assert.equal(await page.locator(".native-observatory-primary img").getAttribute("src"), primaryImage, "rate fixture changed the primary image");
         await farm.getByRole("button", { name: "Info", exact: true }).click();
@@ -124,12 +133,84 @@ test("regional native tiles retain focus and route independent camera controls a
       }
       view.feeds.reverse(); view.sequence += 1; await save();
       await page.waitForTimeout(200);
-      assert.equal(await farm.getByRole("button", { name: "Exit focus", exact: true }).isVisible(), true);
-      assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 1);
+      assert.equal(await farm.getByRole("button", { name: "Redock", exact: true }).isVisible(), true);
+      assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 2);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `overflow at ${width}`);
       await page.screenshot({ path: join(output, `native-regional-${width}.png`) });
-      await farm.getByRole("button", { name: "Exit focus", exact: true }).click();
+      assert.deepEqual(detachedRequests, [], "detached document created another API/observation owner");
+      assert.equal(await detached.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `detached overflow at ${width}`);
+      await detached.screenshot({ path: join(output, `native-detached-${width}.png`) });
+      const redocked = detached.waitForEvent("close");
+      await farm.getByRole("button", { name: "Redock", exact: true }).click(); await redocked;
       assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 3);
+      if (width === 1680) {
+        const openFarm = async () => {
+          const opened = page.waitForEvent("popup");
+          await page.locator('.native-feed-card[data-site-id="farm"]').getByRole("button", { name: "Focus", exact: true }).click();
+          const child = await opened; child.on("pageerror", error => errors.push(error.message));
+          await child.locator('.native-feed-card[data-site-id="farm"]').waitFor({ state: "visible" });
+          return child;
+        };
+        let child = await openFarm();
+        await child.close();
+        await page.locator('.native-feed-card[data-site-id="farm"]').waitFor({ state: "visible" });
+        await page.locator('.native-feed-card[data-site-id="farm"]').getByRole("button", { name: "Focus", exact: true }).waitFor();
+        assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 3, "closing a window lost its feed");
+        child = await openFarm();
+        const reloaded = child.waitForEvent("close");
+        await child.reload().catch(error => { assert.match(error.message, /has been closed/u); }); await reloaded;
+        await page.locator('.native-feed-card[data-site-id="farm"]').waitFor({ state: "visible" });
+        await page.locator('.native-feed-card[data-site-id="farm"]').getByRole("button", { name: "Focus", exact: true }).waitFor();
+        child = await openFarm();
+        await page.evaluate(() => { location.hash = "#questions"; });
+        await page.locator("#native-view-state").waitFor({ state: "hidden" });
+        const feed = view.feeds.find(feed => feed.siteId === "farm");
+        feed.label = "Still observed while reviewing."; view.sequence += 1; await save();
+        await child.waitForFunction(() => document.querySelector('.native-panel-meta strong')?.textContent.includes("Still observed while reviewing."));
+        await page.evaluate(() => { location.hash = "#native-view"; });
+        await page.locator("#native-view-state").waitFor({ state: "visible" });
+        view.state = "ended"; view.inspection = { sequence: view.sequence, capturedAtUnixMs: Date.now(), worldHours: 3.25,
+          status: "available", message: "", omittedPeople: 0, omittedEvents: 0 };
+        view.study = { id: randomUUID(), label: "Ended fixture", status: "failed", attempt: 1, attemptDurationSeconds: 7200,
+          autoContinue: false, worldHours: 0, accumulatedWorldHours: 0, canCheckpoint: false, canContinue: false, updatedAtUnixMs: Date.now(), lastStopReason: "incomplete" };
+        view.sequence += 1; await save();
+        await child.getByText("Run ended", { exact: true }).first().waitFor({ state: "visible" });
+        assert.match(await child.locator("[data-native-clock]").innerText(), /3\.25/u);
+        const tile = child.locator('.native-feed-card[data-site-id="farm"]');
+        if (await tile.locator(".native-panel-menu").getAttribute("open") === null) await tile.locator(".native-panel-menu > summary").click();
+        if (!await tile.locator(".native-controls").isVisible()) await tile.getByRole("button", { name: "Camera", exact: true }).click();
+        assert.equal(await tile.getByRole("button", { name: "Move this view →", exact: true }).isDisabled(), true);
+        const beforeEnd = (await readdir(commands)).length, endedClock = await child.locator("[data-native-clock]").innerText();
+        await tile.locator(".native-panel-media").focus(); await child.keyboard.press("ArrowRight"); await page.waitForTimeout(1100);
+        assert.equal((await readdir(commands)).length, beforeEnd, "ended detached feed issued a command");
+        assert.equal(await child.locator("[data-native-clock]").innerText(), endedClock);
+        const retired = child.waitForEvent("close");
+        const nextSession = randomUUID(); view.sessionId = nextSession; view.state = "running"; delete view.inspection; delete view.study;
+        feed.label = "farm"; feed.camera.summary = "farm"; view.sequence += 1; view.capturedAtUnixMs = Date.now();
+        for (const regionalFeed of view.feeds) regionalFeed.capturedAtUnixMs = view.capturedAtUnixMs;
+        await writeFile(registryPath, JSON.stringify([{ id: "regional", label: "Regional fixture", directory: producer, sessionId: nextSession }]));
+        await save(); await retired;
+        await page.locator('.native-feed-card[data-site-id="farm"]').waitFor({ state: "visible" });
+        assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 3, "new session retained an old detached tile");
+        child = await openFarm();
+        await page.evaluate(() => { location.hash = "#questions"; });
+        await page.locator("#native-view-state").waitFor({ state: "hidden" });
+        const successorDirectory = join(parent, "successor"), successorSession = randomUUID();
+        await mkdir(join(successorDirectory, "commands"), { recursive: true });
+        await writeFile(join(successorDirectory, images[0].file), await readFile(join(producer, images[0].file)));
+        await writeFile(join(successorDirectory, "latest.json"), JSON.stringify({ ...view, sessionId: successorSession, sequence: 1,
+          capturedAtUnixMs: Date.now(), image: images[0], feeds: view.feeds.map(feed => ({ ...feed, image: images[0] })) }));
+        await writeFile(registryPath, JSON.stringify([{ id: "regional", label: "Regional fixture", directory: producer, sessionId: nextSession },
+          { id: "successor", label: "Successor fixture", directory: successorDirectory, sessionId: successorSession }]));
+        const superseded = child.waitForEvent("close"); view.state = "ended"; view.sequence += 1; await save(); await superseded;
+        await page.waitForTimeout(200);
+        assert.equal(new URL(page.url()).hash, "#questions", "detached successor rewrote the human review route");
+        assert.equal(await page.locator("#native-view-state").isVisible(), false);
+        view.state = "running"; view.sequence += 1; view.capturedAtUnixMs = Date.now(); await save();
+        await writeFile(registryPath, JSON.stringify([{ id: "regional", label: "Regional fixture", directory: producer, sessionId: nextSession }]));
+        await page.evaluate(() => { location.hash = "#native-view?session=regional"; });
+        await page.locator('.native-feed-card[data-site-id="farm"]').waitFor({ state: "visible" });
+      }
       const regions = view.feeds; delete view.feeds; view.viewport = structuredClone(viewport); view.sequence += 1; await save();
       await page.waitForFunction(() => document.querySelector(".native-observatory-primary")?.hidden === false);
       const primary = page.locator(".native-observatory-primary .native-viewport"), box = await primary.boundingBox();

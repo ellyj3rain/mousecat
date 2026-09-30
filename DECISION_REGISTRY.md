@@ -682,3 +682,16 @@ contract and changes only presentation.
 Image delivery counts successful accepted identities from primary and regional
 views. Duplicate display of one image and unchanged presentation rerenders do
 not inflate the rate. The aggregate images/s label retains its transport meaning.
+
+## [A23] - Detached feeds retain one observation and control owner
+
+*Timestamp:* 2026-09-30 10:04 UTC / 03:04 PDT
+
+The operator requested a movable desktop feed window with redock and contextual
+tools. A detached feed is a presentation of the existing live tile. Its source
+identity, polling, image acceptance and commands stay with the originating view.
+Window close and Redock restore that tile; source-session replacement retires
+its window. The native host admits only exact, user-initiated owned-origin feed
+requests, using the existing WebView2 environment/profile. The shared runtime
+and persistent review/configuration authority remain unchanged. This requested
+host/frontend/test/documentation slice is one reviewed A23 batch.

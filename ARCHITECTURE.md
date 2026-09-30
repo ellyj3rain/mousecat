@@ -1,7 +1,7 @@
 | Document | Mousecat Architecture |
 |---|---|
-| Version | 1.8.0.0-alpha |
-| Timestamp | 2026-09-30 06:01 UTC |
+| Version | 1.9.0.0-alpha |
+| Timestamp | 2026-09-30 10:10 UTC |
 | Status | ACTIVE - system architecture. |
 
 # Mousecat Architecture
@@ -47,6 +47,16 @@ bounded section rows, provenance, events and cognition into distinct visual
 structures without changing their source authority. These presentation choices
 do not publish simulation commands.
 
+`src/operator/public/native-window.js` owns bounded feed-window presentation.
+It adopts the existing live tile into the same-origin
+`src/operator/public/native-feed.html` shell;
+source polling, image acceptance and commands remain in the originating view.
+Stable site or declared feed identity survives ordering changes. Closing,
+redocking or reloading the child returns its tile before document destruction.
+Source-binding replacement and main-window shutdown retire child windows.
+Detached feeds keep the originating view active when the main route changes.
+Their shared delivery label uses the same deduplicated image counter.
+
 The native view preserves frame identity, independent inspection age, source
 camera state and explicit command outcomes. Delayed running frames retain a
 bounded command interval, and a deliberate pause retains its resume path. The
@@ -79,6 +89,12 @@ name to match its native frame; appearance never mutates runtime decisions.
 
 The Windows desktop client at `apps/mousecat-desktop` embeds the shared operator
 surface in WebView2 and connects to the same loopback runtime as the browser.
+`NativeFeedRequest.cs` validates the exact owned-origin feed route and bounded
+view, binding and screen identity. `NativeFeedWindows.cs` maps a user-initiated
+Focus request to a real movable WinForms window in the opener's WebView2
+environment and profile. Explicit request deferrals retain Chromium's opener;
+no native command bridge or second observation runtime is introduced. Children
+guard navigation, follow shared appearance and retire with their desktop owner.
 Its per-user launcher starts that service when absent and focuses an existing
 client window on repeat launch. Window closure does not stop the service.
 Restoration returns ordinary pending questions directly to the actionable map;

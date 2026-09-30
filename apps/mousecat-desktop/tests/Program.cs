@@ -17,6 +17,18 @@ try
     var settings = DesktopSettings.Load(settingsPath);
     Check(settings.StatePath == Path.Combine(folder, "saved.json"), "relative state belongs to service working directory");
     Check(settings.Owns(new Uri("http://127.0.0.1:4317/#questions")), "own origin admitted");
+    var binding = new string('a', 64);
+    var feedUri = new Uri(settings.Origin, "native-feed.html?view=regional&binding=" + binding + "&screen=site%3Afarm");
+    Check(NativeFeedRequest.TryParse(settings, feedUri, out var feed) && feed!.Screen == "site:farm", "exact native feed window admitted");
+    Check(NativeFeedRequest.TryParse(settings, new Uri(settings.Origin, "native-feed.html?screen=site%3Afarm&binding=" + binding + "&view=regional"), out var reordered)
+        && reordered == feed, "window identity survives query ordering");
+    foreach (var query in new[] { "?view=regional&binding=" + binding + "&screen=site%3Afarm&screen=current",
+        "?view=regional&binding=" + binding + "&screen=current&extra=1", "?view=regional&screen=current",
+        "?view=regional&binding=bad&screen=current", "?view=regional&binding=" + binding + "&screen=site%3A..",
+        "?view=regional&binding=" + binding + "&screen=feed%3A%0A", "?view=regional&binding=" + binding + "&screen=current#other" })
+        Check(!NativeFeedRequest.TryParse(settings, new Uri(settings.Origin, "native-feed.html" + query), out _), "invalid feed identity refused " + query);
+    Check(!NativeFeedRequest.TryParse(settings, new Uri("http://127.0.0.1:4318" + feedUri.PathAndQuery), out _), "foreign popup origin refused");
+    Check(!NativeFeedRequest.TryParse(settings, new Uri(settings.Origin, "other.html" + feedUri.Query), out _), "undeclared popup route refused");
     foreach (var uri in new[] { "http://127.0.0.1:4318/", "https://127.0.0.1:4317/", "http://user@127.0.0.1:4317/", "file:///C:/", "http://example.com/" })
         Check(!settings.Owns(new Uri(uri)), "foreign navigation refused " + uri);
     Check(DesktopSettings.IsMousecatSnapshot("{\"schema\":\"mousecat.operator-snapshot/2\",\"status\":{\"ok\":true}}"), "snapshot identity admitted");

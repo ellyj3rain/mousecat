@@ -642,3 +642,32 @@ identities and resets per run. A browser update of only one regional image
 verifies positive delivery followed by zero for unchanged rerenders.
 Superseded pending decodes are invalidated even when the latest source returns
 to its already loaded image; a held browser response verifies that boundary.
+
+## F-068 | 2026-09-30 10:04 UTC / 03:04 PDT | Feed focus did not open a desktop window
+
+*Severity:* Medium
+
+*Finding:* Focus only isolated a tile inside the grid. A separate browser/native
+window requires lifecycle ownership beyond layout, and destruction of a child
+document can discard an adopted tile's listeners if restoration happens late.
+
+*Resolution:* A23 hosts the selected feed in a real movable WinForms/WebView2
+window. The same-origin shell receives the original tile; its owner keeps one
+poller, native command queue and delivery counter. Redock, reload and close
+return the tile before document retirement. Native title-bar close explicitly
+allows that restoration before disposing WebView2. Session replacement and
+owner shutdown retire windows. Isolated native and browser checks exercise these
+boundaries without changing saved questions or native simulation outcomes.
+
+## F-069 | 2026-09-30 10:10 UTC / 03:10 PDT | Background successor selection rewrote the review route
+
+*Severity:* Medium
+
+*Finding:* Keeping detached feeds live permits source polling while the main
+window shows Questions or Reviews. The existing automatic successor selector
+always replaced the URL with Simulation, leaving URL and visible page divergent.
+
+*Resolution:* A23 changes the URL only when Simulation is visible. Source
+selection and retirement stay independent. A browser regression publishes a
+new registered producer while the human remains on Questions, confirms old
+window retirement, and checks that the Questions route remains unchanged.

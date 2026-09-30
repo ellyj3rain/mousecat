@@ -1,7 +1,7 @@
 | Document | Mousecat README |
 |---|---|
-| Version | 1.8.0.0-alpha |
-| Timestamp | 2026-09-30 06:01 UTC |
+| Version | 1.9.0.0-alpha |
+| Timestamp | 2026-09-30 10:10 UTC |
 | Status | ACTIVE - participant entry point. |
 
 # Mousecat
@@ -238,9 +238,19 @@ profile. Every screen keeps its frame age visible.
 Simultaneous source-declared regional feeds may supply a stable `siteId` and
 native viewport. Each regional tile exposes its own camera tools on demand;
 zoom, pan and activity-follow requests carry that declared site identity. Focus
-keeps the same region when feeds reorder, and keyboard, drag and wheel controls
-use the focused or selected regional camera. Native inspection retains up to
+opens that feed in a movable, resizable window. Redock or closing its window
+returns the same live tile to the observatory. The region remains stable when
+feeds reorder, and keyboard, drag and wheel controls use its declared camera.
+Tools reveal information, visibility and camera controls when needed; View
+settings holds shared sizing and overlay preferences. Native inspection retains up to
 sixteen source sections, including the existing thirteen-section projection.
+
+Detached feeds remain live while the main window opens Questions or Reviews.
+They share the original source polling, command owner and aggregate images/s
+measurement. Ending a run preserves its final frame and observed clock while
+disabling native camera commands. Replacing its source session retires its
+windows. The Windows client provides native windows; browsers use their normal
+pop-up windows and may require pop-up permission.
 
 A producer may attach bounded Activity, Attention, Memory and Needs groups to a
 retained frame. Compact telemetry sits inside its corresponding image and carries

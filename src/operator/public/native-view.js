@@ -1,3 +1,5 @@
+import { createNativeFeedWindows } from "./native-window.js";
+
 function node(tag, text, parent, className) {
   const value = document.createElement(tag);
   if (text !== undefined) value.textContent = text;
@@ -66,7 +68,9 @@ export function installNativeView(root) {
   const inspected = node("p", undefined, context, "native-inspected-person");
   node("span", "Inspecting", inspected);
   const inspectedName = node("strong", "No person selected", inspected);
-  const observatoryTools = node("div", undefined, stage, "native-observatory-tools");
+  const viewOptions = node("details", undefined, stage, "native-view-options");
+  node("summary", "View settings", viewOptions);
+  const observatoryTools = node("div", undefined, viewOptions, "native-observatory-tools");
   const sizeControl = node("label", undefined, observatoryTools, "native-panel-size");
   node("span", "Panel size", sizeControl);
   const panelSize = node("input", undefined, sizeControl); panelSize.type = "range"; panelSize.id = "native-observatory-panel-size"; panelSize.min = "280"; panelSize.max = "640"; panelSize.step = "40";
@@ -120,10 +124,19 @@ export function installNativeView(root) {
   const primaryCaption = node("div", undefined, primaryPanel, "native-panel-caption");
   const primaryMeta = node("div", undefined, primaryCaption, "native-panel-meta");
   const primaryLabel = node("strong", "Current camera", primaryMeta), primaryAge = node("span", "No frame", primaryMeta);
-  const primaryTools = node("div", undefined, primaryCaption, "native-panel-tools");
-  const primaryInfo = node("button", "Info", primaryTools); primaryInfo.type = "button";
-  const primaryFocus = node("button", "Focus", primaryTools); primaryFocus.type = "button";
-  const primaryHide = node("button", "Hide", primaryTools); primaryHide.type = "button";
+  function panelTools(caption, regional = false) {
+    const tools = node("div", undefined, caption, "native-panel-tools");
+    const focus = node("button", "Focus", tools); focus.type = "button";
+    const menu = node("details", undefined, tools, "native-panel-menu");
+    node("summary", "Tools", menu);
+    const options = node("div", undefined, menu, "native-tool-options");
+    const info = node("button", "Info", options); info.type = "button";
+    const hide = node("button", "Hide", options); hide.type = "button";
+    const cameraToggle = regional ? node("button", "Camera", options) : null;
+    if (cameraToggle) cameraToggle.type = "button";
+    return { focus, info, hide, cameraToggle };
+  }
+  const { info: primaryInfo, focus: primaryFocus, hide: primaryHide } = panelTools(primaryCaption);
   const noScreens = node("p", "Choose a view above to restore the observatory.", panelGrid, "native-observatory-empty"); noScreens.hidden = true;
   const frameState = node("div", undefined, stage, "native-frame-state");
   const imageAge = node("span", "No frame received", frameState);
@@ -220,12 +233,24 @@ export function installNativeView(root) {
   let registeredViews = [], registryCheckedAt = 0;
   const feedCards = new Map(), hiddenScreens = new Set(), mutedScreens = new Set();
   const cameraInputs = new Map();
-  let screenSignature = "", focusedScreen = null, cameraSite = null;
+  let screenSignature = "", cameraSite = null;
+  const feedWindows = createNativeFeedWindows({
+    returned(card) {
+      cameraInputs.get(card.querySelector(".native-panel-media, .native-viewport"))?.();
+      panelGrid.append(card);
+    },
+    changed() {
+      queueMicrotask(() => {
+        if (active && current) { renderFeeds(current); freshness(); }
+        if (!feedWindows.size && root.hidden) close(true);
+      });
+    },
+    failed(message) { commandStatus.textContent = message; },
+  });
 
   function currentCameraFeed() {
     const feeds = current?.view.feeds || [];
-    return feeds.find(feed => feed.siteId && `site:${feed.siteId}` === focusedScreen)
-      || feeds.find(feed => feed.siteId && feed.siteId === cameraSite);
+    return feeds.find(feed => feed.siteId && feed.siteId === cameraSite);
   }
 
   function cameraValues(action, values) {
@@ -249,13 +274,19 @@ export function installNativeView(root) {
   }
 
   function removeFeedCard(value) {
+    feedWindows.release(value.screenKey, false);
     cameraInputs.get(value.media)?.(); cameraInputs.delete(value.media); value.card.remove();
   }
 
   function toggleScreenFocus(key) {
-    focusedScreen = focusedScreen === key ? null : key;
+    if (feedWindows.has(key)) { feedWindows.release(key); return; }
+    if (!current) return;
     if (key.startsWith("site:")) cameraSite = key.slice(5);
-    if (current) renderFeeds(current);
+    const value = key === "current" ? primaryToolsState : [...feedCards.values()].find(value => value.screenKey === key);
+    if (!value) return;
+    cameraInputs.get(value.media || viewport)?.();
+    feedWindows.open(key, { card: value.card, viewId: sessionId, bindingId: current.binding.bindingId,
+      label: key === "current" ? primaryLabel.textContent : value.label.textContent });
     freshness();
   }
 
@@ -265,16 +296,15 @@ export function installNativeView(root) {
   }
 
   function hideScreen(key) {
+    feedWindows.release(key);
     hiddenScreens.add(key);
-    if (focusedScreen === key) focusedScreen = null;
     if (current) renderFeeds(current);
   }
 
   function updatePanelTools(value, key) {
-    const focused = focusedScreen === key;
-    value.card.classList.toggle("native-panel-focused", focused);
-    value.focus.textContent = focused ? "Exit focus" : "Focus";
-    value.focus.setAttribute("aria-pressed", String(focused));
+    const detached = feedWindows.has(key);
+    value.focus.textContent = detached ? "Redock" : "Focus";
+    value.focus.title = detached ? "Return this feed to the observatory" : "Open this feed in a movable window";
     value.info.setAttribute("aria-pressed", String(!mutedScreens.has(key)));
     value.info.title = mutedScreens.has(key) ? "Show this screen's information" : "Hide this screen's information";
     value.hide.title = "Hide this screen";
@@ -388,7 +418,7 @@ export function installNativeView(root) {
     imageDeliveries.reset(); rateStarted = performance.now(); deliveryRate.textContent = "";
     feedError = null; cognitionRequest = null; settingsDirty = false; sessionRequest = null; sessionDirty = false;
     for (const value of feedCards.values()) removeFeedCard(value);
-    feedCards.clear(); hiddenScreens.clear(); mutedScreens.clear(); focusedScreen = null; screenSignature = ""; viewToggles.replaceChildren();
+    feedWindows.closeAll(); feedCards.clear(); hiddenScreens.clear(); mutedScreens.clear(); screenSignature = ""; viewToggles.replaceChildren();
     panelGrid.dataset.focused = "false";
     primaryPanel.hidden = false; primaryLabel.textContent = "Current camera"; primaryAge.textContent = "No frame";
     primaryOverlay.replaceChildren(); primaryOverlay._nativeGroups = new Map(); primaryOverlay._nativeAge = null;
@@ -422,7 +452,7 @@ export function installNativeView(root) {
   function autoSelect(id) {
     if (!id || id === sessionId) return;
     sessionId = requestedId = id; sessions.value = id; resetRun();
-    history.replaceState(history.state, "", "#native-view?" + new URLSearchParams({ session: id }));
+    if (!root.hidden) history.replaceState(history.state, "", "#native-view?" + new URLSearchParams({ session: id }));
   }
 
   async function findSuccessor(signal) {
@@ -515,8 +545,8 @@ export function installNativeView(root) {
         const value = node("button", screen.label, viewToggles, "native-observatory-toggle"); value.type = "button";
         value.dataset.screen = screen.key; value.title = `Show or hide ${screen.label}`;
         value.addEventListener("click", () => {
+          if (feedWindows.has(screen.key)) { feedWindows.focus(screen.key); return; }
           if (hiddenScreens.has(screen.key)) hiddenScreens.delete(screen.key); else hiddenScreens.add(screen.key);
-          if (hiddenScreens.has(screen.key) && focusedScreen === screen.key) focusedScreen = null;
           if (current) renderFeeds(current);
         });
       }
@@ -524,7 +554,7 @@ export function installNativeView(root) {
     const labels = new Map(screens.map(screen => [screen.key, screen.label]));
     for (const value of viewToggles.querySelectorAll("button")) {
       value.textContent = labels.get(value.dataset.screen) || value.textContent;
-      value.title = `Show or hide ${value.textContent}`;
+      value.title = feedWindows.has(value.dataset.screen) ? `Bring ${value.textContent} window forward` : `Show or hide ${value.textContent}`;
       value.setAttribute("aria-pressed", String(!hiddenScreens.has(value.dataset.screen)));
     }
   }
@@ -544,17 +574,15 @@ export function installNativeView(root) {
     const feeds = reported.filter(value => urls.has(value.id));
     if (cameraSite && !feeds.some(feed => feed.siteId === cameraSite)) cameraSite = null;
     if (!cameraSite) cameraSite = feeds.find(feed => feed.siteId)?.siteId || null;
-    const slots = feeds.map((feed, index) => ({ feed, id: feed.siteId ? `site:${feed.siteId}` : `slot:${index}`, key: feed.siteId ? `site:${feed.siteId}` : `feed:${index}` }));
+    const slots = feeds.map(feed => ({ feed, id: feed.siteId ? `site:${feed.siteId}` : `feed:${feed.id}`, key: feed.siteId ? `site:${feed.siteId}` : `feed:${feed.id}` }));
     const screens = slots.length
       ? slots.map(({ feed, key }, index) => ({ key, label: index === 0 ? `Latest: ${feed.label}` : feed.label }))
       : [{ key: "current", label: primaryDisplay }];
-    if (focusedScreen && !screens.some(screen => screen.key === focusedScreen)) focusedScreen = null;
-    panelGrid.dataset.focused = String(Boolean(focusedScreen));
+    feedWindows.reconcile(next.binding.bindingId, new Set(screens.map(screen => screen.key)));
     renderViewToggles(screens);
 
     primaryLabel.textContent = primaryDisplay;
-    primaryPanel.hidden = feeds.length > 0 || hiddenScreens.has("current")
-      || Boolean(focusedScreen && focusedScreen !== "current");
+    primaryPanel.hidden = feeds.length > 0 || hiddenScreens.has("current");
     renderOverlay(primaryOverlay, primaryFeed?.overlay, next.view.capturedAtUnixMs, "current");
     updatePanelTools(primaryToolsState, "current");
 
@@ -573,11 +601,7 @@ export function installNativeView(root) {
         const caption = node("div", undefined, card, "native-panel-caption");
         const meta = node("div", undefined, caption, "native-panel-meta");
         const label = node("strong", "", meta), age = node("span", "", meta);
-        const tools = node("div", undefined, caption, "native-panel-tools");
-        const info = node("button", "Info", tools); info.type = "button";
-        const focus = node("button", "Focus", tools); focus.type = "button";
-        const hide = node("button", "Hide", tools); hide.type = "button";
-        const cameraToggle = node("button", "Camera", tools); cameraToggle.type = "button";
+        const { info, focus, hide, cameraToggle } = panelTools(caption, true);
         const cameraTools = node("div", undefined, card, "native-controls"); cameraTools.hidden = true;
         const cameraButtons = [];
         const cameraButton = (label, action, values = {}) => {
@@ -614,7 +638,7 @@ export function installNativeView(root) {
       value.label.textContent = latest ? `Latest: ${feed.label}` : feed.label;
       value.image.alt = `${latest ? "Latest" : "Recent"} native view: ${feed.label}`;
       value.capturedAtUnixMs = feed.capturedAtUnixMs;
-      value.card.hidden = hiddenScreens.has(screenKey) || Boolean(focusedScreen && focusedScreen !== screenKey);
+      value.card.hidden = hiddenScreens.has(screenKey);
       renderOverlay(value.overlay, feed.overlay, feed.capturedAtUnixMs, screenKey);
       updatePanelTools(value, screenKey);
       const key = `${feed.image.file}:${feed.image.sha256}`;
@@ -628,16 +652,24 @@ export function installNativeView(root) {
           }
         }, () => { if (value.pendingKey === key) value.pendingKey = ""; });
       }
-      if (value.card.previousSibling !== previousCard) {
-        const focused = value.card.contains(document.activeElement) ? document.activeElement : null;
+      if (!feedWindows.has(screenKey) && value.card.previousSibling !== previousCard) {
+        const focused = value.card.contains(value.card.ownerDocument.activeElement) ? value.card.ownerDocument.activeElement : null;
         panelGrid.insertBefore(value.card, previousCard.nextSibling);
         focused?.focus({ preventScroll: true });
       }
-      previousCard = value.card;
+      if (!feedWindows.has(screenKey)) previousCard = value.card;
     }
-    noScreens.hidden = screens.some(screen => !hiddenScreens.has(screen.key));
+    noScreens.hidden = screens.some(screen => !hiddenScreens.has(screen.key) && !feedWindows.has(screen.key));
+    noScreens.textContent = feedWindows.size ? "Selected feeds are open in their own windows." : "Choose a view above to restore the observatory.";
     if (panelGrid.lastChild !== noScreens) panelGrid.append(noScreens);
     refreshFeedAges();
+    refreshFeedWindows();
+  }
+
+  function refreshFeedWindows() {
+    feedWindows.refresh({ opacity: String(Number(infoOpacity.value) / 100), state: connection.textContent,
+      connectionState: connection.dataset.state, clock: current?.view.study ? nativeSessionFacts(current.view) : current?.view.summary || "",
+      rate: deliveryRate.textContent ? `Shared delivery: ${deliveryRate.textContent}` : "", command: commandStatus.textContent });
   }
 
   function renderPerson() {
@@ -859,6 +891,7 @@ export function installNativeView(root) {
         + (inspection.omittedEvents ? " \u00b7 " + inspection.omittedEvents + " events omitted" : "");
       if (inspection.status !== "available" && inspection.message) inspectionAge.textContent += " \u00b7 " + inspection.message;
     }
+    refreshFeedWindows();
   }
 
   function update(next) {
@@ -881,6 +914,7 @@ export function installNativeView(root) {
       if (view.commandResult?.sequence !== waiting && lastResult?.status !== "rejected") commandStatus.textContent = "Request processed; application outcome was not reported.";
       waiting = null;
     } else if (waiting) commandStatus.textContent = `Request ${waiting} awaiting the simulation.`;
+    refreshFeedWindows();
   }
 
   async function send(action, values = {}) {
@@ -1025,6 +1059,7 @@ export function installNativeView(root) {
       if (next.view.state === "ended") deliveryRate.textContent = "Run ended";
       else if (next.connection === "disconnected") deliveryRate.textContent = "No live frames";
       else if (elapsed >= 2000) { deliveryRate.textContent = imageDeliveries.sample(elapsed).toFixed(1) + " images/s"; rateStarted = performance.now(); }
+      refreshFeedWindows();
       if (next.view.state === "ended" || next.connection === "disconnected") {
         const successor = await findSuccessor(signal);
         if (successor) { autoSelect(successor.id); delay = 0; }
@@ -1046,16 +1081,18 @@ export function installNativeView(root) {
     if (enabled && ageTimer === null) ageTimer = setInterval(freshness, 500);
     else if (!enabled && ageTimer !== null) { clearInterval(ageTimer); ageTimer = null; }
   }
-  window.addEventListener("pagehide", () => close());
-  function close() {
+  window.addEventListener("pagehide", () => close(true));
+  function close(force = false) {
+    if (!force && feedWindows.size) return;
     active = false; generation += 1; clearTimeout(timer); controller?.abort();
+    feedWindows.closeAll();
     for (const clear of cameraInputs.values()) clear();
     postController?.abort(); postController = null; posting = false; setFreshnessTimer(false);
   }
   return {
     open(id) {
-      if (active && requestedId === id) return;
-      close(); active = true; requestedId = id; sessionId = null; resetRun();
+      if (active && (requestedId === id || (!id && feedWindows.size))) return;
+      close(true); active = true; requestedId = id; sessionId = null; resetRun();
       settingsDirty = false; cognitionRequest = null; settingsStatus.textContent = ""; settingsDraft.textContent = "";
       registeredViews = []; registryCheckedAt = 0;
       void poll(generation);

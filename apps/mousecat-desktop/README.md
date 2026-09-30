@@ -44,10 +44,22 @@ is saved in the desktop WebView profile independently of other browsers, applies
 immediately and follows the window on reopening. The native frame follows the
 selected scheme. Manuscript is the initial warm dark theme.
 
+In Simulation, **Focus** opens the selected feed in its own movable, resizable
+desktop window. **Redock** or its title-bar close returns the same tile to the
+observatory. Its Tools menu reveals information, visibility and regional camera
+controls. The feed stays live while the main window opens Questions or Reviews;
+all windows share one source poller, command owner and image-delivery counter.
+Session replacement and desktop shutdown retire the detached windows. Final
+frames remain visible when a run ends, with native camera commands disabled.
+
 
 `Program.cs` owns window lifecycle, single-instance activation, local-service
 startup and the embedded view. `DesktopSettings.cs` validates the installed
-configuration and exact loopback origin. The executable renders the existing
+configuration and exact loopback origin.
+`NativeFeedRequest.cs` and `NativeFeedWindows.cs` validate and host up to sixteen
+user-opened feed windows in the same GPU-capable WebView2 environment and profile.
+The client supplies no software-rendering or GPU-disabling browser flags.
+The executable renders the existing
 operator surface in WebView2 and uses its existing safe response commands.
 It does not answer questions, interpret decisions or create a second state store.
 It exposes no host objects or script-to-native messages. User-selected external
@@ -74,4 +86,14 @@ Build and contract checks:
 ```powershell
 dotnet build apps/mousecat-desktop/Mousecat.Desktop.csproj -c Release
 dotnet run --project apps/mousecat-desktop/tests/DesktopContracts.csproj -c Release
+```
+
+Bounded graphical acceptance uses isolated synthetic feeds and an ephemeral
+profile, leaving the installed desktop and saved questions intact:
+
+```powershell
+$env:MOUSECAT_BROWSER_TEST='1'
+node --test test/native-view-browser.test.mjs
+$env:MOUSECAT_DESKTOP_TEST='1'
+node --test test/native-window-desktop.test.mjs
 ```
