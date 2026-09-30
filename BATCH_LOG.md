@@ -2071,3 +2071,36 @@ browser run passes real keyboard, wheel and pointer gestures at all four widths.
 The release-history fixture clears inherited hook Git variables in its isolated
 test worker and restores them afterward, so temporary repositories retain their
 own history during the enforced pre-push gate.
+
+## [A22.1] - Truthful native status, clocks and image delivery rate
+
+*Timestamp:* 2026-09-30 07:55 UTC / 00:55 PDT
+
+Ended feeds now say Run ended. The study strip preserves failed or saved status
+and the source stop reason while displaying the last observed inspection world
+clock separately from validated accumulated time. A missing sample leaves its
+clock unknown. The producer's final-frame summary retains its independent clock;
+the viewer does not manufacture elapsed time, completion or review eligibility.
+
+Four direct formatting regressions cover failed zero-validated-time, saved,
+missing-sample and running states. Isolated real-browser checks cover running to
+failed and saved transitions, fixed final-frame timing, advertised continuation
+and narrow layout at 1680, 760, 390 and 320 pixels. Source authority and lifecycle
+remain unchanged. Version remains 1.8.0.0-alpha (npm 1.8.0-alpha) for this repair.
+
+Accepted regional images now contribute to the aggregate images/s metric even
+when the primary image is unchanged. Successful primary and tile decodes share
+bounded identity deduplication; unchanged rerenders do not count, and each run
+resets its counter. This is image delivery rate rather than native engine FPS.
+An actual browser regression updates only the farm image, observes a positive
+rate, then verifies zero delivery on unchanged rerenders. Terminal controls and
+zero presentation-generated commands remain covered at all four widths.
+
+Full readiness passes 311 Node cases (307 pass, two Windows skips and two opt-in
+browser skips), runtime smokes and governance/docs/hygiene. Both explicit native
+browser checks pass at four widths; the high-severity dependency audit is clear.
+
+Independent review also closed a delayed-decode race: a newer source selection
+returning to the loaded image invalidates the previous pending decode. The actual
+browser holds that image response and verifies it cannot replace the current
+picture or add a delivery after it is superseded.

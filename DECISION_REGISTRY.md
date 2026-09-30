@@ -668,3 +668,17 @@ source identity through its bounded camera request. The viewer validates the
 advertised target and routes the existing camera verbs; the native producer
 owns movement, residency and observation. Global time and session lifecycle
 retain their shared-world scope. Existing single-view feeds remain compatible.
+
+## [A22.1] - Native feed presentation preserves outcome and measurement authority
+
+*Timestamp:* 2026-09-30 07:55 UTC / 00:55 PDT
+
+The operator requested accurate ended-session controls and simulation state.
+An ended feed is presented as ended; completion remains a producer-owned outcome.
+The observed inspection world clock, final-frame summary and validated study
+duration retain their separate meanings. Failed/incomplete status and review
+eligibility remain source facts. This correction uses the existing bounded
+contract and changes only presentation.
+Image delivery counts successful accepted identities from primary and regional
+views. Duplicate display of one image and unchanged presentation rerenders do
+not inflate the rate. The aggregate images/s label retains its transport meaning.

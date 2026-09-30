@@ -17,6 +17,35 @@ function writePreference(name, value) {
   try { localStorage.setItem(`mousecat.native-view.${name}`, JSON.stringify(value)); } catch { /* Preferences are optional. */ }
 }
 
+export function nativeSessionFacts(view) {
+  const value = view.study;
+  const duration = value.attemptDurationSeconds < 3600
+    ? `${Math.round(value.attemptDurationSeconds / 60 * 10) / 10} min`
+    : `${Math.round(value.attemptDurationSeconds / 3600 * 10) / 10} hr`;
+  const observedHours = view.inspection?.sequence > 0 && Number.isFinite(view.inspection.worldHours)
+    ? view.inspection.worldHours : null;
+  const clock = view.state === "ended"
+    ? `last observed world hour ${observedHours === null ? "unavailable" : observedHours.toFixed(3)} · validated time ${value.accumulatedWorldHours.toFixed(2)} hr`
+    : `world hour ${(value.status === "running" && observedHours !== null ? observedHours : value.worldHours).toFixed(2)}`;
+  return `Attempt ${value.attempt} · ${value.status} · ${clock} · ${duration} per attempt`
+    + (value.lastStopReason ? ` · ${value.lastStopReason}` : "");
+}
+
+export function createNativeImageDeliveryCounter() {
+  const recent = new Set();
+  let received = 0;
+  return {
+    accept(identity) {
+      if (recent.has(identity)) return;
+      recent.add(identity);
+      if (recent.size > 64) recent.delete(recent.values().next().value);
+      received += 1;
+    },
+    sample(elapsedMs) { const rate = 1000 * received / elapsedMs; received = 0; return rate; },
+    reset() { recent.clear(); received = 0; },
+  };
+}
+
 export function installNativeView(root) {
   const heading = node("header", undefined, root, "native-heading");
   const identity = node("div", undefined, heading);
@@ -183,7 +212,8 @@ export function installNativeView(root) {
   setInspectorVisible(inspectorVisible);
   let active = false, requestedId = null, sessionId = null, current = null, selected = null, explicitPerson = false;
   let timer, controller, generation = 0, imageKey = "", personSignature = "", peopleSignature = "";
-  let waiting = null, posting = false, lastResult = null, imagesReceived = 0, rateStarted = performance.now();
+  let waiting = null, posting = false, lastResult = null, rateStarted = performance.now();
+  const imageDeliveries = createNativeImageDeliveryCounter();
   let feedError = null, postController = null;
   let cognitionSignature = "", settingsDirty = false, cognitionRequest = null;
   let sessionDirty = false, sessionRequest = null;
@@ -293,13 +323,7 @@ export function installNativeView(root) {
     const value = current?.view.study;
     sessionBar.hidden = !value; endRun.hidden = Boolean(value);
     if (!value) return;
-    const duration = value.attemptDurationSeconds < 3600
-      ? `${Math.round(value.attemptDurationSeconds / 60 * 10) / 10} min`
-      : `${Math.round(value.attemptDurationSeconds / 3600 * 10) / 10} hr`;
-    const worldHours = value.status === "running" && Number.isFinite(current?.view.inspection?.worldHours)
-      ? current.view.inspection.worldHours : value.worldHours;
-    sessionFacts.textContent = `Attempt ${value.attempt} · ${value.status} · world hour ${worldHours.toFixed(2)} · ${duration} per attempt`
-      + (value.lastStopReason ? ` · ${value.lastStopReason}` : "");
+    sessionFacts.textContent = nativeSessionFacts(current.view);
     const reviewLabels = {
       pending: "Preparing completed outcomes for human review",
       queued: "Human review is waiting",
@@ -361,6 +385,7 @@ export function installNativeView(root) {
   function resetRun() {
     current = null; selected = null; explicitPerson = false; waiting = null; lastResult = null;
     peopleSignature = personSignature = cognitionSignature = imageKey = "";
+    imageDeliveries.reset(); rateStarted = performance.now(); deliveryRate.textContent = "";
     feedError = null; cognitionRequest = null; settingsDirty = false; sessionRequest = null; sessionDirty = false;
     for (const value of feedCards.values()) removeFeedCard(value);
     feedCards.clear(); hiddenScreens.clear(); mutedScreens.clear(); focusedScreen = null; screenSignature = ""; viewToggles.replaceChildren();
@@ -593,10 +618,14 @@ export function installNativeView(root) {
       renderOverlay(value.overlay, feed.overlay, feed.capturedAtUnixMs, screenKey);
       updatePanelTools(value, screenKey);
       const key = `${feed.image.file}:${feed.image.sha256}`;
-      if (key !== value.key && key !== value.pendingKey) {
+      if (key === value.key) value.pendingKey = "";
+      else if (key !== value.pendingKey) {
         value.pendingKey = key; const candidate = new Image(); candidate.decoding = "async"; candidate.src = urls.get(feed.id);
         candidate.decode().then(() => {
-          if (value.pendingKey === key) { value.image.src = candidate.src; value.key = key; value.pendingKey = ""; }
+          if (active && value.pendingKey === key && feedCards.get(id) === value && current?.binding.bindingId === next.binding.bindingId) {
+            value.image.src = candidate.src; value.key = key; value.pendingKey = "";
+            imageDeliveries.accept(`${next.binding.bindingId}:${key}`);
+          }
         }, () => { if (value.pendingKey === key) value.pendingKey = ""; });
       }
       if (value.card.previousSibling !== previousCard) {
@@ -793,7 +822,7 @@ export function installNativeView(root) {
     imageAge.textContent = view.state === "ended" ? "Final frame" : disconnected
       ? `Last frame ${new Date(view.capturedAtUnixMs).toLocaleString()}`
       : "Frame " + (age < 1000 ? "just received" : (age / 1000).toFixed(1) + "s old");
-    if (view.state === "ended") deliveryRate.textContent = "Run complete";
+    if (view.state === "ended") deliveryRate.textContent = "Run ended";
     else if (disconnected) deliveryRate.textContent = "No live frames";
     for (const value of controlButtons) value.disabled = !commandable || posting;
     checkpoint.disabled = posting || !view.study?.canCheckpoint;
@@ -987,15 +1016,15 @@ export function installNativeView(root) {
       if (key !== imageKey) {
         const url = await decodedImage(next.imageUrl, signal);
         if (expected !== generation) return;
-        picture.src = url; picture.hidden = false; empty.hidden = true; imageKey = key; imagesReceived += 1;
+        picture.src = url; picture.hidden = false; empty.hidden = true; imageKey = key; imageDeliveries.accept(key);
       }
       if (expected !== generation) return;
       feedError = null;
       update(next);
       const elapsed = performance.now() - rateStarted;
-      if (next.view.state === "ended") deliveryRate.textContent = "Run complete";
+      if (next.view.state === "ended") deliveryRate.textContent = "Run ended";
       else if (next.connection === "disconnected") deliveryRate.textContent = "No live frames";
-      else if (elapsed >= 2000) { deliveryRate.textContent = (1000 * imagesReceived / elapsed).toFixed(1) + " images/s"; imagesReceived = 0; rateStarted = performance.now(); }
+      else if (elapsed >= 2000) { deliveryRate.textContent = imageDeliveries.sample(elapsed).toFixed(1) + " images/s"; rateStarted = performance.now(); }
       if (next.view.state === "ended" || next.connection === "disconnected") {
         const successor = await findSuccessor(signal);
         if (successor) { autoSelect(successor.id); delay = 0; }
