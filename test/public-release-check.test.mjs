@@ -7,6 +7,11 @@ import { join } from "node:path";
 import { auditPublicRelease } from "../scripts/public-release-check.mjs";
 
 test("release check distinguishes a clean tree from private reachable history without exposing contents", () => {
+  // Hook Git variables override subprocess cwd, including the audit's subprocess.
+  // This test is serial in its own worker; restore the inherited hook context.
+  const gitContext = ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR"];
+  const inherited = new Map(gitContext.map(key => [key, process.env[key]]));
+  for (const key of gitContext) delete process.env[key];
   const cwd = mkdtempSync(join(tmpdir(), "mousecat-release-history-"));
   const git = args => execFileSync("git", args, { cwd, stdio: "pipe" });
   const commit = subject => { git(["add", "--all"]); git(["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-m", subject]); };
@@ -37,5 +42,10 @@ test("release check distinguishes a clean tree from private reachable history wi
     commit("clean publication ancestry");
     assert.equal(auditPublicRelease({ cwd, treeOnly: true }).ok, true);
     assert.equal(auditPublicRelease({ cwd }).ok, false);
-  } finally { rmSync(cwd, { recursive: true, force: true }); }
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+    for (const [key, value] of inherited) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
 });

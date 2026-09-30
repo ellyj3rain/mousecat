@@ -657,3 +657,14 @@ state. Private source dossiers and raw operator records stay outside the public
 tree; original provenance remains private rather than being treated as public
 fixtures. Historical PR refs must be addressed before the existing repo changes
 visibility. No model evaluation, dataset admission or npm publication is inferred.
+
+## [A22] - Native camera targeting follows advertised regional identity
+
+*Timestamp:* 2026-09-30 06:01 UTC / 23:01 PDT
+
+The operator requested adjustable simultaneous camera views, local activity
+observation and useful focus tools. Each native region carries its declared
+source identity through its bounded camera request. The viewer validates the
+advertised target and routes the existing camera verbs; the native producer
+owns movement, residency and observation. Global time and session lifecycle
+retain their shared-world scope. Existing single-view feeds remain compatible.

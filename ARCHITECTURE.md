@@ -1,7 +1,7 @@
 | Document | Mousecat Architecture |
 |---|---|
-| Version | 1.7.1.0-alpha |
-| Timestamp | 2026-09-29 22:19 UTC |
+| Version | 1.8.0.0-alpha |
+| Timestamp | 2026-09-30 06:01 UTC |
 | Status | ACTIVE - system architecture. |
 
 # Mousecat Architecture
@@ -26,6 +26,13 @@ shared loopback server. Ignored configuration supplies a nativeViews registryPat
 that registry declares each view's id, label, projectRef, directory and expected
 sessionId. Browser projections contain opaque binding identities and source
 observations. Filesystem paths remain on the server.
+
+An optional feed `siteId` declares a native regional camera. Its optional
+`viewport` carries the source-bound zoom state. Site ids are unique and validated;
+only pan, zoom, focus and automatic camera requests may carry an advertised
+`siteId`. Immutable queue collision validation retains that identity. The
+single-view contract remains valid. Person inspection accepts sixteen bounded
+sections while preserving row, event and aggregate byte limits.
 
 `src/operator/public/native-view.js` displays verified native PNG frames and cached
 person sections/events through the installed Desktop's Simulation route. One

@@ -2041,3 +2041,33 @@ Fresh Windows checkout validation found Git converting the pinned Lucide notice
 to CRLF. A source attribute fixes that notice to LF so its complete text remains
 byte-identical to the dependency across checkouts. The existing floor comparison
 continues to enforce the pinned notice without relaxing the license check.
+
+## [A22] - Independent native regional camera controls
+
+*Timestamp:* 2026-09-30 06:01 UTC / 23:01 PDT
+
+Source-declared simultaneous native feeds now advertise optional unique site
+identities and native zoom state. The existing operator command pack permits
+site targeting only for camera pan, zoom, focus and automatic following.
+Queue publication, collision checks and retry identity preserve that target.
+Each tile discloses camera tools on demand; focus remains on its region as feed
+order changes. Keyboard, wheel and drag requests follow the selected region.
+Existing single-view feeds and global lifecycle commands retain their contracts.
+
+Native producers already supplied thirteen person sections while the viewer
+accepted only ten. The consumer now accepts sixteen sections with the existing
+row, event and byte bounds. Regressions preserve the thirteen source sections
+and reject a seventeenth. Focused native contracts pass 66 cases with two OS
+symlink skips. An isolated browser check passes at 1680, 760, 390 and 320 pixels,
+including exact regional request routing and stable focus after feed reordering.
+No real decisions, private consumer payloads or simulation outcomes enter these
+public fixtures. Root version is 1.8.0.0-alpha; npm projection is 1.8.0-alpha.
+
+Independent review corrections cover actual tile gestures, the focused camera
+header, close/reopen drag cleanup and queued commands whose old site disappears.
+Full readiness passes 305 Node cases (302 pass, two Windows skips and one opt-in
+browser skip), all runtime smokes and governance/docs/hygiene checks. The explicit
+browser run passes real keyboard, wheel and pointer gestures at all four widths.
+The release-history fixture clears inherited hook Git variables in its isolated
+test worker and restores them afterward, so temporary repositories retain their
+own history during the enforced pre-push gate.

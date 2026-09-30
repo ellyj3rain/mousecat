@@ -1,6 +1,6 @@
 # Mousecat release readiness
 
-Version: 1.7.1.0-alpha. License: PolyForm Perimeter 1.0.0, source available.
+Version: 1.8.0.0-alpha. License: PolyForm Perimeter 1.0.0, source available.
 
 The release contains the shared operator, SDK/MCP runtime, native client source,
 synthetic project demonstration and complete dependency notices. The normal

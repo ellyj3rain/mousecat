@@ -1,7 +1,7 @@
 | Document | Mousecat README |
 |---|---|
-| Version | 1.7.1.0-alpha |
-| Timestamp | 2026-09-29 22:19 UTC |
+| Version | 1.8.0.0-alpha |
+| Timestamp | 2026-09-30 06:01 UTC |
 | Status | ACTIVE - participant entry point. |
 
 # Mousecat
@@ -234,6 +234,13 @@ adjustable size, remain equal, and can be hidden or restored individually. The
 person inspector can release its full width back to the screens, and that choice,
 panel size, information opacity and visible data groups persist in the client
 profile. Every screen keeps its frame age visible.
+
+Simultaneous source-declared regional feeds may supply a stable `siteId` and
+native viewport. Each regional tile exposes its own camera tools on demand;
+zoom, pan and activity-follow requests carry that declared site identity. Focus
+keeps the same region when feeds reorder, and keyboard, drag and wheel controls
+use the focused or selected regional camera. Native inspection retains up to
+sixteen source sections, including the existing thirteen-section projection.
 
 A producer may attach bounded Activity, Attention, Memory and Needs groups to a
 retained frame. Compact telemetry sits inside its corresponding image and carries

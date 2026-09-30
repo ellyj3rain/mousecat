@@ -608,3 +608,17 @@ pull-request references to old records even after a current-tree cleanup.
 and enforces source hygiene. A separate scrubbed history preserves chronology.
 The existing repo remains private until its retained historical references are
 removed or publication moves to clean history in a separate repository.
+
+## F-066 | 2026-09-30 06:01 UTC / 23:01 PDT | Native inspection and camera targets drifted from their producer
+
+*Severity:* High
+
+*Finding:* The producer supplied thirteen bounded inspection sections while the
+consumer accepted ten, making valid native feeds unavailable. Multi-feed focus
+used ordinal screen slots and global camera requests, so reordered regional
+views could retain the wrong screen or target the primary camera.
+
+*Resolution:* A22 accepts sixteen inspection sections under the existing row,
+event and byte budgets. Declared native site identity now follows regional
+focus and the allowlisted camera verbs. Source and browser contracts verify
+exact queue targeting, inspection bounds and stable focus at four widths.
