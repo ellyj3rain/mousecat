@@ -1,12 +1,20 @@
 | Document | Mousecat Session State |
 |---|---|
-| Version | 1.8.0.0-alpha |
-| Timestamp | 2026-09-30 07:55 UTC |
-| Status | ACTIVE - A22.1 corrects native status, clocks and image delivery rate. |
+| Version | 1.9.0.0-alpha |
+| Timestamp | 2026-09-30 10:10 UTC |
+| Status | ACTIVE - A23 adds movable native feed windows with redock. |
 
 # Session State
 
 ## Current state
+
+A23 makes Focus open a real movable, resizable desktop feed window. Redock and
+title-bar close return the original tile and controls. Detached feeds stay live
+while the main route opens Questions or Reviews; one source poller, native
+command owner and image-delivery counter serve every presentation. Tools and
+View settings reveal camera and display controls on demand. Source replacement,
+child reload and desktop shutdown retire windows without changing runtime data.
+Terminal status and source clocks retain A22.1 semantics.
 
 A22.1 presents an ended feed as Run ended while preserving failed or saved study
 status. The last observed inspection world clock and validated accumulated time
@@ -46,11 +54,11 @@ uses a synthetic public fixture by default; source-derived exports remain local.
 
 | Surface | Standing |
 |---|---|
-| Source/version | A22.1 presentation repair; root 1.8.0.0-alpha, package 1.8.0-alpha. |
+| Source/version | A23 native window growth; root 1.9.0.0-alpha, package 1.9.0-alpha. |
 | License | Ratified PolyForm Perimeter 1.0.0; source available with a noncompete restriction. |
 | Dependency notices | Full Lucide ISC/Feather MIT and WebView2 license/notice carried in source, npm and desktop outputs. |
 | UI acceptance | Isolated browser contracts cover four widths, three themes, evidence/history navigation, keyboard focus, preserved drafts and exact synthetic returns. |
-| Repository gate | A22.1 full readiness passes 311 Node cases (307 pass, two Windows skips and two opt-in browser skips), runtime smokes and governance/docs/hygiene. Both explicit native browser checks pass at four widths, including regional-only delivery and terminal state. |
+| Repository gate | A23 readiness passes 312 Node cases (307 pass, five environment-gated skips), runtime smokes and governance/docs/hygiene. Explicit browser checks pass at four widths and the actual isolated WinForms/WebView2 window probe passes. Audit is clear. |
 | CodeQL | Private validation retains its SARIF report; public runs upload findings to Code Scanning. |
 | Privacy | The fresh release clone's main and both retained PR heads passed the historical boundary and credential scans. Excluded original commit/private blob lookups return 404 in the release repository. |
 | GitHub | ellyj3rain/mousecat is the public clean release repository. Original history remains in a separate private, archived repository. Main enforces six required checks and disallows force pushes. |

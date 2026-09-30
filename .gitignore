@@ -24,6 +24,8 @@ apps/mousecat-desktop/bin/
 apps/mousecat-desktop/obj/
 apps/mousecat-desktop/tests/bin/
 apps/mousecat-desktop/tests/obj/
+apps/mousecat-desktop/tests/**/bin/
+apps/mousecat-desktop/tests/**/obj/
 apps/mousecat-world/Content/MousecatWorld/Generated/*.region.json
 apps/mousecat-world/Content/MousecatWorld/Generated/*.region.receipt.json
 design/*decision-receipt*.json

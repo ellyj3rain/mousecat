@@ -40,6 +40,7 @@ internal sealed class DesktopWindow : Form
     private readonly HttpClient http = new() { Timeout = TimeSpan.FromSeconds(2) };
     private readonly EventWaitHandle activate;
     private DesktopSettings? settings;
+    private NativeFeedWindows? feedWindows;
     private bool connecting;
     private string route = "#questions";
     private readonly string windowPath = Path.Combine(DesktopSettings.DataRoot, "window.json");
@@ -71,6 +72,7 @@ internal sealed class DesktopWindow : Form
         FormClosing += (_, _) =>
         {
             SaveWindow();
+            feedWindows?.Dispose();
             lifetime.Cancel();
             activationTimer.Stop();
             appearanceTimer.Stop();
@@ -88,6 +90,7 @@ internal sealed class DesktopWindow : Form
         message.BackColor = BackColor; message.ForeColor = ForeColor;
         retry.BackColor = BackColor; retry.ForeColor = ForeColor;
         web.DefaultBackgroundColor = BackColor;
+        feedWindows?.ApplyAppearance(theme);
         var dark = light ? 0 : 1;
         DwmSetWindowAttribute(Handle, 20, ref dark, sizeof(int));
     }
@@ -161,6 +164,7 @@ internal sealed class DesktopWindow : Form
             web.CoreWebView2.Settings.AreHostObjectsAllowed = false;
             web.CoreWebView2.Settings.IsWebMessageEnabled = false;
             web.CoreWebView2.Settings.IsStatusBarEnabled = false;
+            feedWindows ??= new NativeFeedWindows(this, settings, web.CoreWebView2.Environment);
             web.CoreWebView2.NavigationStarting -= GuardNavigation;
             web.CoreWebView2.NavigationStarting += GuardNavigation;
             web.CoreWebView2.NewWindowRequested -= OpenLink;
@@ -186,10 +190,18 @@ internal sealed class DesktopWindow : Form
         if (!Uri.TryCreate(args.Uri, UriKind.Absolute, out var uri) || !settings!.Owns(uri)) args.Cancel = true;
     }
 
-    private void OpenLink(object? sender, CoreWebView2NewWindowRequestedEventArgs args)
+    private async void OpenLink(object? sender, CoreWebView2NewWindowRequestedEventArgs args)
     {
         args.Handled = true;
         if (!args.IsUserInitiated || !Uri.TryCreate(args.Uri, UriKind.Absolute, out var uri)) return;
+        if (NativeFeedRequest.TryParse(settings!, uri, out var feed))
+        {
+            try { await feedWindows!.Open(args, feed!); }
+            catch (Exception error) when (error is InvalidOperationException or COMException or ObjectDisposedException)
+            { if (!IsDisposed) MessageBox.Show(this, error.Message, "Could not open feed window"); }
+            return;
+        }
+        if (uri.AbsolutePath == "/native-feed.html") return;
         if (settings!.Owns(uri)) web.Source = uri;
         else if (uri.Scheme is "http" or "https")
         {
