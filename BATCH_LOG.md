@@ -2132,3 +2132,29 @@ window probe. The desktop build is warning-free; the dependency audit is clear.
 Independent review corrected successor selection while Questions or Reviews
 remain active: source replacement retires the old windows without rewriting
 the human's route. A real-browser successor regression verifies that boundary.
+
+## [A23.1] - Reliable installed workspace and native feed windows
+
+*Timestamp:* 2026-09-30 10:56 UTC / 03:56 PDT
+
+The installed desktop resolves equivalent absolute Windows path separators before
+matching the configured service workspace and state store. Foreign canonical
+locations remain refused. Native popup completion disposes its deferral once;
+calling Complete then Dispose invoked native completion twice and failed with
+0x8000000E in the actual installed host. The native acceptance fixture now
+observes asynchronous popup callback exceptions and uses the opener's actual
+CoreWebView2 environment. No rendering flags or service contracts change.
+
+Actual installed-host acceptance opens a rendered native feed, moves/resizes it,
+and redocks the original tile. Existing reviews, zero local drafts, profile,
+configuration and source-session binding are retained. Four added path controls
+cover separator equivalence and foreign workspace/state refusal. Version remains
+1.9.0.0-alpha for this repair; generated diagnostic evidence stays ignored.
+
+Final readiness passes all 312 Node cases (307 pass and five environment-gated
+skips), runtime smokes and governance/docs/hygiene. Explicit browser checks pass
+at four widths; native acceptance passes and restoring double deferral completion
+fails for the observed COM error. Desktop contracts pass 38 cases; audit reports
+zero vulnerabilities. Initial concurrent runs retained unrelated temporary-file
+cleanup and fixture-age failures; the final required gate and sequential browser
+run pass without changing those product or fixture semantics.

@@ -695,3 +695,13 @@ its window. The native host admits only exact, user-initiated owned-origin feed
 requests, using the existing WebView2 environment/profile. The shared runtime
 and persistent review/configuration authority remain unchanged. This requested
 host/frontend/test/documentation slice is one reviewed A23 batch.
+
+## [A23.1] - Canonical workspace identity and one native popup completion
+
+*Timestamp:* 2026-09-30 10:56 UTC / 03:56 PDT
+
+The installed desktop compares fully qualified normalized Windows paths against
+the owned service record. Equivalent separators retain the same location;
+foreign roots and persistence paths retain refusal. Each native popup request
+completes its deferral once through Dispose. These corrections preserve the
+existing feed-window contract and persistent runtime authority.

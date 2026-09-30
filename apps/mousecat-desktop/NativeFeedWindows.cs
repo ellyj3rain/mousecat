@@ -50,7 +50,9 @@ internal sealed class NativeFeedWindows(Form owner, DesktopSettings settings, Co
         }
         finally
         {
-            deferral.Complete(); deferral.Dispose();
+            // Dispose completes the native deferral. Completing it separately
+            // calls the native completion twice and can invalidate the request.
+            deferral.Dispose();
         }
     }
 

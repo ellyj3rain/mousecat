@@ -40,6 +40,20 @@ try
         ["port"] = 4317, ["pid"] = Environment.ProcessId,
         ["persistence"] = new JsonObject { ["enabled"] = true, ["path"] = settings.StatePath } };
     Check(settings.MatchesServiceRecord(record.ToJsonString()), "exact running persistent workspace admitted");
+    var alternateSeparators = (JsonObject)record.DeepClone();
+    foreach (var key in new[] { "configPath", "workingDirectory", "runnerPath" })
+        alternateSeparators[key] = alternateSeparators[key]!.GetValue<string>().Replace('\\', '/');
+    alternateSeparators["persistence"]!["path"] = settings.StatePath.Replace('\\', '/');
+    Check(settings.MatchesServiceRecord(alternateSeparators.ToJsonString()), "equivalent absolute separator paths admitted");
+    var forwardSettings = settings with { RepositoryRoot = settings.RepositoryRoot.Replace('\\', '/'),
+        ConfigPath = settings.ConfigPath.Replace('\\', '/') };
+    Check(forwardSettings.MatchesServiceRecord(record.ToJsonString()), "forward-slash settings match native service paths");
+    var foreignRoot = (JsonObject)alternateSeparators.DeepClone();
+    foreignRoot["workingDirectory"] = Path.Combine(folder, "foreign").Replace('\\', '/');
+    Check(!settings.MatchesServiceRecord(foreignRoot.ToJsonString()), "foreign canonical root still refused");
+    var foreignState = (JsonObject)alternateSeparators.DeepClone();
+    foreignState["persistence"]!["path"] = Path.Combine(folder, "foreign-state.json").Replace('\\', '/');
+    Check(!settings.MatchesServiceRecord(foreignState.ToJsonString()), "foreign canonical state still refused");
     foreach (var key in new[] { "configPath", "workingDirectory", "runnerPath", "serviceId", "schema" })
     {
         var bad = (JsonObject)record.DeepClone(); bad[key] = "other";

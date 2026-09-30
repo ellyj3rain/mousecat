@@ -68,6 +68,9 @@ The client checks the service's private process record for the exact configured
 workspace and effective enabled persistence. A different or unverified service
 on the same port produces a visible error; the client does not replace it or
 silently attach to another state store.
+Equivalent absolute Windows paths with either separator resolve to the same
+workspace. Native popup requests complete their deferral once; graphical
+acceptance also observes asynchronous host callback failures.
 
 The private installation lives under `%LOCALAPPDATA%/Mousecat/Desktop`: `app`
 contains the executable, `desktop.json` records local installation paths,

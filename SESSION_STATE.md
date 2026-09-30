@@ -1,12 +1,17 @@
 | Document | Mousecat Session State |
 |---|---|
 | Version | 1.9.0.0-alpha |
-| Timestamp | 2026-09-30 10:10 UTC |
-| Status | ACTIVE - A23 adds movable native feed windows with redock. |
+| Timestamp | 2026-09-30 10:56 UTC |
+| Status | ACTIVE - A23.1 repairs installed workspace matching and popup completion. |
 
 # Session State
 
 ## Current state
+
+A23.1 accepts equivalent absolute Windows workspace paths while preserving
+foreign workspace and state-store refusal. Native feed popup deferrals complete
+once. Actual installed-desktop acceptance verifies a rendered movable/resizable
+feed and redock with existing reviews, profile, source binding and service intact.
 
 A23 makes Focus open a real movable, resizable desktop feed window. Redock and
 title-bar close return the original tile and controls. Detached feeds stay live
@@ -58,7 +63,7 @@ uses a synthetic public fixture by default; source-derived exports remain local.
 | License | Ratified PolyForm Perimeter 1.0.0; source available with a noncompete restriction. |
 | Dependency notices | Full Lucide ISC/Feather MIT and WebView2 license/notice carried in source, npm and desktop outputs. |
 | UI acceptance | Isolated browser contracts cover four widths, three themes, evidence/history navigation, keyboard focus, preserved drafts and exact synthetic returns. |
-| Repository gate | A23 readiness passes 312 Node cases (307 pass, five environment-gated skips), runtime smokes and governance/docs/hygiene. Explicit browser checks pass at four widths and the actual isolated WinForms/WebView2 window probe passes. Audit is clear. |
+| Repository gate | A23.1 readiness passes 312 Node cases (307 pass, five environment-gated skips), runtime smokes and governance/docs/hygiene. Explicit browser checks pass at four widths and the actual isolated WinForms/WebView2 window probe passes. Audit is clear. |
 | CodeQL | Private validation retains its SARIF report; public runs upload findings to Code Scanning. |
 | Privacy | The fresh release clone's main and both retained PR heads passed the historical boundary and credential scans. Excluded original commit/private blob lookups return 404 in the release repository. |
 | GitHub | ellyj3rain/mousecat is the public clean release repository. Original history remains in a separate private, archived repository. Main enforces six required checks and disallows force pushes. |
