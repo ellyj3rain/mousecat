@@ -18,6 +18,7 @@ internal static class NativeWindowProbe
         private readonly Uri origin;
         private readonly string output;
         private NativeFeedWindows? windows;
+        private Exception? windowFailure;
         internal Probe(Uri source, string folder)
         {
             origin = source; output = folder; Size = new Size(1280, 850);
@@ -27,7 +28,12 @@ internal static class NativeWindowProbe
         }
         private async Task Wait(Func<Task<bool>> predicate, string description)
         {
-            for (var n = 0; n < 200; n++) { if (await predicate()) return; await Task.Delay(50); }
+            for (var n = 0; n < 200; n++)
+            {
+                if (windowFailure is not null) throw new Exception("Native popup event failed", windowFailure);
+                if (await predicate()) return;
+                await Task.Delay(50);
+            }
             throw new Exception("Timed out: " + description);
         }
         private async Task<bool> Truth(CoreWebView2 core, string expression) =>
@@ -49,13 +55,16 @@ internal static class NativeWindowProbe
                 var environment = await CoreWebView2Environment.CreateAsync(null, Path.Combine(output, "profile"));
                 await web.EnsureCoreWebView2Async(environment);
                 web.CoreWebView2.Settings.AreHostObjectsAllowed = false; web.CoreWebView2.Settings.IsWebMessageEnabled = false;
-                windows = new NativeFeedWindows(this, settings, environment);
+                windows = new NativeFeedWindows(this, settings, web.CoreWebView2.Environment);
                 web.CoreWebView2.NewWindowRequested += async (_, args) =>
                 {
                     args.Handled = true;
                     if (args.IsUserInitiated && Uri.TryCreate(args.Uri, UriKind.Absolute, out var uri)
                         && NativeFeedRequest.TryParse(settings, uri, out var request))
-                        await windows.Open(args, request!);
+                    {
+                        try { await windows.Open(args, request!); }
+                        catch (Exception error) { windowFailure = error; }
+                    }
                 };
                 web.Source = new Uri(origin, "#native-view?session=regional");
                 const string tile = ".native-feed-card[data-site-id='farm']";

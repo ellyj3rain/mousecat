@@ -37,8 +37,11 @@ internal sealed record DesktopSettings(string RepositoryRoot, string NodePath, s
         {
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
+            bool SameLocation(string? actual, string expected) => !string.IsNullOrWhiteSpace(actual)
+                && Path.IsPathFullyQualified(actual)
+                && string.Equals(Path.GetFullPath(actual), Path.GetFullPath(expected), StringComparison.OrdinalIgnoreCase);
             bool SamePath(string key, string expected) => root.TryGetProperty(key, out var field)
-                && string.Equals(field.GetString(), expected, StringComparison.OrdinalIgnoreCase);
+                && SameLocation(field.GetString(), expected);
             if (!SamePath("configPath", ConfigPath) || !SamePath("workingDirectory", RepositoryRoot)
                 || !SamePath("runnerPath", Path.Combine(RepositoryRoot, "src", "service", "runner.mjs"))
                 || !root.TryGetProperty("schema", out var schema) || schema.GetString() != "mousecat.user-service-record/1"
@@ -47,13 +50,13 @@ internal sealed record DesktopSettings(string RepositoryRoot, string NodePath, s
                 || !root.TryGetProperty("persistence", out var persistence)
                 || !persistence.TryGetProperty("enabled", out var enabled) || enabled.ValueKind != JsonValueKind.True
                 || !persistence.TryGetProperty("path", out var path)
-                || !string.Equals(path.GetString(), StatePath, StringComparison.OrdinalIgnoreCase)
+                || !SameLocation(path.GetString(), StatePath)
                 || !root.TryGetProperty("pid", out var pid)) return false;
             using var process = Process.GetProcessById(pid.GetInt32());
             return !process.HasExited;
         }
         catch (Exception error) when (error is JsonException or InvalidOperationException or ArgumentException
-            or FormatException or OverflowException) { return false; }
+            or FormatException or OverflowException or IOException or NotSupportedException) { return false; }
     }
 
     internal static bool IsMousecatSnapshot(string json)

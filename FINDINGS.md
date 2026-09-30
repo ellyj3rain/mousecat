@@ -671,3 +671,19 @@ always replaced the URL with Simulation, leaving URL and visible page divergent.
 selection and retirement stay independent. A browser regression publishes a
 new registered producer while the human remains on Questions, confirms old
 window retirement, and checks that the Questions route remains unchanged.
+
+## F-070 | 2026-09-30 10:56 UTC / 03:56 PDT | Installed native feed activation failures
+
+*Severity:* High
+
+*Finding:* An existing desktop configuration used forward slashes while the
+service record used native separators, causing a false workspace mismatch.
+After matching was repaired, Focus opened a blank native window and reported
+0x8000000E. An actual host exception trace identified a second Complete call
+inside CoreWebView2Deferral.Dispose. Isolated graphical acceptance had not
+observed the asynchronous popup callback exception.
+
+*Resolution:* A23.1 canonicalizes absolute paths, keeps foreign-location refusal,
+and disposes each popup deferral once. The actual installed host renders the
+child and redocks it successfully. The native fixture captures asynchronous
+callback failures, and four path cases exercise equivalence and refusal.
