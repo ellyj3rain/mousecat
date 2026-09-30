@@ -128,6 +128,56 @@ test("registered native view returns bounded public identity and the exact PNG",
   await assert.rejects(f.adapter.snapshot(f.directory));
 });
 
+test("existing thirteen-section native details are accepted with a sixteen-section ceiling", async t => {
+  const f = await fixture(t);
+  const keys = ["needs", "life", "attention", "medication", "preparation", "horse", "mobile", "planning", "inventory", "pressure", "currentAction", "sourceWork", "processes"];
+  const first = f.view.people[0].sections[0];
+  f.view.people[0].sections = keys.map(id => ({ ...first, id, label: id }));
+  await f.save(f.view);
+  assert.equal((await f.adapter.snapshot(f.row.id)).view.people[0].sections.length, 13);
+  for (const id of ["fourteen", "fifteen", "sixteen"]) f.view.people[0].sections.push({ ...first, id });
+  validateNativeView(f.view);
+  f.view.people[0].sections.push({ ...first, id: "seventeen" });
+  assert.throws(() => validateNativeView(f.view));
+});
+
+test("independent native sites authorize only declared camera commands and preserve queue identity", async t => {
+  const f = await fixture(t), viewport = { zoom: 1, targetZoom: 1, zoomLevels: [0.5, 1, 2] };
+  f.view.feeds = ["residential", "services", "farm"].map(siteId => ({
+    id: `site:${siteId}`, siteId, label: siteId, capturedAtUnixMs: f.view.capturedAtUnixMs,
+    image: { ...f.view.image }, camera: { ...f.view.camera }, viewport: structuredClone(viewport),
+  }));
+  await f.save(f.view);
+  for (const fields of [{ action: "pan", siteId: "farm", dx: 1, dy: 0 },
+    { action: "zoom", siteId: "services", value: 1 }, { action: "auto", siteId: "residential" },
+    { action: "focus", siteId: "farm", personId: "person-2" }]) {
+    const payload = await f.payload(fields), result = await f.adapter.command(f.row.id, payload);
+    assert.deepEqual(await f.adapter.command(f.row.id, payload), result);
+    assert.equal((await f.command(result.sequence)).siteId, fields.siteId);
+  }
+  assert.equal((await f.files()).length, 4);
+  for (const fields of [{ action: "pan", siteId: "missing", dx: 1, dy: 0 },
+    { action: "pan", siteId: "../farm", dx: 1, dy: 0 }, { action: "pause", siteId: "farm" },
+    { action: "select", siteId: "farm", personId: "person-1" }]) {
+    await assert.rejects(f.adapter.command(f.row.id, await f.payload(fields)));
+  }
+  assert.equal((await f.files()).length, 4);
+  for (const mutate of [v => { v.feeds[1].siteId = "farm"; }, v => { v.feeds[1].siteId = "../farm"; },
+    v => { delete v.feeds[1].siteId; }, v => { v.feeds[1].viewport.zoomLevels = [2, 1]; }]) {
+    const invalid = structuredClone(f.view); mutate(invalid); assert.throws(() => validateNativeView(invalid));
+  }
+  f.view.feeds = f.view.feeds.filter(feed => feed.siteId !== "farm"); f.view.sequence += 1;
+  f.view.study = { id: randomUUID(), label: "Regional study", status: "running", attempt: 1,
+    attemptDurationSeconds: 3600, autoContinue: false, worldHours: 2, accumulatedWorldHours: 0,
+    canCheckpoint: true, canContinue: false, updatedAtUnixMs: Date.now(), lastStopReason: null };
+  await f.save(f.view);
+  const remaining = await f.adapter.command(f.row.id, await f.payload({ action: "pan", siteId: "services", dx: 1, dy: 0 }));
+  const save = await f.adapter.command(f.row.id, await f.payload({ action: "checkpoint" }));
+  assert.equal(remaining.sequence, 5); assert.equal(save.sequence, 6);
+  assert.equal((await f.command(1)).siteId, "farm");
+  assert.equal((await f.command(6)).action, "checkpoint");
+});
+
 test("one native session exposes bounded recent activity feeds through immutable images", async t => {
   const f = await fixture(t), name = "frame-feed.png";
   await writeFile(join(f.directory, name), PNG);
@@ -393,7 +443,7 @@ test("view and inspection schemas reject invalid types, fields and collection ov
     v => { v.people = Array.from({ length: 2049 }, (_, n) => ({ id: `person-${n}`, label: "P", summary: "" })); },
     v => { v.people.push(structuredClone(v.people[0])); },
     v => { v.people[0].summary = "x".repeat(4097); },
-    v => { v.people[0].sections = Array.from({ length: 11 }, (_, n) => ({ ...v.people[0].sections[0], id: `s-${n}` })); },
+    v => { v.people[0].sections = Array.from({ length: 17 }, (_, n) => ({ ...v.people[0].sections[0], id: `s-${n}` })); },
     v => { v.people[0].sections[0].rows = Array.from({ length: 49 }, () => ({ label: "L", value: "V" })); },
     v => { v.people[0].sections[0].rows[0].value = "v".repeat(385); },
     v => { v.people[0].events = Array.from({ length: 25 }, (_, n) => ({ ...v.people[0].events[0], id: `e-${n}` })); },

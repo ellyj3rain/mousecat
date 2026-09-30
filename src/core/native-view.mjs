@@ -10,11 +10,14 @@ const DISCONNECTED_FRAME_MS = 30000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 const HASH = /^[0-9a-f]{64}$/u;
 const ACTIONS = { pause: [], resume: [], speed: ["value"], zoom: ["value"], pan: ["dx", "dy"], focus: ["personId"], auto: [], stop: [], checkpoint: [], continue: [], configure: ["attemptDurationSeconds", "autoContinue"], select: ["personId"], panel: ["panelId", "personId", "visible"], cognition: ["opponentShare", "opportunitiesPerHour", "maxDepth"] };
+const CAMERA_ACTIONS = new Set(["zoom", "pan", "focus", "auto"]);
+const SITE_ID = /^[a-z][a-z0-9-]{0,47}$/u;
 
 // These templates are the entire browser write surface. The source translates
 // them into its own runtime commands; no arbitrary tool invocation is accepted.
 export const nativeViewCommandPack = Object.freeze(Object.fromEntries(Object.entries(ACTIONS).map(([action, fields]) => [action, Object.freeze({
   operatorSafe: true, schema: "mousecat.native-view-command/1", action, fields: Object.freeze(fields),
+  ...(CAMERA_ACTIONS.has(action) ? { optionalFields: Object.freeze(["siteId"]) } : {}),
 })])));
 
 function requireValue(condition, code = "invalid-native-view") {
@@ -126,6 +129,15 @@ export function parseNativeJson(raw) {
   return value;
 }
 
+function validateViewport(viewport) {
+  object(viewport, ["zoom", "targetZoom", "zoomLevels"]); array(viewport.zoomLevels, 64);
+  requireValue(viewport.zoomLevels.length > 0);
+  for (const value of [viewport.zoom, viewport.targetZoom, ...viewport.zoomLevels]) requireValue(Number.isFinite(value) && value > 0 && value <= 16);
+  requireValue(viewport.zoomLevels.every((value, index, values) => index === 0 || value > values[index - 1]));
+  requireValue(viewport.zoom >= viewport.zoomLevels[0] - 0.0001 && viewport.zoom <= viewport.zoomLevels.at(-1) + 0.0001);
+  requireValue(viewport.zoomLevels.some(value => Math.abs(value - viewport.targetZoom) < 0.0001));
+}
+
 export function validateNativeView(view) {
   object(view, ["schema", "sessionId", "sequence", "capturedAtUnixMs", "image", "state", "title", "summary", "people", "lastCommandSequence"], ["camera", "commandResult", "inspection", "panels", "viewport", "feeds", "study"]);
   requireValue(view.schema === "mousecat.native-view/1" && UUID.test(view.sessionId));
@@ -140,7 +152,7 @@ export function validateNativeView(view) {
     if (person.sections || person.events || person.cognition) requireValue(Boolean(view.inspection));
     if (Object.hasOwn(person, "cognition")) validateCognitionView(person.cognition, person.id, view.inspection?.worldHours);
     if (Object.hasOwn(person, "sections")) {
-      array(person.sections, 10); unique(person.sections.map(section => section.id));
+      array(person.sections, 16); unique(person.sections.map(section => section.id));
       for (const section of person.sections) {
         object(section, ["id", "label", "source", "perspective", "status", "message", "rows"]);
         string(section.id, 128, true); string(section.label, 160); string(section.source, 160); string(section.perspective, 160);
@@ -162,24 +174,21 @@ export function validateNativeView(view) {
   const ids = new Set(view.people.map(person => person.id)); requireValue(ids.size === view.people.length);
   if (Object.hasOwn(view, "feeds")) {
     array(view.feeds, 8); unique(view.feeds.map(feed => feed.id));
+    unique(view.feeds.filter(feed => Object.hasOwn(feed, "siteId")).map(feed => feed.siteId));
     for (const feed of view.feeds) {
-      object(feed, ["id", "label", "capturedAtUnixMs", "image", "camera"], ["overlay"]);
+      object(feed, ["id", "label", "capturedAtUnixMs", "image", "camera"], ["overlay", "siteId", "viewport"]);
       string(feed.id, 128, true); string(feed.label, 160, true); integer(feed.capturedAtUnixMs);
       requireValue(feed.capturedAtUnixMs <= view.capturedAtUnixMs);
       validateImageDescriptor(feed.image); validateCamera(feed.camera, ids);
+      if (Object.hasOwn(feed, "siteId")) requireValue(typeof feed.siteId === "string" && SITE_ID.test(feed.siteId));
+      if (Object.hasOwn(feed, "viewport")) { requireValue(Object.hasOwn(feed, "siteId")); validateViewport(feed.viewport); }
       if (Object.hasOwn(feed, "overlay")) {
         validateOverlay(feed.overlay, ids); requireValue(feed.overlay.capturedAtUnixMs <= feed.capturedAtUnixMs);
       }
     }
   }
   if (Object.hasOwn(view, "viewport")) {
-    const viewport = view.viewport;
-    object(viewport, ["zoom", "targetZoom", "zoomLevels"]); array(viewport.zoomLevels, 64);
-    requireValue(viewport.zoomLevels.length > 0);
-    for (const value of [viewport.zoom, viewport.targetZoom, ...viewport.zoomLevels]) requireValue(Number.isFinite(value) && value > 0 && value <= 16);
-    requireValue(viewport.zoomLevels.every((value, index, values) => index === 0 || value > values[index - 1]));
-    requireValue(viewport.zoom >= viewport.zoomLevels[0] - 0.0001 && viewport.zoom <= viewport.zoomLevels.at(-1) + 0.0001);
-    requireValue(viewport.zoomLevels.some(value => Math.abs(value - viewport.targetZoom) < 0.0001));
+    validateViewport(view.viewport);
   }
   if (Object.hasOwn(view, "camera")) {
     validateCamera(view.camera, ids);
@@ -302,7 +311,7 @@ export function createNativeViews(config = {}) {
   }
   async function publishCommand(id, payload) {
     const current = await snapshot(id), view = current.view;
-    object(payload, ["bindingId", "sessionId", "requestId", "action"], ["value", "dx", "dy", "personId", "panelId", "visible", "opponentShare", "opportunitiesPerHour", "maxDepth", "attemptDurationSeconds", "autoContinue"]);
+    object(payload, ["bindingId", "sessionId", "requestId", "action"], ["value", "dx", "dy", "personId", "panelId", "visible", "opponentShare", "opportunitiesPerHour", "maxDepth", "attemptDurationSeconds", "autoContinue", "siteId"]);
     requireValue(UUID.test(payload.requestId), "invalid-native-request");
     requireValue(payload.bindingId === current.binding.bindingId && payload.sessionId === view.sessionId, "native-binding-changed");
     const requestKey = `${payload.bindingId}:${payload.requestId}`;
@@ -317,9 +326,11 @@ export function createNativeViews(config = {}) {
     const lifecycle = ["checkpoint", "continue", "configure"].includes(payload.action);
     requireValue((view.state !== "ended" && (current.connection !== "disconnected" || view.state === "paused"))
       || (lifecycle && Boolean(view.study)), "native-view-not-live");
-    object(payload, ["bindingId", "sessionId", "requestId", "action", ...template.fields]);
+    object(payload, ["bindingId", "sessionId", "requestId", "action", ...template.fields], template.optionalFields || []);
+    const site = Object.hasOwn(payload, "siteId") ? view.feeds?.find(feed => feed.siteId === payload.siteId) : null;
+    if (Object.hasOwn(payload, "siteId")) requireValue(typeof payload.siteId === "string" && SITE_ID.test(payload.siteId) && Boolean(site), "native-site-unavailable");
     if (payload.action === "speed") requireValue([1, 2, 3].includes(payload.value), "invalid-native-speed");
-    if (payload.action === "zoom") requireValue([-1, 1].includes(payload.value) && Boolean(view.viewport), "invalid-native-zoom");
+    if (payload.action === "zoom") requireValue([-1, 1].includes(payload.value) && Boolean(site ? site.viewport : view.viewport), "invalid-native-zoom");
     if (payload.action === "pan") requireValue([payload.dx, payload.dy].every(value => Number.isInteger(value) && Math.abs(value) <= 8) && Boolean(payload.dx || payload.dy), "invalid-native-pan");
     if (template.fields.includes("personId")) requireValue(view.people.some(person => person.id === payload.personId), "native-person-unavailable");
     if (payload.action === "panel") requireValue(view.panels?.some(panel => panel.id === payload.panelId) && typeof payload.visible === "boolean", "native-panel-unavailable");
@@ -338,6 +349,7 @@ export function createNativeViews(config = {}) {
       integer(sequence, 1);
       const value = { schema: template.schema, sessionId: view.sessionId, sequence, action: template.action };
       for (const key of template.fields) value[key] = payload[key];
+      if (Object.hasOwn(payload, "siteId")) value.siteId = payload.siteId;
       const target = resolve(commands, `${String(sequence).padStart(16, "0")}.json`), temporary = resolve(commands, `.request-${randomUUID()}.tmp`);
       const handle = await open(temporary, "wx");
       try { await handle.writeFile(JSON.stringify(value) + "\n"); await handle.sync(); } finally { await handle.close(); }
@@ -353,7 +365,10 @@ export function createNativeViews(config = {}) {
         requireValue(existing.schema === template.schema && existing.sessionId === view.sessionId && existing.sequence === sequence, "native-command-collision");
         const priorTemplate = nativeViewCommandPack[existing.action];
         requireValue(priorTemplate?.operatorSafe === true, "native-command-collision");
-        object(existing, ["schema", "sessionId", "sequence", "action", ...priorTemplate.fields]);
+        object(existing, ["schema", "sessionId", "sequence", "action", ...priorTemplate.fields], priorTemplate.optionalFields || []);
+        // Historical queue identity remains valid when its advertised camera
+        // leaves the current snapshot. Only new requests require membership.
+        if (Object.hasOwn(existing, "siteId")) requireValue(typeof existing.siteId === "string" && SITE_ID.test(existing.siteId), "native-command-collision");
         if (existing.action === "speed") requireValue([1, 2, 3].includes(existing.value), "native-command-collision");
         if (existing.action === "zoom") requireValue([-1, 1].includes(existing.value), "native-command-collision");
         if (existing.action === "pan") requireValue([existing.dx, existing.dy].every(value => Number.isInteger(value) && Math.abs(value) <= 8) && Boolean(existing.dx || existing.dy), "native-command-collision");

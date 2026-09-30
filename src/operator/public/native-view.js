@@ -189,11 +189,44 @@ export function installNativeView(root) {
   let sessionDirty = false, sessionRequest = null;
   let registeredViews = [], registryCheckedAt = 0;
   const feedCards = new Map(), hiddenScreens = new Set(), mutedScreens = new Set();
-  let screenSignature = "", focusedScreen = null;
+  const cameraInputs = new Map();
+  let screenSignature = "", focusedScreen = null, cameraSite = null;
+
+  function currentCameraFeed() {
+    const feeds = current?.view.feeds || [];
+    return feeds.find(feed => feed.siteId && `site:${feed.siteId}` === focusedScreen)
+      || feeds.find(feed => feed.siteId && feed.siteId === cameraSite);
+  }
+
+  function cameraValues(action, values) {
+    if (!["pan", "zoom", "focus", "auto"].includes(action) || values.siteId) return values;
+    const feed = currentCameraFeed();
+    return feed ? { ...values, siteId: feed.siteId } : values;
+  }
+
+  function cameraViewport(values = {}) {
+    return values.siteId ? current?.view.feeds?.find(feed => feed.siteId === values.siteId)?.viewport
+      : currentCameraFeed()?.viewport || current?.view.viewport;
+  }
+
+  function refreshCameraContext() {
+    const view = current?.view, observed = currentCameraFeed()?.camera || view?.camera;
+    const names = (observed?.personIds || []).map(id => view.people.find(person => person.id === id)?.label).filter(Boolean);
+    cameraSubject.textContent = !observed ? "Camera state unavailable" : observed.mode === "automatic"
+      ? `Camera follows ${names.length ? names.join(", ") : "activity"}`
+      : `Camera: manual${names.length ? ` · ${names.join(", ")}` : ""}`;
+    cameraSummary.textContent = observed?.summary || "";
+  }
+
+  function removeFeedCard(value) {
+    cameraInputs.get(value.media)?.(); cameraInputs.delete(value.media); value.card.remove();
+  }
 
   function toggleScreenFocus(key) {
     focusedScreen = focusedScreen === key ? null : key;
+    if (key.startsWith("site:")) cameraSite = key.slice(5);
     if (current) renderFeeds(current);
+    freshness();
   }
 
   function toggleScreenInfo(key) {
@@ -329,7 +362,7 @@ export function installNativeView(root) {
     current = null; selected = null; explicitPerson = false; waiting = null; lastResult = null;
     peopleSignature = personSignature = cognitionSignature = imageKey = "";
     feedError = null; cognitionRequest = null; settingsDirty = false; sessionRequest = null; sessionDirty = false;
-    for (const value of feedCards.values()) value.card.remove();
+    for (const value of feedCards.values()) removeFeedCard(value);
     feedCards.clear(); hiddenScreens.clear(); mutedScreens.clear(); focusedScreen = null; screenSignature = ""; viewToggles.replaceChildren();
     panelGrid.dataset.focused = "false";
     primaryPanel.hidden = false; primaryLabel.textContent = "Current camera"; primaryAge.textContent = "No frame";
@@ -484,7 +517,9 @@ export function installNativeView(root) {
     const primaryName = primaryFeed?.label || cameraNames.join(", ") || "Current camera";
     const primaryDisplay = primaryName === "Current camera" ? primaryName : `Current: ${primaryName}`;
     const feeds = reported.filter(value => urls.has(value.id));
-    const slots = feeds.map((feed, index) => ({ feed, id: `slot:${index}`, key: `feed:${index}` }));
+    if (cameraSite && !feeds.some(feed => feed.siteId === cameraSite)) cameraSite = null;
+    if (!cameraSite) cameraSite = feeds.find(feed => feed.siteId)?.siteId || null;
+    const slots = feeds.map((feed, index) => ({ feed, id: feed.siteId ? `site:${feed.siteId}` : `slot:${index}`, key: feed.siteId ? `site:${feed.siteId}` : `feed:${index}` }));
     const screens = slots.length
       ? slots.map(({ feed, key }, index) => ({ key, label: index === 0 ? `Latest: ${feed.label}` : feed.label }))
       : [{ key: "current", label: primaryDisplay }];
@@ -499,7 +534,8 @@ export function installNativeView(root) {
     updatePanelTools(primaryToolsState, "current");
 
     const activeIds = new Set(slots.map(value => value.id));
-    for (const [id, value] of feedCards) if (!activeIds.has(id)) { value.card.remove(); feedCards.delete(id); }
+    for (const [id, value] of feedCards) if (!activeIds.has(id)) { removeFeedCard(value); feedCards.delete(id); }
+    let previousCard = primaryPanel;
     for (let index = 0; index < slots.length; index += 1) {
       const { feed, id, key: screenKey } = slots[index];
       let value = feedCards.get(id);
@@ -516,14 +552,40 @@ export function installNativeView(root) {
         const info = node("button", "Info", tools); info.type = "button";
         const focus = node("button", "Focus", tools); focus.type = "button";
         const hide = node("button", "Hide", tools); hide.type = "button";
-        value = { card, image, overlay, label, age, info, focus, hide, screenKey,
+        const cameraToggle = node("button", "Camera", tools); cameraToggle.type = "button";
+        const cameraTools = node("div", undefined, card, "native-controls"); cameraTools.hidden = true;
+        const cameraButtons = [];
+        const cameraButton = (label, action, values = {}) => {
+          const control = node("button", label, cameraTools, "button secondary-button"); control.type = "button";
+          control.dataset.cameraAction = action;
+          control.addEventListener("click", () => { cameraSite = value.siteId; void send(action, { ...values, siteId: value.siteId }); });
+          cameraButtons.push(control); return control;
+        };
+        const regionalOut = cameraButton("−", "zoom", { value: 1 }); regionalOut.setAttribute("aria-label", "Zoom this view out");
+        const regionalZoom = node("span", "", cameraTools);
+        const regionalIn = cameraButton("+", "zoom", { value: -1 }); regionalIn.setAttribute("aria-label", "Zoom this view in");
+        cameraButton("Follow activity", "auto");
+        for (const [label, dx, dy] of [["←", -8, 0], ["↑", 0, -8], ["↓", 0, 8], ["→", 8, 0]]) {
+          cameraButton(label, "pan", { dx, dy }).setAttribute("aria-label", `Move this view ${label}`);
+        }
+        value = { card, media, image, overlay, label, age, info, focus, hide, screenKey,
+          cameraToggle, cameraTools, cameraButtons, regionalOut, regionalIn, regionalZoom,
           key: "", capturedAtUnixMs: 0 }; feedCards.set(id, value);
         info.addEventListener("click", () => toggleScreenInfo(value.screenKey));
         focus.addEventListener("click", () => toggleScreenFocus(value.screenKey));
         hide.addEventListener("click", () => hideScreen(value.screenKey));
+        cameraToggle.addEventListener("click", () => {
+          cameraSite = value.siteId; cameraTools.hidden = !cameraTools.hidden;
+          cameraToggle.setAttribute("aria-expanded", String(!cameraTools.hidden)); freshness();
+        });
+        bindCameraInput(media, () => value.siteId);
       }
       const latest = index === 0;
       value.screenKey = screenKey;
+      value.siteId = feed.siteId || null;
+      value.cameraToggle.hidden = !feed.siteId;
+      if (!feed.siteId) value.cameraTools.hidden = true;
+      value.card.dataset.siteId = feed.siteId || "";
       value.label.textContent = latest ? `Latest: ${feed.label}` : feed.label;
       value.image.alt = `${latest ? "Latest" : "Recent"} native view: ${feed.label}`;
       value.capturedAtUnixMs = feed.capturedAtUnixMs;
@@ -537,10 +599,16 @@ export function installNativeView(root) {
           if (value.pendingKey === key) { value.image.src = candidate.src; value.key = key; value.pendingKey = ""; }
         }, () => { if (value.pendingKey === key) value.pendingKey = ""; });
       }
-      panelGrid.insertBefore(value.card, noScreens);
+      if (value.card.previousSibling !== previousCard) {
+        const focused = value.card.contains(document.activeElement) ? document.activeElement : null;
+        panelGrid.insertBefore(value.card, previousCard.nextSibling);
+        focused?.focus({ preventScroll: true });
+      }
+      previousCard = value.card;
     }
     noScreens.hidden = screens.some(screen => !hiddenScreens.has(screen.key));
-    panelGrid.append(noScreens); refreshFeedAges();
+    if (panelGrid.lastChild !== noScreens) panelGrid.append(noScreens);
+    refreshFeedAges();
   }
 
   function renderPerson() {
@@ -699,9 +767,24 @@ export function installNativeView(root) {
     if (!active || !current) return;
     refreshFeedAges();
     const view = current.view, age = Math.max(0, Date.now() - view.capturedAtUnixMs);
+    refreshCameraContext();
     const disconnected = view.state !== "ended" && view.state !== "paused"
       && (Boolean(feedError) || current.connection === "disconnected" || age >= 30000);
     const commandable = view.state !== "ended" && !feedError && !disconnected;
+    for (const value of feedCards.values()) {
+      const feed = view.feeds?.find(feed => feed.siteId && feed.siteId === value.siteId);
+      for (const control of value.cameraButtons) {
+        control.disabled = !commandable || posting || !feed;
+        if (control.dataset.cameraAction === "auto") control.setAttribute("aria-pressed", String(feed?.camera.mode === "automatic"));
+      }
+      value.regionalOut.hidden = value.regionalIn.hidden = value.regionalZoom.hidden = !feed?.viewport;
+      if (feed?.viewport) {
+        const { zoom, targetZoom, zoomLevels } = feed.viewport;
+        value.regionalZoom.textContent = `${Math.round(100 / zoom)}%`;
+        value.regionalOut.disabled ||= targetZoom >= zoomLevels.at(-1) - 0.0001;
+        value.regionalIn.disabled ||= targetZoom <= zoomLevels[0] + 0.0001;
+      }
+    }
     connection.textContent = feedError ? "Feed unavailable" : view.state === "ended"
       ? (view.study?.status === "saved" ? "Session saved" : "Run ended")
       : view.state === "paused" ? "Paused" : disconnected
@@ -723,10 +806,11 @@ export function installNativeView(root) {
     applyCognition.disabled = !commandable || posting || !view.people.find(person => person.id === selected)?.cognition
       || !settingsValid() || ["pending", "sending"].includes(cognitionRequest?.status);
     pause.textContent = view.state === "paused" ? "Resume" : "Pause";
-    automatic.setAttribute("aria-pressed", String(view.camera?.mode === "automatic"));
-    zoomControls.hidden = !view.viewport;
-    if (view.viewport) {
-      const { zoom, targetZoom, zoomLevels } = view.viewport;
+    automatic.setAttribute("aria-pressed", String((currentCameraFeed()?.camera || view.camera)?.mode === "automatic"));
+    const activeViewport = cameraViewport();
+    zoomControls.hidden = !activeViewport;
+    if (activeViewport) {
+      const { zoom, targetZoom, zoomLevels } = activeViewport;
       zoomLabel.textContent = Math.round(100 / zoom) + "%";
       zoomLabel.title = "Camera zoom " + zoom.toFixed(2) + "; target " + targetZoom.toFixed(2);
       zoomOut.disabled ||= targetZoom >= zoomLevels.at(-1) - 0.0001;
@@ -753,11 +837,7 @@ export function installNativeView(root) {
     setFreshnessTimer(view.state !== "ended" && next.connection !== "disconnected");
     title.textContent = next.binding.label || view.title;
     summary.textContent = view.summary;
-    const cameraNames = (view.camera?.personIds || []).map(id => view.people.find(person => person.id === id)?.label).filter(Boolean);
-    cameraSubject.textContent = !view.camera ? "Camera state unavailable" : view.camera.mode === "automatic"
-      ? `Camera follows ${cameraNames.length ? cameraNames.join(", ") : "activity"}`
-      : `Camera: manual${cameraNames.length ? ` · ${cameraNames.join(", ")}` : ""}`;
-    cameraSummary.textContent = view.camera?.summary || "";
+    refreshCameraContext();
     project.hidden = !next.binding.projectRef;
     project.href = "#projects?" + new URLSearchParams({ project: next.binding.projectRef || "" });
     if (!view.people.some(person => person.id === selected)) { selected = null; explicitPerson = false; }
@@ -775,6 +855,7 @@ export function installNativeView(root) {
   }
 
   async function send(action, values = {}) {
+    values = cameraValues(action, values);
     const age = current ? Date.now() - current.view.capturedAtUnixMs : Infinity;
     const lifecycle = action === "checkpoint" || action === "continue" || action === "configure";
     if (!active || !current || posting || (feedError && !lifecycle)
@@ -787,9 +868,9 @@ export function installNativeView(root) {
       updateSettings();
     }
     if (action === "zoom") {
-      const cameraViewport = current.view.viewport;
-      if (!cameraViewport || ![-1, 1].includes(values.value)) return;
-      const { targetZoom, zoomLevels } = cameraViewport;
+      const activeViewport = cameraViewport(values);
+      if (!activeViewport || ![-1, 1].includes(values.value)) return;
+      const { targetZoom, zoomLevels } = activeViewport;
       if ((values.value === 1 && targetZoom >= zoomLevels.at(-1) - 0.0001)
         || (values.value === -1 && targetZoom <= zoomLevels[0] + 0.0001)) return;
     }
@@ -828,29 +909,47 @@ export function installNativeView(root) {
     }
   }
 
-  viewport.addEventListener("keydown", event => {
-    const move = { ArrowLeft: [-8, 0], ArrowRight: [8, 0], ArrowUp: [0, -8], ArrowDown: [0, 8] }[event.key];
-    if (move) { event.preventDefault(); void send("pan", { dx: move[0], dy: move[1] }); }
-    if (event.code === "Space") { event.preventDefault(); void send("pause"); }
-    if (["-", "_", "+", "="].includes(event.key) && current?.view.viewport) { event.preventDefault(); void send("zoom", { value: ["-", "_"].includes(event.key) ? 1 : -1 }); }
-  });
-  let lastZoomAt = 0;
-  viewport.addEventListener("wheel", event => {
-    if (!current?.view.viewport || !event.deltaY) return;
-    event.preventDefault();
-    if (performance.now() - lastZoomAt < 150) return;
-    lastZoomAt = performance.now();
-    void send("zoom", { value: event.deltaY > 0 ? 1 : -1 });
-  }, { passive: false });
-  let drag = null;
-  viewport.addEventListener("pointerdown", event => { if (event.button === 0) { drag = [event.clientX, event.clientY]; viewport.focus(); } });
-  viewport.addEventListener("pointerup", event => {
-    if (!drag) return;
-    const dx = Math.max(-8, Math.min(8, Math.round((drag[0] - event.clientX) / 24)));
-    const dy = Math.max(-8, Math.min(8, Math.round((drag[1] - event.clientY) / 24))); drag = null;
-    if (dx || dy) void send("pan", { dx, dy });
-  });
-  viewport.addEventListener("pointerleave", () => { drag = null; });
+  function bindCameraInput(surface, getSiteId = () => null) {
+    // Bind to the actual image surface: regional media are siblings of the
+    // primary viewport, which is hidden when simultaneous feeds are present.
+    surface.tabIndex = 0;
+    surface.setAttribute("aria-label", "Native camera. Arrow keys move; wheel or plus and minus zoom; space pauses.");
+    const target = () => { const siteId = getSiteId(); if (siteId) cameraSite = siteId; return siteId ? { siteId } : {}; };
+    let lastZoomAt = 0, pointer = null;
+    cameraInputs.set(surface, () => {
+      const previous = pointer; pointer = null;
+      if (previous && surface.hasPointerCapture(previous.id)) surface.releasePointerCapture(previous.id);
+    });
+    surface.addEventListener("keydown", event => {
+      const move = { ArrowLeft: [-8, 0], ArrowRight: [8, 0], ArrowUp: [0, -8], ArrowDown: [0, 8] }[event.key];
+      if (move) { event.preventDefault(); void send("pan", { dx: move[0], dy: move[1], ...target() }); }
+      if (event.code === "Space") { event.preventDefault(); void send("pause"); }
+      if (["-", "_", "+", "="].includes(event.key) && cameraViewport(target())) {
+        event.preventDefault(); void send("zoom", { value: ["-", "_"].includes(event.key) ? 1 : -1, ...target() });
+      }
+    });
+    surface.addEventListener("wheel", event => {
+      const values = target();
+      if (!cameraViewport(values) || !event.deltaY) return;
+      event.preventDefault();
+      if (performance.now() - lastZoomAt < 150) return;
+      lastZoomAt = performance.now(); void send("zoom", { value: event.deltaY > 0 ? 1 : -1, ...values });
+    }, { passive: false });
+    surface.addEventListener("pointerdown", event => {
+      if (event.button !== 0 || event.target.closest("button, input, select, details")) return;
+      pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, values: target() };
+      surface.focus({ preventScroll: true }); surface.setPointerCapture(event.pointerId);
+    });
+    surface.addEventListener("pointerup", event => {
+      if (!pointer || pointer.id !== event.pointerId) return;
+      const start = pointer; pointer = null;
+      const dx = Math.max(-8, Math.min(8, Math.round((start.x - event.clientX) / 24)));
+      const dy = Math.max(-8, Math.min(8, Math.round((start.y - event.clientY) / 24)));
+      if (dx || dy) void send("pan", { dx, dy, ...start.values });
+    });
+    for (const event of ["pointercancel", "lostpointercapture"]) surface.addEventListener(event, () => { pointer = null; });
+  }
+  bindCameraInput(viewport);
 
   async function decodedImage(url, signal) {
     const image = new Image(); image.decoding = "async"; image.src = url;
@@ -920,7 +1019,8 @@ export function installNativeView(root) {
   }
   window.addEventListener("pagehide", () => close());
   function close() {
-    active = false; generation += 1; clearTimeout(timer); controller?.abort(); drag = null;
+    active = false; generation += 1; clearTimeout(timer); controller?.abort();
+    for (const clear of cameraInputs.values()) clear();
     postController?.abort(); postController = null; posting = false; setFreshnessTimer(false);
   }
   return {

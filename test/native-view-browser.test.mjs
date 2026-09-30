@@ -1,0 +1,111 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { mkdtemp, mkdir, readFile, readdir, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve, dirname, basename } from "node:path";
+import { createHash, randomUUID } from "node:crypto";
+import { deflateSync } from "node:zlib";
+import { chromium } from "playwright";
+import { startOperatorServer } from "../src/operator/server.mjs";
+
+function png(color) {
+  const chunk = (kind, bytes) => {
+    const content = Buffer.concat([Buffer.from(kind), bytes]); let crc = 0xffffffff;
+    for (const byte of content) { crc ^= byte; for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0); }
+    const length = Buffer.alloc(4), checksum = Buffer.alloc(4); length.writeUInt32BE(bytes.length); checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
+    return Buffer.concat([length, content, checksum]);
+  };
+  const header = Buffer.alloc(13); header.writeUInt32BE(1, 0); header.writeUInt32BE(1, 4); header[8] = 8; header[9] = 6;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header), chunk("IDAT", deflateSync(Buffer.from([0, ...color, 255]))), chunk("IEND", Buffer.alloc(0))]);
+}
+
+test("regional native tiles retain focus and route independent camera controls at four widths", {
+  skip: process.env.MOUSECAT_BROWSER_TEST !== "1" ? "run with MOUSECAT_BROWSER_TEST=1 for isolated browser acceptance" : false,
+}, async t => {
+  const parent = await mkdtemp(join(tmpdir(), "mousecat-regional-browser-"));
+  t.after(async () => { assert.equal(dirname(resolve(parent)), resolve(tmpdir())); assert.ok(basename(parent).startsWith("mousecat-regional-browser-")); await rm(parent, { recursive: true, force: true }); });
+  const producer = join(parent, "producer"), commands = join(producer, "commands"), registryPath = join(parent, "registry.json");
+  await mkdir(commands, { recursive: true });
+  const sessionId = randomUUID(), images = [];
+  for (const [index, color] of [[0, [120, 30, 20]], [1, [20, 110, 40]], [2, [20, 40, 130]]]) {
+    const bytes = png(color), file = `site-${index}.png`; await writeFile(join(producer, file), bytes);
+    images.push({ file, sha256: createHash("sha256").update(bytes).digest("hex"), width: 1, height: 1 });
+  }
+  const now = Date.now(), viewport = { zoom: 1, targetZoom: 1, zoomLevels: [0.5, 1, 2] };
+  const view = { schema: "mousecat.native-view/1", sessionId, sequence: 1, capturedAtUnixMs: now, image: images[0],
+    state: "running", title: "Regional camera test", summary: "Synthetic browser fixture.", people: ["Avery", "Blair", "Casey"].map((label, index) => ({ id: `person-${index + 1}`, label, summary: "Observed." })), lastCommandSequence: 0,
+    camera: { mode: "automatic", personIds: [], summary: "Shared world." },
+    feeds: ["residential", "services", "farm"].map((siteId, index) => ({ id: `site:${siteId}`, siteId, label: siteId,
+      capturedAtUnixMs: now, image: images[index], viewport: structuredClone(viewport), camera: { mode: "automatic", personIds: [`person-${index + 1}`], summary: siteId } })) };
+  const save = () => writeFile(join(producer, "latest.json"), JSON.stringify(view)); await save();
+  await writeFile(registryPath, JSON.stringify([{ id: "regional", label: "Regional fixture", directory: producer, sessionId }]));
+  const app = await startOperatorServer({ port: 0, nativeViews: { registryPath } }); t.after(() => app.close());
+  const browser = await chromium.launch(process.platform === "win32" ? { channel: "msedge" } : {}); t.after(() => browser.close());
+  const errors = [], output = resolve(".mousecat/browser-check"); await mkdir(output, { recursive: true });
+  for (const width of [1680, 760, 390, 320]) {
+    const context = await browser.newContext({ viewport: { width, height: 950 } }), page = await context.newPage();
+    page.on("pageerror", error => errors.push(error.message));
+    try {
+      view.sequence += 1; view.capturedAtUnixMs = Date.now();
+      for (const feed of view.feeds) feed.capturedAtUnixMs = view.capturedAtUnixMs;
+      await save();
+      await page.goto(app.url + "#native-view");
+      await page.locator('.native-feed-card[data-site-id="farm"]').waitFor({ state: "visible" });
+      const details = page.getByRole("button", { name: "Hide details", exact: true }); if (await details.isVisible()) await details.click();
+      const farm = page.locator('.native-feed-card[data-site-id="farm"]');
+      await farm.getByRole("button", { name: "Focus", exact: true }).click();
+      assert.equal(await page.locator(".native-camera strong").innerText(), "Camera follows Casey");
+      assert.equal(await page.locator(".native-camera span").innerText(), "farm");
+      await farm.getByRole("button", { name: "Camera", exact: true }).click();
+      assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 1);
+      const verify = async (action, operate) => {
+        const expected = view.lastCommandSequence + 1;
+        await operate();
+        try {
+          await page.waitForFunction(() => document.querySelector('.native-stage > .native-command-status')?.textContent.includes("awaiting"), null, { timeout: 3000 });
+        } catch (error) {
+          const diagnostic = await page.evaluate(() => ({ active: document.activeElement?.outerHTML.slice(0, 250), status: document.querySelector('.native-stage > .native-command-status')?.textContent }));
+          throw new Error(`Missing ${action} request: ${JSON.stringify({ errors, diagnostic })}`, { cause: error });
+        }
+        const files = (await readdir(commands)).filter(file => /^\d{16}\.json$/u.test(file)).sort();
+        const request = JSON.parse(await readFile(join(commands, files.at(-1)), "utf8"));
+        assert.equal(request.action, action); assert.equal(request.siteId, "farm"); assert.equal(request.sequence, expected);
+        view.lastCommandSequence = request.sequence; view.commandResult = { sequence: request.sequence, status: "applied", message: "Fixture acknowledged." };
+        view.sequence += 1; view.capturedAtUnixMs = Date.now();
+        for (const feed of view.feeds) feed.capturedAtUnixMs = view.capturedAtUnixMs;
+        await save(); await page.waitForFunction(() => document.querySelector('.native-stage > .native-command-status')?.textContent.includes("Fixture acknowledged"));
+      };
+      await verify("zoom", () => farm.getByRole("button", { name: "Zoom this view out", exact: true }).click());
+      await verify("pan", () => farm.getByRole("button", { name: "Move this view →", exact: true }).click());
+      await verify("auto", () => farm.getByRole("button", { name: "Follow activity", exact: true }).click());
+      const media = farm.locator(".native-panel-media");
+      await verify("pan", async () => { await media.focus(); await page.keyboard.press("ArrowLeft"); });
+      await verify("zoom", async () => { await media.hover(); await page.mouse.wheel(0, 100); });
+      await verify("pan", async () => {
+        const box = await media.boundingBox(), x = box.x + box.width / 2, y = box.y + box.height / 2;
+        await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + 70, y, { steps: 3 }); await page.mouse.up();
+      });
+      view.feeds.reverse(); view.sequence += 1; await save();
+      await page.waitForTimeout(200);
+      assert.equal(await farm.getByRole("button", { name: "Exit focus", exact: true }).isVisible(), true);
+      assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 1);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `overflow at ${width}`);
+      await page.screenshot({ path: join(output, `native-regional-${width}.png`) });
+      await farm.getByRole("button", { name: "Exit focus", exact: true }).click();
+      assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 3);
+      const regions = view.feeds; delete view.feeds; view.viewport = structuredClone(viewport); view.sequence += 1; await save();
+      await page.waitForFunction(() => document.querySelector(".native-observatory-primary")?.hidden === false);
+      const primary = page.locator(".native-observatory-primary .native-viewport"), box = await primary.boundingBox();
+      const x = box.x + box.width / 2, y = box.y + box.height / 2, before = (await readdir(commands)).length;
+      await page.mouse.move(x, y); await page.mouse.down();
+      await page.evaluate(() => { location.hash = "#questions"; });
+      await page.locator("#native-view-state").waitFor({ state: "hidden" });
+      await page.evaluate(() => { location.hash = "#native-view"; });
+      await page.locator("#native-view-state").waitFor({ state: "visible" });
+      await page.mouse.move(x + 72, y); await page.mouse.up(); await page.waitForTimeout(150);
+      assert.equal((await readdir(commands)).length, before, "closed primary drag leaked into a reopened view");
+      view.feeds = regions; delete view.viewport; view.sequence += 1; await save();
+    } finally { await context.close(); }
+  }
+  assert.deepEqual(errors, []);
+});

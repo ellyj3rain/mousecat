@@ -1,12 +1,18 @@
 | Document | Mousecat Session State |
 |---|---|
-| Version | 1.7.1.0-alpha |
-| Timestamp | 2026-09-29 22:47 UTC |
-| Status | ACTIVE - A21.4 closes public-release preparation. |
+| Version | 1.8.0.0-alpha |
+| Timestamp | 2026-09-30 06:01 UTC |
+| Status | ACTIVE - A22 adds native regional camera controls. |
 
 # Session State
 
 ## Current state
+
+A22 adds independently targeted camera tools for declared native regional feeds.
+Focus remains attached to the region across feed reordering. Existing native
+inspection now accepts its thirteen sections under a sixteen-section ceiling;
+row, event and byte bounds remain enforced. Browser acceptance covers zoom,
+pan, automatic following and retained focus at desktop and mobile widths.
 
 A21 through A21.4 make synthetic presentation testing cover actual project, comparison,
 evidence, history, draft and return flows. Evidence-bearing briefs remain visible,
@@ -32,21 +38,21 @@ uses a synthetic public fixture by default; source-derived exports remain local.
 
 | Surface | Standing |
 |---|---|
-| Source/version | A21; root 1.7.1.0-alpha, package 1.7.1-alpha. |
+| Source/version | A22; root 1.8.0.0-alpha, package 1.8.0-alpha. |
 | License | Ratified PolyForm Perimeter 1.0.0; source available with a noncompete restriction. |
 | Dependency notices | Full Lucide ISC/Feather MIT and WebView2 license/notice carried in source, npm and desktop outputs. |
 | UI acceptance | Isolated browser contracts cover four widths, three themes, evidence/history navigation, keyboard focus, preserved drafts and exact synthetic returns. |
-| Repository gate | Full local readiness passed 302 Node cases (300 pass, two Windows skips), runtime smokes, governance/docs/hygiene and zero dependency vulnerabilities. All six protected GitHub checks passed on the release changes. |
+| Repository gate | A22 full local readiness passed 305 Node cases (302 pass, two Windows skips and one opt-in browser skip), runtime smokes and governance/docs/hygiene. The explicit regional browser run passed at four widths. |
 | CodeQL | Private validation retains its SARIF report; public runs upload findings to Code Scanning. |
 | Privacy | The fresh release clone's main and both retained PR heads passed the historical boundary and credential scans. Excluded original commit/private blob lookups return 404 in the release repository. |
-| GitHub | ellyj3rain/mousecat is the clean release repository. Original history remains in a separate private, archived repository. Main enforces six required checks and disallows force pushes. Visibility remains private for the human's release action. |
+| GitHub | ellyj3rain/mousecat is the public clean release repository. Original history remains in a separate private, archived repository. Main enforces six required checks and disallows force pushes. |
 | Package | The actual npm archive has 66 files, complete notices/demo inputs and no forbidden inputs. Prepack rejects auto-selected local README documents before archive creation. |
 | npm publication | Namespace and publication remain separately operator-ratified; no package publication occurred. |
 
 ## Next work
 
-The human can change the clean repository's visibility. Continue live target-project
-workbench acceptance and retained review availability from this source. Operator
+Continue live target-project workbench acceptance and retained review availability
+from this source. Operator
 judgments remain independent from synthetic fixture answers and mechanical test
 success; package publication remains a separate action.
 
