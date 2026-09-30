@@ -9,6 +9,49 @@ import { createNativeViews, parseNativeJson, validateNativeView } from "../src/c
 import { validateCognitionView } from "../src/core/cognition-view.mjs";
 import { createMousecatRuntime } from "../src/core/runtime.mjs";
 import { startOperatorServer } from "../src/operator/server.mjs";
+import { createNativeImageDeliveryCounter, nativeSessionFacts } from "../src/operator/public/native-view.js";
+
+test("native image rate counts distinct accepted deliveries across primary and regional views once", () => {
+  const counter = createNativeImageDeliveryCounter();
+  counter.accept("binding:primary.png:hash-a"); counter.accept("binding:primary.png:hash-a");
+  counter.accept("binding:farm.png:hash-b");
+  assert.equal(counter.sample(2000), 1);
+  counter.accept("binding:primary.png:hash-a"); counter.accept("binding:farm.png:hash-b");
+  assert.equal(counter.sample(2000), 0, "unchanged rerenders counted as deliveries");
+  counter.accept("binding:farm-next.png:hash-c");
+  assert.equal(counter.sample(2000), 0.5, "regional-only update was missed");
+  counter.reset();
+  counter.accept("binding:farm-next.png:hash-c");
+  assert.equal(counter.sample(1000), 1, "new run reused the prior counter history");
+});
+
+test("failed native session displays its observed clock independently of zero validated time", () => {
+  const view = { state: "ended", inspection: { sequence: 410, worldHours: 2.475 },
+    study: { attempt: 1, status: "failed", worldHours: 0, accumulatedWorldHours: 0, attemptDurationSeconds: 7200, lastStopReason: "incomplete" } };
+  assert.equal(nativeSessionFacts(view), "Attempt 1 · failed · last observed world hour 2.475 · validated time 0.00 hr · 2 hr per attempt · incomplete");
+  assert.equal(view.study.worldHours, 0); assert.equal(view.study.accumulatedWorldHours, 0); assert.equal(view.study.status, "failed");
+});
+
+test("terminal session without an observed sample keeps that clock unknown", () => {
+  const view = { state: "ended", study: { attempt: 1, status: "failed", worldHours: 0, accumulatedWorldHours: 0, attemptDurationSeconds: 60 } };
+  assert.match(nativeSessionFacts(view), /last observed world hour unavailable · validated time 0\.00 hr/u);
+  view.inspection = { sequence: 0, worldHours: 0 };
+  assert.match(nativeSessionFacts(view), /last observed world hour unavailable/u);
+});
+
+test("saved native session retains distinct observed clock and validated duration", () => {
+  const view = { state: "ended", inspection: { sequence: 2, worldHours: 12.5 },
+    study: { attempt: 2, status: "saved", worldHours: 12.4, accumulatedWorldHours: 4.4, attemptDurationSeconds: 90 } };
+  assert.equal(nativeSessionFacts(view), "Attempt 2 · saved · last observed world hour 12.500 · validated time 4.40 hr · 1.5 min per attempt");
+});
+
+test("running native session uses its observed clock with recorded clock fallback", () => {
+  const view = { state: "running", inspection: { sequence: 2, worldHours: 2.475 },
+    study: { attempt: 1, status: "running", worldHours: 0, accumulatedWorldHours: 0, attemptDurationSeconds: 3600 } };
+  assert.equal(nativeSessionFacts(view), "Attempt 1 · running · world hour 2.48 · 1 hr per attempt");
+  delete view.inspection;
+  assert.equal(nativeSessionFacts(view), "Attempt 1 · running · world hour 0.00 · 1 hr per attempt");
+});
 
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
 const commandName = sequence => `${String(sequence).padStart(16, "0")}.json`;

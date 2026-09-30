@@ -1,12 +1,20 @@
 | Document | Mousecat Session State |
 |---|---|
 | Version | 1.8.0.0-alpha |
-| Timestamp | 2026-09-30 06:01 UTC |
-| Status | ACTIVE - A22 adds native regional camera controls. |
+| Timestamp | 2026-09-30 07:55 UTC |
+| Status | ACTIVE - A22.1 corrects native status, clocks and image delivery rate. |
 
 # Session State
 
 ## Current state
+
+A22.1 presents an ended feed as Run ended while preserving failed or saved study
+status. The last observed inspection world clock and validated accumulated time
+remain separate; a missing observation stays unknown. No source state or session
+commands change. Isolated browser checks cover terminal transitions, fixed frame
+timing and source-advertised continuation at four desktop/mobile widths.
+The aggregate images/s counter includes accepted regional deliveries, deduplicates
+shared image identities and excludes unchanged presentation rerenders.
 
 A22 adds independently targeted camera tools for declared native regional feeds.
 Focus remains attached to the region across feed reordering. Existing native
@@ -38,11 +46,11 @@ uses a synthetic public fixture by default; source-derived exports remain local.
 
 | Surface | Standing |
 |---|---|
-| Source/version | A22; root 1.8.0.0-alpha, package 1.8.0-alpha. |
+| Source/version | A22.1 presentation repair; root 1.8.0.0-alpha, package 1.8.0-alpha. |
 | License | Ratified PolyForm Perimeter 1.0.0; source available with a noncompete restriction. |
 | Dependency notices | Full Lucide ISC/Feather MIT and WebView2 license/notice carried in source, npm and desktop outputs. |
 | UI acceptance | Isolated browser contracts cover four widths, three themes, evidence/history navigation, keyboard focus, preserved drafts and exact synthetic returns. |
-| Repository gate | A22 full local readiness passed 305 Node cases (302 pass, two Windows skips and one opt-in browser skip), runtime smokes and governance/docs/hygiene. The explicit regional browser run passed at four widths. |
+| Repository gate | A22.1 full readiness passes 311 Node cases (307 pass, two Windows skips and two opt-in browser skips), runtime smokes and governance/docs/hygiene. Both explicit native browser checks pass at four widths, including regional-only delivery and terminal state. |
 | CodeQL | Private validation retains its SARIF report; public runs upload findings to Code Scanning. |
 | Privacy | The fresh release clone's main and both retained PR heads passed the historical boundary and credential scans. Excluded original commit/private blob lookups return 404 in the release repository. |
 | GitHub | ellyj3rain/mousecat is the public clean release repository. Original history remains in a separate private, archived repository. Main enforces six required checks and disallows force pushes. |

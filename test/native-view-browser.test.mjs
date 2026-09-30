@@ -85,6 +85,43 @@ test("regional native tiles retain focus and route independent camera controls a
         const box = await media.boundingBox(), x = box.x + box.width / 2, y = box.y + box.height / 2;
         await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x + 70, y, { steps: 3 }); await page.mouse.up();
       });
+      if (width === 1680) {
+        await page.waitForFunction(() => document.querySelector(".native-frame-state span:last-child")?.textContent === "0.0 images/s");
+        const primaryImage = await page.locator(".native-observatory-primary img").getAttribute("src");
+        const changed = png([150, 100, 30]), file = "farm-updated.png";
+        await writeFile(join(producer, file), changed);
+        view.feeds.find(feed => feed.siteId === "farm").image = { file, sha256: createHash("sha256").update(changed).digest("hex"), width: 1, height: 1 };
+        view.sequence += 1; view.capturedAtUnixMs = Date.now(); await save();
+        await page.waitForFunction(() => document.querySelector('[data-site-id="farm"] img')?.src.includes("farm-updated.png"));
+        await page.waitForFunction(() => parseFloat(document.querySelector(".native-frame-state span:last-child")?.textContent) > 0);
+        assert.equal(await page.locator(".native-observatory-primary img").getAttribute("src"), primaryImage, "rate fixture changed the primary image");
+        await farm.getByRole("button", { name: "Info", exact: true }).click();
+        await farm.getByRole("button", { name: "Info", exact: true }).click();
+        await page.waitForFunction(() => document.querySelector(".native-frame-state span:last-child")?.textContent === "0.0 images/s");
+        const feed = view.feeds.find(feed => feed.siteId === "farm"), loadedImage = feed.image;
+        const delayedBytes = png([20, 180, 80]), delayedFile = "farm-delayed.png";
+        await writeFile(join(producer, delayedFile), delayedBytes);
+        let release;
+        const permit = new Promise(resolve => { release = resolve; });
+        await page.route(/\/api\/native-views\/.+\/image\?/u, async route => {
+          if (new URL(route.request().url()).searchParams.get("file") === delayedFile) await permit;
+          await route.continue();
+        });
+        try {
+          const requested = page.waitForRequest(request => new URL(request.url()).searchParams.get("file") === delayedFile);
+          feed.image = { file: delayedFile, sha256: createHash("sha256").update(delayedBytes).digest("hex"), width: 1, height: 1 };
+          view.sequence += 1; await save(); await requested;
+          feed.image = loadedImage; feed.camera.summary = "Returned to the loaded image."; view.sequence += 1; await save();
+          await page.waitForFunction(() => document.querySelector(".native-camera span")?.textContent === "Returned to the loaded image.");
+          const completed = page.waitForResponse(response => new URL(response.url()).searchParams.get("file") === delayedFile);
+          release(); await (await completed).finished(); await page.waitForTimeout(150);
+          assert.ok((await farm.locator("img").getAttribute("src")).includes("farm-updated.png"), "superseded decode replaced the current regional image");
+          await page.waitForTimeout(2200);
+          assert.equal(await page.locator(".native-frame-state span:last-child").innerText(), "0.0 images/s", "superseded decode counted as a delivery");
+        } finally { release(); await page.unrouteAll(); }
+        feed.camera.summary = "farm"; view.sequence += 1; await save();
+        await page.waitForFunction(() => document.querySelector(".native-camera span")?.textContent === "farm");
+      }
       view.feeds.reverse(); view.sequence += 1; await save();
       await page.waitForTimeout(200);
       assert.equal(await farm.getByRole("button", { name: "Exit focus", exact: true }).isVisible(), true);
@@ -105,6 +142,67 @@ test("regional native tiles retain focus and route independent camera controls a
       await page.mouse.move(x + 72, y); await page.mouse.up(); await page.waitForTimeout(150);
       assert.equal((await readdir(commands)).length, before, "closed primary drag leaked into a reopened view");
       view.feeds = regions; delete view.viewport; view.sequence += 1; await save();
+    } finally { await context.close(); }
+  }
+  assert.deepEqual(errors, []);
+});
+
+test("native terminal display preserves failure, observed time and source-owned continuation at four widths", {
+  skip: process.env.MOUSECAT_BROWSER_TEST !== "1" ? "run with MOUSECAT_BROWSER_TEST=1 for isolated browser acceptance" : false,
+}, async t => {
+  const parent = await mkdtemp(join(tmpdir(), "mousecat-terminal-browser-"));
+  t.after(async () => { assert.equal(dirname(resolve(parent)), resolve(tmpdir())); assert.ok(basename(parent).startsWith("mousecat-terminal-browser-")); await rm(parent, { recursive: true, force: true }); });
+  const producer = join(parent, "producer"), commands = join(producer, "commands"), registryPath = join(parent, "registry.json");
+  await mkdir(commands, { recursive: true });
+  const sessionId = randomUUID(), now = Date.now(), bytes = png([70, 100, 130]);
+  await writeFile(join(producer, "frame.png"), bytes);
+  const view = { schema: "mousecat.native-view/1", sessionId, sequence: 1, capturedAtUnixMs: now,
+    image: { file: "frame.png", sha256: createHash("sha256").update(bytes).digest("hex"), width: 1, height: 1 },
+    state: "running", title: "Terminal display test", summary: "Synthetic terminal fixture.", people: [], lastCommandSequence: 0,
+    camera: { mode: "automatic", personIds: [], summary: "Observed world." },
+    inspection: { sequence: 1, capturedAtUnixMs: now, worldHours: 2.475, status: "available", message: "", omittedPeople: 0, omittedEvents: 0 },
+    study: { id: randomUUID(), label: "Terminal fixture", status: "running", attempt: 1, attemptDurationSeconds: 7200,
+      autoContinue: false, worldHours: 0, accumulatedWorldHours: 0, canCheckpoint: true, canContinue: false, updatedAtUnixMs: now, lastStopReason: "" } };
+  const save = async () => { view.sequence += 1; await writeFile(join(producer, "latest.json"), JSON.stringify(view)); };
+  await save();
+  await writeFile(registryPath, JSON.stringify([{ id: "terminal", label: "Terminal fixture", directory: producer, sessionId }]));
+  const app = await startOperatorServer({ port: 0, nativeViews: { registryPath } }); t.after(() => app.close());
+  const browser = await chromium.launch(process.platform === "win32" ? { channel: "msedge" } : {}); t.after(() => browser.close());
+  const errors = [], output = resolve(".mousecat/browser-check"); await mkdir(output, { recursive: true });
+  for (const width of [1680, 760, 390, 320]) {
+    const context = await browser.newContext({ viewport: { width, height: 950 } }), page = await context.newPage();
+    page.on("pageerror", error => errors.push(error.message));
+    try {
+      view.state = "running"; view.capturedAtUnixMs = Date.now();
+      view.inspection = { sequence: view.sequence, capturedAtUnixMs: view.capturedAtUnixMs, worldHours: 2.475, status: "available", message: "", omittedPeople: 0, omittedEvents: 0 };
+      Object.assign(view.study, { status: "running", worldHours: 0, accumulatedWorldHours: 0, canCheckpoint: true, canContinue: false, lastStopReason: "", reviewStatus: "not-eligible", reviewMessage: "Synthetic run has no verified outcomes." });
+      await save(); await page.goto(app.url + "#native-view");
+      await page.getByRole("button", { name: "Save session", exact: true }).waitFor({ state: "visible" });
+      assert.match(await page.locator(".native-session-facts").innerText(), /running · world hour 2\.48/u);
+      view.state = "ended";
+      Object.assign(view.study, { status: "failed", canCheckpoint: false, lastStopReason: "incomplete" });
+      await save();
+      await page.waitForFunction(() => document.querySelector(".native-session-facts")?.textContent.includes("failed · last observed world hour 2.475"));
+      assert.match(await page.locator(".native-session-facts").innerText(), /validated time 0\.00 hr.*incomplete/u);
+      assert.equal(await page.getByText("Run complete", { exact: true }).count(), 0);
+      await page.getByText("Run ended", { exact: true }).last().waitFor({ state: "visible" });
+      assert.equal(await page.getByRole("button", { name: "Save session", exact: true }).isVisible(), false);
+      assert.equal(await page.getByRole("button", { name: "Continue session", exact: true }).isVisible(), false);
+      assert.equal(await page.getByRole("button", { name: "Pause", exact: true }).isDisabled(), true);
+      const finalFrame = await page.locator(".native-frame-state").innerText();
+      await page.waitForTimeout(1100);
+      assert.equal(await page.locator(".native-frame-state").innerText(), finalFrame, "terminal frame timer continued");
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `terminal overflow at ${width}`);
+      await page.locator(".native-session-bar").scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `native-terminal-${width}.png`), fullPage: true });
+      Object.assign(view.study, { status: "saved", canContinue: true, accumulatedWorldHours: 0.475, worldHours: 2.475, lastStopReason: "checkpoint" });
+      await save(); await page.getByText("Session saved", { exact: true }).waitFor({ state: "visible" });
+      assert.equal(await page.getByRole("button", { name: "Continue session", exact: true }).isEnabled(), true);
+      assert.match(await page.locator(".native-session-facts").innerText(), /saved · last observed world hour 2\.475 · validated time 0\.47 hr/u);
+      delete view.inspection;
+      await save();
+      await page.waitForFunction(() => document.querySelector(".native-session-facts")?.textContent.includes("last observed world hour unavailable"));
+      assert.equal((await readdir(commands)).length, 0, "terminal presentation wrote a native command");
     } finally { await context.close(); }
   }
   assert.deepEqual(errors, []);

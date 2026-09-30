@@ -57,6 +57,15 @@ except for source-advertised configuration or continuation. Same-origin requests
 become immutable consecutive command files; publication and source application
 are separate acknowledgements.
 
+An ended view says Run ended. Its study strip keeps the source status and stop
+reason, presents the last observed inspection world clock separately from
+validated accumulated time, and leaves the observed clock unknown when no sample
+exists. The final-frame clock remains part of the producer's source summary.
+The aggregate images/s metric counts successfully accepted primary and regional
+image identities once, with bounded recent deduplication and per-run reset.
+Presentation rerenders leave the count unchanged; this metric measures image
+delivery rather than engine frame rate.
+
 ## Flow
 
 Appearance is a client-owned preference. `src/operator/public/appearance.js`

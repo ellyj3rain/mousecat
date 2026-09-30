@@ -622,3 +622,23 @@ views could retain the wrong screen or target the primary camera.
 event and byte budgets. Declared native site identity now follows regional
 focus and the allowlisted camera verbs. Source and browser contracts verify
 exact queue targeting, inspection bounds and stable focus at four widths.
+
+## F-067 | 2026-09-30 07:55 UTC / 00:55 PDT | Ended feeds implied completion and lost the observed clock
+
+*Severity:* Medium
+
+*Finding:* The terminal footer called every ended feed complete. A failed study
+with zero validated time displayed its recorded zero world hour even when a
+later native inspection clock remained available, obscuring the actual observed
+state and implying a stronger outcome than the producer established. Accepted
+regional images were omitted from the displayed image delivery rate.
+
+*Resolution:* A22.1 says Run ended, preserves the source status and stop reason,
+and separately labels last observed world hour and validated time. No sample
+means an unknown observed clock. Direct formatting and real browser checks cover
+failed, saved and missing-sample states without writing a native command.
+The rate counter now includes successful regional decodes, deduplicates shared
+identities and resets per run. A browser update of only one regional image
+verifies positive delivery followed by zero for unchanged rerenders.
+Superseded pending decodes are invalidated even when the latest source returns
+to its already loaded image; a held browser response verifies that boundary.
