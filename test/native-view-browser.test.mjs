@@ -56,6 +56,9 @@ test("regional native tiles retain focus and route independent camera controls a
         const card = page.locator(`.native-feed-card[data-site-id="${feed.siteId}"]`);
         assert.equal(await card.locator('.native-panel-meta strong').innerText(), feed.label);
         assert.equal(await card.locator('img').getAttribute('alt'), `Native view: ${feed.label}`);
+        for (const selector of ['.native-feed-subject', '.native-feed-age']) {
+          assert.equal(await card.locator(selector).evaluate(element => getComputedStyle(element).whiteSpace), 'normal', `docked caption clipped at ${width}`);
+        }
       }
       const details = page.getByRole("button", { name: "Hide details", exact: true }); if (await details.isVisible()) await details.click();
       const popout = page.waitForEvent("popup");

@@ -2186,3 +2186,6 @@ enabled. Reopening its existing profile preserves the review count, zero drafts,
 session receipt, saved-session state and desktop configuration. The service
 remains running throughout; native simulation commands are not issued by this
 presentation acceptance.
+
+Final regression assertions check subject/status wrapping in both docked and
+detached captions; both browser suites pass again at all four widths.
