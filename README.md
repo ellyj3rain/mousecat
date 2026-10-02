@@ -236,11 +236,15 @@ panel size, information opacity and visible data groups persist in the client
 profile. Every screen keeps its frame age visible.
 
 Simultaneous source-declared regional feeds may supply a stable `siteId` and
-native viewport. Each regional tile exposes its own camera tools on demand;
+native viewport. Regional tiles retain their positions when the producer reorders
+its reports. Their captions name the region and observed camera subject; frame
+ages describe the displayed image, including while a replacement loads or fails.
+Each regional tile exposes its own camera tools on demand;
 zoom, pan and activity-follow requests carry that declared site identity. Focus
 opens that feed in a movable, resizable window. Redock or closing its window
 returns the same live tile to the observatory. The region remains stable when
 feeds reorder, and keyboard, drag and wheel controls use its declared camera.
+The shared camera controls identify their selected region above the feeds.
 Tools reveal information, visibility and camera controls when needed; View
 settings holds shared sizing and overlay preferences. Native inspection retains up to
 sixteen source sections, including the existing thirteen-section projection.

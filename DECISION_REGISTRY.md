@@ -705,3 +705,17 @@ the owned service record. Equivalent separators retain the same location;
 foreign roots and persistence paths retain refusal. Each native popup request
 completes its deferral once through Dispose. These corrections preserve the
 existing feed-window contract and persistent runtime authority.
+
+## [A23.2] - Simultaneous cameras retain stable and truthful presentation
+
+*Timestamp:* 2026-10-02 21:43 UTC / 14:43 PDT
+
+The operator approved the identified simulation legibility and function repairs.
+Regional camera identity determines tile continuity; incoming report order does
+not assign temporal rank to simultaneous views. Source labels identify each
+region and observed subject, and shared controls identify their selected camera.
+Image decoding owns the presentation handoff: the displayed frame retains its
+person labels, timestamp and overlay until the replacement image is available.
+Delivery failure remains visible while the previous frame stays inspectable.
+These repairs use the existing viewer and command contracts; simulation state
+and session lifecycle remain producer-owned.

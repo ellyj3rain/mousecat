@@ -51,6 +51,15 @@ test("regional native tiles retain focus and route independent camera controls a
       await save();
       await page.goto(app.url + "#native-view");
       await page.locator('.native-feed-card[data-site-id="farm"]').waitFor({ state: "visible" });
+      const cameraOrder = await page.locator('.native-feed-card').evaluateAll(cards => cards.map(card => card.dataset.siteId));
+      for (const feed of view.feeds) {
+        const card = page.locator(`.native-feed-card[data-site-id="${feed.siteId}"]`);
+        assert.equal(await card.locator('.native-panel-meta strong').innerText(), feed.label);
+        assert.equal(await card.locator('img').getAttribute('alt'), `Native view: ${feed.label}`);
+        for (const selector of ['.native-feed-subject', '.native-feed-age']) {
+          assert.equal(await card.locator(selector).evaluate(element => getComputedStyle(element).whiteSpace), 'normal', `docked caption clipped at ${width}`);
+        }
+      }
       const details = page.getByRole("button", { name: "Hide details", exact: true }); if (await details.isVisible()) await details.click();
       const popout = page.waitForEvent("popup");
       await page.locator('.native-feed-card[data-site-id="farm"]').getByRole("button", { name: "Focus", exact: true }).click();
@@ -63,7 +72,8 @@ test("regional native tiles retain focus and route independent camera controls a
       const farm = detached.locator('.native-feed-card[data-site-id="farm"]');
       await farm.waitFor({ state: "visible" });
       await farm.locator(".native-panel-menu > summary").click();
-      assert.equal(await page.locator(".native-camera strong").innerText(), "Camera follows Casey");
+      assert.equal(await page.locator(".native-camera strong").innerText(), "farm · Camera follows Casey");
+      assert.equal(await farm.locator('.native-feed-subject').innerText(), 'Following Casey');
       assert.equal(await page.locator(".native-camera span").innerText(), "farm");
       await farm.getByRole("button", { name: "Camera", exact: true }).click();
       assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 2);
@@ -119,7 +129,18 @@ test("regional native tiles retain focus and route independent camera controls a
         try {
           const requested = page.waitForRequest(request => new URL(request.url()).searchParams.get("file") === delayedFile);
           feed.image = { file: delayedFile, sha256: createHash("sha256").update(delayedBytes).digest("hex"), width: 1, height: 1 };
+          const loadedTime = feed.capturedAtUnixMs;
+          feed.capturedAtUnixMs = view.capturedAtUnixMs = Date.now(); feed.camera.personIds = ['person-1'];
+          view.people[2].label = 'Changed name in pending snapshot';
+          feed.overlay = { personId: 'person-1', capturedAtUnixMs: feed.capturedAtUnixMs,
+            groups: [{ id: 'attention', label: 'Attention', rows: [{ label: 'State', value: 'Pending frame state' }] }] };
           view.sequence += 1; await save(); await requested;
+          await farm.locator('.native-feed-age').filter({ hasText: 'Loading image' }).waitFor();
+          assert.equal(await farm.locator('.native-feed-subject').innerText(), 'Following Casey', 'undecoded image changed the displayed subject');
+          assert.equal(await farm.locator('.native-feed-age').getAttribute('title'), new Date(loadedTime).toISOString(), 'undecoded image changed the displayed time');
+          assert.equal(await farm.locator('.native-panel-telemetry').innerText(), '', 'undecoded image changed the displayed overlay');
+          feed.capturedAtUnixMs = loadedTime; feed.camera.personIds = ['person-3']; delete feed.overlay;
+          view.people[2].label = 'Casey';
           feed.image = loadedImage; feed.camera.summary = "Returned to the loaded image."; view.sequence += 1; await save();
           await page.waitForFunction(() => document.querySelector(".native-camera span")?.textContent === "Returned to the loaded image.");
           const completed = page.waitForResponse(response => new URL(response.url()).searchParams.get("file") === delayedFile);
@@ -128,6 +149,33 @@ test("regional native tiles retain focus and route independent camera controls a
           await page.waitForTimeout(2200);
           assert.equal(await page.locator(".native-frame-state span:last-child").innerText(), "0.0 images/s", "superseded decode counted as a delivery");
         } finally { release(); await page.unrouteAll(); }
+        const displayedTime = feed.capturedAtUnixMs;
+        feed.overlay = { personId: 'person-3', capturedAtUnixMs: displayedTime,
+          groups: [{ id: 'attention', label: 'Attention', rows: [{ label: 'State', value: 'Displayed frame state' }] }] };
+        view.sequence += 1; await save();
+        await farm.locator('.native-panel-telemetry').filter({ hasText: 'Displayed frame state' }).waitFor();
+        await page.route(/\/api\/native-views\/.+\/image\?/u, async route => {
+          if (new URL(route.request().url()).searchParams.get('file') === delayedFile) await route.fulfill({ status: 503, body: 'Unavailable' });
+          else await route.continue();
+        });
+        try {
+          feed.image = { file: delayedFile, sha256: createHash('sha256').update(delayedBytes).digest('hex'), width: 1, height: 1 };
+          feed.capturedAtUnixMs = view.capturedAtUnixMs = Date.now(); feed.camera.personIds = ['person-1'];
+          view.people[2].label = 'Changed during failed image';
+          feed.overlay = { personId: 'person-1', capturedAtUnixMs: feed.capturedAtUnixMs,
+            groups: [{ id: 'attention', label: 'Attention', rows: [{ label: 'State', value: 'Replacement frame state' }] }] };
+          view.sequence += 1; await save();
+          await farm.locator('.native-feed-age').filter({ hasText: 'Image unavailable' }).waitFor();
+          assert.equal(await farm.locator('.native-feed-subject').innerText(), 'Following Casey');
+          assert.equal(await farm.locator('.native-feed-age').getAttribute('title'), new Date(displayedTime).toISOString());
+          assert.match(await farm.locator('.native-panel-telemetry').innerText(), /Displayed frame state/u);
+        } finally { await page.unrouteAll(); }
+        view.sequence += 1; await save();
+        await farm.locator('.native-panel-telemetry').filter({ hasText: 'Replacement frame state' }).waitFor();
+        assert.ok((await farm.locator('img').getAttribute('src')).includes(delayedFile));
+        assert.equal(await farm.locator('.native-feed-subject').innerText(), 'Following Avery');
+        assert.equal(await farm.locator('.native-feed-age').getAttribute('title'), new Date(feed.capturedAtUnixMs).toISOString());
+        view.people[2].label = 'Casey'; feed.camera.personIds = ['person-3']; delete feed.overlay;
         feed.camera.summary = "farm"; view.sequence += 1; await save();
         await page.waitForFunction(() => document.querySelector(".native-camera span")?.textContent === "farm");
       }
@@ -139,10 +187,13 @@ test("regional native tiles retain focus and route independent camera controls a
       await page.screenshot({ path: join(output, `native-regional-${width}.png`) });
       assert.deepEqual(detachedRequests, [], "detached document created another API/observation owner");
       assert.equal(await detached.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `detached overflow at ${width}`);
+      assert.equal(await farm.locator('.native-feed-subject').evaluate(element => getComputedStyle(element).whiteSpace), 'normal', `subject clipped at ${width}`);
+      assert.equal(await farm.locator('.native-feed-age').evaluate(element => getComputedStyle(element).whiteSpace), 'normal', `image status clipped at ${width}`);
       await detached.screenshot({ path: join(output, `native-detached-${width}.png`) });
       const redocked = detached.waitForEvent("close");
       await farm.getByRole("button", { name: "Redock", exact: true }).click(); await redocked;
       assert.equal(await page.locator('.native-feed-card:not([hidden])').count(), 3);
+      assert.deepEqual(await page.locator('.native-feed-card').evaluateAll(cards => cards.map(card => card.dataset.siteId)), cameraOrder, 'producer reordering moved regional cameras');
       if (width === 1680) {
         const openFarm = async () => {
           const opened = page.waitForEvent("popup");
