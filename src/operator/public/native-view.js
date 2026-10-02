@@ -1054,7 +1054,8 @@ export function installNativeView(root) {
 
   async function poll(expected) {
     if (!active || expected !== generation) return;
-    let delay = 10;
+    // Yield after each completed request; source/network/decode readiness owns cadence.
+    let delay = 0;
     controller = new AbortController();
     const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]);
     try {

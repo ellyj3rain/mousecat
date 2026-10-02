@@ -1,12 +1,17 @@
 | Document | Mousecat Session State |
 |---|---|
 | Version | 1.9.0.0-alpha |
-| Timestamp | 2026-10-02 21:43 UTC |
-| Status | ACTIVE - A23.2 clarifies simultaneous camera feeds and displayed-frame state. |
+| Timestamp | 2026-10-02 22:44 UTC |
+| Status | ACTIVE - A23.3 removes the active feed's added polling delay. |
 
 # Session State
 
 ## Current state
+
+A23.3 yields to the browser scheduler immediately after each completed live
+snapshot request. One sequential poller still owns delivery; failure and ended
+state backoff remain. Actual delivery depends on producer, transport, decoding
+and display scheduling. This change makes no achieved-FPS claim.
 
 A23.2 keeps regional tiles in stable positions and names each region without
 ranking simultaneous cameras as latest or recent. Captions identify the observed

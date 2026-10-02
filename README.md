@@ -22,6 +22,9 @@ of the human response. Recorded scene-preview data remains validated and retaine
 with explicit provenance; the retired schematic renderer is not presented as a
 live simulation. The Simulation view displays actual producer-supplied native
 frames and source-timed information, with adjustable panels and per-camera tools.
+The live viewer requests its next snapshot after the previous request completes
+and yields to the browser scheduler. Producer and decoding speed determine
+delivery; the images/s counter measures accepted images rather than game FPS.
 
 ## Quick Start
 
