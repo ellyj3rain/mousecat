@@ -2158,3 +2158,31 @@ fails for the observed COM error. Desktop contracts pass 38 cases; audit reports
 zero vulnerabilities. Initial concurrent runs retained unrelated temporary-file
 cleanup and fixture-age failures; the final required gate and sequential browser
 run pass without changing those product or fixture semantics.
+
+## [A23.2] - Clear simultaneous camera feeds
+
+*Timestamp:* 2026-10-02 21:43 UTC / 14:43 PDT
+
+Regional tiles preserve their positions across producer reordering and use
+source region names throughout captions, view toggles and image descriptions.
+Captions identify the displayed camera subject, while the shared controls name
+their selected region. The displayed image retains its timestamp, person labels
+and overlay until its replacement decodes successfully. Failed image delivery
+retains those facts and exposes the image failure. Narrow captions wrap names
+and image status. Source state, native commands and saved-world data retain
+their existing owners. Version remains 1.9.0.0-alpha for this presentation repair.
+
+Review corrected the person-label context retained during pending decoding and
+an existing compact-caption rule that overrode wrapping. Browser coverage checks
+producer reorder, delayed and superseded decoding, failed image delivery and
+recovery, detached-window controls and source-owned terminal continuation at
+1680, 760, 390 and 320 pixels. Generated acceptance evidence stays ignored.
+
+Final readiness passes 312 Node cases (307 pass, five environment-gated skips),
+the classifier tests, runtime smokes and governance/docs/hygiene checks. Both
+explicit browser suites pass at all four widths; the dependency audit is clear.
+The installed desktop displays both updated regional captions with continuation
+enabled. Reopening its existing profile preserves the review count, zero drafts,
+session receipt, saved-session state and desktop configuration. The service
+remains running throughout; native simulation commands are not issued by this
+presentation acceptance.

@@ -265,11 +265,11 @@ export function installNativeView(root) {
   }
 
   function refreshCameraContext() {
-    const view = current?.view, observed = currentCameraFeed()?.camera || view?.camera;
+    const view = current?.view, feed = currentCameraFeed(), observed = feed?.camera || view?.camera;
     const names = (observed?.personIds || []).map(id => view.people.find(person => person.id === id)?.label).filter(Boolean);
-    cameraSubject.textContent = !observed ? "Camera state unavailable" : observed.mode === "automatic"
+    cameraSubject.textContent = (feed ? `${feed.label} · ` : "") + (!observed ? "Camera state unavailable" : observed.mode === "automatic"
       ? `Camera follows ${names.length ? names.join(", ") : "activity"}`
-      : `Camera: manual${names.length ? ` · ${names.join(", ")}` : ""}`;
+      : `Camera: manual${names.length ? ` · ${names.join(", ")}` : ""}`);
     cameraSummary.textContent = observed?.summary || "";
   }
 
@@ -561,7 +561,19 @@ export function installNativeView(root) {
 
   function refreshFeedAges() {
     if (current) primaryAge.textContent = ageText(current.view.capturedAtUnixMs);
-    for (const value of feedCards.values()) value.age.textContent = ageText(value.capturedAtUnixMs);
+    for (const value of feedCards.values()) {
+      const age = value.displayedFeed ? ageText(value.displayedFeed.capturedAtUnixMs) : "No frame";
+      value.age.textContent = `${age}${value.imageError ? " · Image unavailable" : value.pendingKey ? " · Loading image" : ""}`;
+      value.age.title = value.displayedFeed ? new Date(value.displayedFeed.capturedAtUnixMs).toISOString() : "";
+    }
+  }
+
+  function renderFeedFrame(value) {
+    const feed = value.displayedFeed;
+    const names = value.displayedNames || [];
+    value.subject.textContent = !feed ? "Waiting for image" : feed.camera.mode === "automatic"
+      ? `Following ${names.length ? names.join(", ") : "activity"}` : `Manual camera${names.length ? ` · ${names.join(", ")}` : ""}`;
+    renderOverlay(value.overlay, feed?.overlay, feed?.capturedAtUnixMs, value.screenKey);
   }
 
   function renderFeeds(next) {
@@ -575,8 +587,14 @@ export function installNativeView(root) {
     if (cameraSite && !feeds.some(feed => feed.siteId === cameraSite)) cameraSite = null;
     if (!cameraSite) cameraSite = feeds.find(feed => feed.siteId)?.siteId || null;
     const slots = feeds.map(feed => ({ feed, id: feed.siteId ? `site:${feed.siteId}` : `feed:${feed.id}`, key: feed.siteId ? `site:${feed.siteId}` : `feed:${feed.id}` }));
+    // Regional cameras retain their places even when the producer reports the
+    // newest image first. Historical feeds keep the producer's sequence.
+    const positions = new Map([...feedCards.keys()].map((key, index) => [key, index]));
+    const regions = slots.filter(slot => slot.feed.siteId).sort((a, b) => (positions.get(a.id) ?? Infinity) - (positions.get(b.id) ?? Infinity));
+    let regionIndex = 0;
+    for (let index = 0; index < slots.length; index += 1) if (slots[index].feed.siteId) slots[index] = regions[regionIndex++];
     const screens = slots.length
-      ? slots.map(({ feed, key }, index) => ({ key, label: index === 0 ? `Latest: ${feed.label}` : feed.label }))
+      ? slots.map(({ feed, key }) => ({ key, label: feed.label }))
       : [{ key: "current", label: primaryDisplay }];
     feedWindows.reconcile(next.binding.bindingId, new Set(screens.map(screen => screen.key)));
     renderViewToggles(screens);
@@ -600,7 +618,7 @@ export function installNativeView(root) {
         const overlay = node("div", undefined, media, "native-panel-telemetry"); overlay.hidden = true;
         const caption = node("div", undefined, card, "native-panel-caption");
         const meta = node("div", undefined, caption, "native-panel-meta");
-        const label = node("strong", "", meta), age = node("span", "", meta);
+        const label = node("strong", "", meta), subject = node("span", "", meta, "native-feed-subject"), age = node("span", "", meta, "native-feed-age");
         const { info, focus, hide, cameraToggle } = panelTools(caption, true);
         const cameraTools = node("div", undefined, card, "native-controls"); cameraTools.hidden = true;
         const cameraButtons = [];
@@ -617,9 +635,9 @@ export function installNativeView(root) {
         for (const [label, dx, dy] of [["←", -8, 0], ["↑", 0, -8], ["↓", 0, 8], ["→", 8, 0]]) {
           cameraButton(label, "pan", { dx, dy }).setAttribute("aria-label", `Move this view ${label}`);
         }
-        value = { card, media, image, overlay, label, age, info, focus, hide, screenKey,
+        value = { card, media, image, overlay, label, subject, age, info, focus, hide, screenKey,
           cameraToggle, cameraTools, cameraButtons, regionalOut, regionalIn, regionalZoom,
-          key: "", capturedAtUnixMs: 0 }; feedCards.set(id, value);
+          key: "" }; feedCards.set(id, value);
         info.addEventListener("click", () => toggleScreenInfo(value.screenKey));
         focus.addEventListener("click", () => toggleScreenFocus(value.screenKey));
         hide.addEventListener("click", () => hideScreen(value.screenKey));
@@ -629,29 +647,36 @@ export function installNativeView(root) {
         });
         bindCameraInput(media, () => value.siteId);
       }
-      const latest = index === 0;
       value.screenKey = screenKey;
       value.siteId = feed.siteId || null;
       value.cameraToggle.hidden = !feed.siteId;
       if (!feed.siteId) value.cameraTools.hidden = true;
       value.card.dataset.siteId = feed.siteId || "";
-      value.label.textContent = latest ? `Latest: ${feed.label}` : feed.label;
-      value.image.alt = `${latest ? "Latest" : "Recent"} native view: ${feed.label}`;
-      value.capturedAtUnixMs = feed.capturedAtUnixMs;
+      value.label.textContent = feed.label;
+      value.label.title = feed.label;
+      value.image.alt = `Native view: ${feed.label}`;
       value.card.hidden = hiddenScreens.has(screenKey);
-      renderOverlay(value.overlay, feed.overlay, feed.capturedAtUnixMs, screenKey);
       updatePanelTools(value, screenKey);
       const key = `${feed.image.file}:${feed.image.sha256}`;
-      if (key === value.key) value.pendingKey = "";
+      value.nextFeed = feed;
+      value.nextNames = feed.camera.personIds.map(id => next.view.people.find(person => person.id === id)?.label).filter(Boolean);
+      if (key === value.key) {
+        value.pendingKey = ""; value.imageError = false; value.displayedFeed = feed; value.displayedNames = value.nextNames;
+      }
       else if (key !== value.pendingKey) {
-        value.pendingKey = key; const candidate = new Image(); candidate.decoding = "async"; candidate.src = urls.get(feed.id);
+        value.pendingKey = key; value.imageError = false;
+        const candidate = new Image(); candidate.decoding = "async"; candidate.src = urls.get(feed.id);
         candidate.decode().then(() => {
           if (active && value.pendingKey === key && feedCards.get(id) === value && current?.binding.bindingId === next.binding.bindingId) {
             value.image.src = candidate.src; value.key = key; value.pendingKey = "";
+            value.displayedFeed = value.nextFeed;
+            value.displayedNames = value.nextNames;
+            renderFeedFrame(value); refreshFeedAges();
             imageDeliveries.accept(`${next.binding.bindingId}:${key}`);
           }
-        }, () => { if (value.pendingKey === key) value.pendingKey = ""; });
+        }, () => { if (value.pendingKey === key) { value.pendingKey = ""; value.imageError = true; refreshFeedAges(); } });
       }
+      renderFeedFrame(value);
       if (!feedWindows.has(screenKey) && value.card.previousSibling !== previousCard) {
         const focused = value.card.contains(value.card.ownerDocument.activeElement) ? value.card.ownerDocument.activeElement : null;
         panelGrid.insertBefore(value.card, previousCard.nextSibling);

@@ -1,12 +1,25 @@
 | Document | Mousecat Session State |
 |---|---|
 | Version | 1.9.0.0-alpha |
-| Timestamp | 2026-09-30 10:56 UTC |
-| Status | ACTIVE - A23.1 repairs installed workspace matching and popup completion. |
+| Timestamp | 2026-10-02 21:43 UTC |
+| Status | ACTIVE - A23.2 clarifies simultaneous camera feeds and displayed-frame state. |
 
 # Session State
 
 ## Current state
+
+A23.2 keeps regional tiles in stable positions and names each region without
+ranking simultaneous cameras as latest or recent. Captions identify the observed
+camera subject; shared controls name their target region. Image replacement
+promotes the corresponding person labels, timestamp and overlay only after
+decoding succeeds. Delayed or failed images retain the displayed frame's facts,
+and narrow captions wrap their subject and image status. The existing public
+source and command contracts remain at version 1.9.0.0-alpha.
+
+A23.2 readiness passes 307 tests with five environment skips; both explicit
+browser suites pass at four widths, and the dependency audit is clear. Installed
+desktop acceptance verifies both updated regional feeds, saved continuation and
+preserved review/session state after reopening the existing client profile.
 
 A23.1 accepts equivalent absolute Windows workspace paths while preserving
 foreign workspace and state-store refusal. Native feed popup deferrals complete
