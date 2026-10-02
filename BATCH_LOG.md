@@ -2189,3 +2189,23 @@ presentation acceptance.
 
 Final regression assertions check subject/status wrapping in both docked and
 detached captions; both browser suites pass again at all four widths.
+
+## [A23.3] - Native feed polling cadence
+
+*Timestamp:* 2026-10-02 22:44 UTC / 15:44 PST
+
+The operator requested removal of artificial frame ceilings. The active native
+view poller now yields immediately after its completed request instead of adding
+ten milliseconds. One sequential poller retains request cancellation, image
+decoding, source identity and existing terminal/error backoff. Browser scheduling
+and actual producer throughput determine delivery. Version remains 1.9.0.0-alpha.
+Required readiness and browser checks own their separate receipts; this change
+does not claim 120 delivered frames per second.
+
+
+Readiness passes 312 Node cases (307 pass and five environment skips), all
+required smokes and governance/docs/hygiene checks. Dependency audit is clear.
+Both browser suites pass at four widths; added instrumentation counts complete
+native snapshot fetches and confirms sequential requests during camera actions.
+Independent review finds no blocking defect. Existing reviews and saved native
+state remain producer-owned.

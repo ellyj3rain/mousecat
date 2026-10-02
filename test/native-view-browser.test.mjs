@@ -44,6 +44,22 @@ test("regional native tiles retain focus and route independent camera controls a
   const errors = [], output = resolve(".mousecat/browser-check"); await mkdir(output, { recursive: true });
   for (const width of [1680, 760, 390, 320]) {
     const context = await browser.newContext({ viewport: { width, height: 950 } }), page = await context.newPage();
+    await page.addInitScript(() => {
+      const original = window.fetch.bind(window);
+      let active = 0;
+      window.peakNativeSnapshotRequests = 0;
+      window.fetch = async (...args) => {
+        if (!/\/api\/native-views\/[^/]+\/snapshot(?:\?|$)/u.test(String(args[0]))) return original(...args);
+        active += 1;
+        window.peakNativeSnapshotRequests = Math.max(window.peakNativeSnapshotRequests, active);
+        try {
+          const response = await original(...args);
+          await response.clone().arrayBuffer();
+          return response;
+        }
+        finally { active -= 1; }
+      };
+    });
     page.on("pageerror", error => errors.push(error.message));
     try {
       view.sequence += 1; view.capturedAtUnixMs = Date.now();
@@ -51,6 +67,8 @@ test("regional native tiles retain focus and route independent camera controls a
       await save();
       await page.goto(app.url + "#native-view");
       await page.locator('.native-feed-card[data-site-id="farm"]').waitFor({ state: "visible" });
+      assert.equal(await page.evaluate(() => window.peakNativeSnapshotRequests), 1,
+        'live snapshot requests overlapped after removing the polling delay');
       const cameraOrder = await page.locator('.native-feed-card').evaluateAll(cards => cards.map(card => card.dataset.siteId));
       for (const feed of view.feeds) {
         const card = page.locator(`.native-feed-card[data-site-id="${feed.siteId}"]`);
@@ -104,6 +122,8 @@ test("regional native tiles retain focus and route independent camera controls a
         const box = await media.boundingBox(), x = box.x + box.width / 2, y = box.y + box.height / 2;
         await detached.mouse.move(x, y); await detached.mouse.down(); await detached.mouse.move(x + 70, y, { steps: 3 }); await detached.mouse.up();
       });
+      assert.equal(await page.evaluate(() => window.peakNativeSnapshotRequests), 1,
+        'snapshot requests overlapped during successive camera interactions');
       if (width === 1680) {
         await page.waitForFunction(() => document.querySelector(".native-frame-state span:last-child")?.textContent === "0.0 images/s");
         const primaryImage = await page.locator(".native-observatory-primary img").getAttribute("src");

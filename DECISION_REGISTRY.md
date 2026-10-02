@@ -719,3 +719,12 @@ person labels, timestamp and overlay until the replacement image is available.
 Delivery failure remains visible while the previous frame stays inspectable.
 These repairs use the existing viewer and command contracts; simulation state
 and session lifecycle remain producer-owned.
+
+## [A23.3] - Source readiness determines live polling
+
+*Timestamp:* 2026-10-02 22:44 UTC / 15:44 PST
+
+The operator requests removal of artificial simulation frame ceilings. The viewer
+retains one sequential poller and yields without an added active-feed delay.
+Source and decoder readiness determine cadence; failed and ended feeds retain
+backoff. No timing setting changes simulation authority or promises delivery FPS.
