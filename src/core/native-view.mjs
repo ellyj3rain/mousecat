@@ -2,6 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { lstat, open, realpath, link, unlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { validCognitionControls, validateCognitionView } from "./cognition-view.mjs";
+import { validateNativeVideo, validateVideoInit, validateVideoBytes } from "./native-video.mjs";
+import { validateObservationGraph } from "./observation-graph.mjs";
 
 const MAX_JSON = 1024 * 1024;
 const MAX_IMAGE = 16 * 1024 * 1024;
@@ -144,12 +146,14 @@ function validateCameraControls(value) {
 }
 
 export function validateNativeView(view) {
-  object(view, ["schema", "sessionId", "sequence", "capturedAtUnixMs", "image", "state", "title", "summary", "people", "lastCommandSequence"], ["camera", "commandResult", "inspection", "panels", "viewport", "feeds", "study", "cameraControls"]);
+  object(view, ["schema", "sessionId", "sequence", "capturedAtUnixMs", "image", "state", "title", "summary", "people", "lastCommandSequence"], ["camera", "commandResult", "inspection", "panels", "viewport", "feeds", "study", "cameraControls", "video", "observationGraph"]);
   requireValue(view.schema === "mousecat.native-view/1" && UUID.test(view.sessionId));
   integer(view.sequence, 1); integer(view.capturedAtUnixMs); integer(view.lastCommandSequence);
   requireValue(["running", "paused", "ended"].includes(view.state));
   string(view.title, 160); string(view.summary, 4096);
   validateImageDescriptor(view.image);
+  if (Object.hasOwn(view, "video")) validateNativeVideo(view.video);
+  if (Object.hasOwn(view, "observationGraph")) validateObservationGraph(view.observationGraph);
   array(view.people, 2048);
   for (const person of view.people) {
     object(person, ["id", "label", "summary"], ["sections", "events", "cognition"]);
@@ -181,13 +185,21 @@ export function validateNativeView(view) {
     array(view.feeds, 8); unique(view.feeds.map(feed => feed.id));
     unique(view.feeds.filter(feed => Object.hasOwn(feed, "siteId")).map(feed => feed.siteId));
     for (const feed of view.feeds) {
-      object(feed, ["id", "label", "capturedAtUnixMs", "image", "camera"], ["overlay", "siteId", "viewport", "cameraControls"]);
+      object(feed, ["id", "label", "capturedAtUnixMs", "image", "camera"], ["overlay", "siteId", "viewport", "cameraControls", "videoCamera"]);
       string(feed.id, 128, true); string(feed.label, 160, true); integer(feed.capturedAtUnixMs);
       requireValue(feed.capturedAtUnixMs <= view.capturedAtUnixMs);
       validateImageDescriptor(feed.image); validateCamera(feed.camera, ids);
       if (Object.hasOwn(feed, "siteId")) requireValue(typeof feed.siteId === "string" && SITE_ID.test(feed.siteId));
       if (Object.hasOwn(feed, "viewport")) { requireValue(Object.hasOwn(feed, "siteId")); validateViewport(feed.viewport); }
       if (Object.hasOwn(feed, "cameraControls")) { requireValue(Object.hasOwn(feed, "siteId")); validateCameraControls(feed.cameraControls); }
+      if (Object.hasOwn(feed, "videoCamera")) {
+        const metadata = feed.videoCamera;
+        object(metadata, ["camera", "capturedAtUnixMs", "observerSequence"]);
+        validateCamera(metadata.camera, ids); integer(metadata.capturedAtUnixMs); integer(metadata.observerSequence);
+        requireValue(Boolean(feed.siteId && view.video?.segments.some(segment =>
+          segment.observerSequence === metadata.observerSequence && segment.endCapturedAtUnixMs === metadata.capturedAtUnixMs
+          && segment.sites.some(site => site.id === feed.siteId))), "native-video-camera-unacknowledged");
+      }
       if (Object.hasOwn(feed, "overlay")) {
         validateOverlay(feed.overlay, ids); requireValue(feed.overlay.capturedAtUnixMs <= feed.capturedAtUnixMs);
       }
@@ -290,19 +302,81 @@ export function createNativeViews(config = {}) {
       if (view.commandResult && old.result?.sequence === view.commandResult.sequence) requireValue(JSON.stringify(old.result) === JSON.stringify(view.commandResult), "native-result-reused");
     }
     const frames = sameBinding ? old.frames : new Map();
+    const videoFiles = sameBinding ? old.videoFiles : new Map();
+    const videoInits = sameBinding ? old.videoInits : new Map();
+    const videoBytes = sameBinding ? old.videoBytes : new Map();
+    if (view.video) {
+      const previous = sameBinding ? old.view.video : null;
+      if (previous?.streamId === view.video.streamId) {
+        requireValue(JSON.stringify(previous.init) === JSON.stringify(view.video.init)
+          || previous.init === null, "native-video-init-reused");
+        if (previous.init) requireValue(["codecs", "width", "height", "fps"]
+          .every(key => view.video[key] === previous[key]), "native-video-format-reused");
+        for (const key of ["capturedFrames", "encodedFrames", "droppedFrames"])
+          requireValue(view.video.stats[key] >= previous.stats[key], "native-video-regressed");
+        const before = previous.segments.at(-1), after = view.video.segments.at(-1);
+        if (before) requireValue(Boolean(after && after.sequence >= before.sequence), "native-video-regressed");
+        if (["ended", "failed"].includes(previous.state)) requireValue(view.video.state === previous.state, "native-video-regressed");
+      }
+      for (const descriptor of [view.video.init, ...view.video.segments].filter(Boolean)) {
+        const prior = videoFiles.get(descriptor.file);
+        if (prior) requireValue(JSON.stringify(prior.descriptor) === JSON.stringify(descriptor), "native-video-file-reused");
+        videoFiles.set(descriptor.file, { descriptor, video: view.video });
+      }
+    }
+    const protectedVideo = new Set([view.video?.init, ...(view.video?.segments || [])].filter(Boolean).map(item => item.file));
+    while (videoFiles.size > 25) {
+      const oldest = [...videoFiles.keys()].find(key => !protectedVideo.has(key));
+      if (!oldest) break;
+      videoFiles.delete(oldest); videoBytes.delete(oldest);
+    }
+    while (videoInits.size > 2) videoInits.delete(videoInits.keys().next().value);
     for (const descriptor of [view.image, ...(view.feeds || []).map(feed => feed.image)]) {
       if (frames.has(descriptor.file)) requireValue(JSON.stringify(frames.get(descriptor.file)) === JSON.stringify(descriptor), "native-image-name-reused");
       frames.set(descriptor.file, descriptor);
     }
     while (frames.size > 24) frames.delete(frames.keys().next().value);
-    const record = { ...bound, view, digest, frames, images: sameBinding ? old.images : new Map(), result: view.commandResult || (sameBinding ? old.result : null), inspection: view.inspection || (sameBinding ? old.inspection : null) };
+    const record = { ...bound, view, digest, frames, videoFiles, videoInits, videoBytes, images: sameBinding ? old.images : new Map(), result: view.commandResult || (sameBinding ? old.result : null), inspection: view.inspection || (sameBinding ? old.inspection : null) };
     retained.set(id, record);
     while (retained.size > 32) retained.delete(retained.keys().next().value);
-    const ageMs = Math.max(0, Date.now() - view.capturedAtUnixMs);
+    const videoCapture = view.video?.state === "running" ? view.video.segments.at(-1)?.endCapturedAtUnixMs : 0;
+    const ageMs = Math.max(0, Date.now() - Math.max(view.capturedAtUnixMs, videoCapture || 0));
     const imageUrl = descriptor => `/api/native-views/${id}/image?binding=${bound.bindingId}&file=${encodeURIComponent(descriptor.file)}&sha256=${descriptor.sha256}`;
     return { schema: "mousecat.native-view-response/1", binding: { ...publicBinding(bound), bindingId: bound.bindingId }, view,
       connection: view.state === "ended" ? "ended" : view.state === "paused" ? "stale" : ageMs > DISCONNECTED_FRAME_MS ? "disconnected" : ageMs > LIVE_FRAME_MS ? "stale" : "live", ageMs,
-      imageUrl: imageUrl(view.image), feedImages: (view.feeds || []).map(feed => ({ id: feed.id, imageUrl: imageUrl(feed.image) })) };
+      imageUrl: imageUrl(view.image), feedImages: (view.feeds || []).map(feed => ({ id: feed.id, imageUrl: imageUrl(feed.image) })),
+      ...(view.video ? { videoUrls: { streamId: view.video.streamId,
+        initUrl: view.video.init ? videoUrl(id, bound.bindingId, view.video.init) : null,
+        segments: view.video.segments.map(segment => ({ sequence: segment.sequence, url: videoUrl(id, bound.bindingId, segment) })) } } : {}) };
+  }
+  function videoUrl(id, bindingId, descriptor) {
+    return `/api/native-views/${id}/video?binding=${bindingId}&file=${encodeURIComponent(descriptor.file)}&sha256=${descriptor.sha256}`;
+  }
+  async function video(id, params) {
+    const bound = await binding(id), record = retained.get(id);
+    requireValue(params.get("binding") === bound.bindingId && record?.bindingId === bound.bindingId, "native-binding-changed");
+    const name = params.get("file"), expected = record.videoFiles.get(name);
+    requireValue(expected?.descriptor.sha256 === params.get("sha256"), "native-video-unavailable");
+    if (record.videoBytes.has(name)) return record.videoBytes.get(name);
+    const source = expected.video, descriptor = expected.descriptor;
+    let defaults = record.videoInits.get(source.streamId);
+    if (!defaults) {
+      const init = source.init;
+      requireValue(init && record.videoFiles.get(init.file)?.descriptor.sha256 === init.sha256, "native-video-init-unavailable");
+      const bytes = await boundedFile(bound.root, init.file, 2 * 1024 * 1024);
+      defaults = validateVideoInit(bytes, source);
+      record.videoInits.set(source.streamId, defaults);
+      record.videoBytes.set(init.file, bytes);
+      if (name === init.file) return bytes;
+    }
+    const bytes = await boundedFile(bound.root, name, name === source.init?.file ? 2 * 1024 * 1024 : MAX_IMAGE);
+    if (name === source.init?.file) validateVideoInit(bytes, source);
+    else validateVideoBytes(bytes, descriptor, source, defaults);
+    record.videoBytes.set(name, bytes);
+    // Initialization is small; retain at most two full media payloads.
+    const mediaKeys = [...record.videoBytes.keys()].filter(key => key.endsWith(".m4s"));
+    while (mediaKeys.length > 2) record.videoBytes.delete(mediaKeys.shift());
+    return bytes;
   }
   async function image(id, params) {
     const bound = await binding(id), record = retained.get(id);
@@ -398,5 +472,5 @@ export function createNativeViews(config = {}) {
     task.finally(() => { if (queues.get(id) === task) queues.delete(id); }).catch(() => {});
     return task;
   }
-  return { list: async () => (await bindings()).map(publicBinding), snapshot, image, command };
+  return { list: async () => (await bindings()).map(publicBinding), snapshot, image, video, command };
 }

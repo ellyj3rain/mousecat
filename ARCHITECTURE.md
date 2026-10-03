@@ -1,6 +1,6 @@
 | Document | Mousecat Architecture |
 |---|---|
-| Version | 1.10.0.0-alpha |
+| Version | 1.11.0.0-alpha |
 | Timestamp | 2026-09-30 10:10 UTC |
 | Status | ACTIVE - system architecture. |
 
@@ -326,3 +326,29 @@ owner. Window tools route camera and playback requests through that owner;
 shape and framing remain persisted client presentation. Accepted images own
 their labels, clocks, overlays and Frame geometry. Fresh captions stay quiet,
 and unavailable, failed and terminal reports remain explicit.
+
+### Native video and observation contracts (A24)
+
+`src/core/native-video.mjs` owns `mousecat.native-video/1`, H264 initialization
+and fragmented MP4 validation. One source stream declares immutable codec,
+dimensions and capture ceiling after initialization. The server verifies exact
+hashes, bounded boxes, SPS dimensions, sample timing, independent IDR samples and
+source acquisition ranges. `fps` describes the capture ceiling, independently of
+measured render or delivered playback rates. Camera site rectangles are native
+receipts; an empty fragment site list withholds picture-specific pose.
+
+`src/core/native-view.mjs` retains bounded immutable media descriptors under the
+registered producer binding. The loopback media route accepts only a retained
+filename and hash under that binding. It reads regular bounded files and verifies
+initialization/media bytes before caching. Cached initialization cannot authorize
+a changed stream format. Optional feed `videoCamera` references a retained native
+command epoch, site and exact fragment-end clock. PNG camera and viewport retain
+their original image acquisition clocks; current cameraControls stay separate.
+
+`src/core/observation-graph.mjs` owns `simulation.observation-graph/1` intake.
+Bounded nodes and edges carry source record identities, acquisition and world
+clocks, perspective, position provenance and labeled metrics. Unknown acquisition
+time is zero. Explicit selected-action receipts govern result edges. Private
+claims, predictions, associated events and missing evidence retain their types.
+The snapshot exposes these optional contracts without granting source commands
+or changing native simulation/session ownership.
