@@ -90,6 +90,28 @@ test("native crop geometry supports fractional basement floors and refuses overl
   changed.segments[0].sites.push(site); assert.throws(() => validateNativeVideo(changed), /overlap/u);
 });
 
+test("crop-only first fragments retain exact pixels without manufacturing camera pose", () => {
+  const { video, descriptor } = sample();
+  descriptor.crops = descriptor.sites.map(site => Object.fromEntries(["id", "slot", "left", "top", "width", "height"].map(key => [key, site[key]])));
+  validateNativeVideo(video); descriptor.sites = [];
+  validateNativeVideo(video); assert.deepEqual(Object.keys(descriptor.crops[0]).sort(), ["height", "id", "left", "slot", "top", "width"]);
+  descriptor.crops = []; validateNativeVideo(video);
+});
+
+test("authoritative crop receipts reject extra claims, pose conflicts and overlapping pixels", () => {
+  const { video, descriptor } = sample();
+  descriptor.crops = descriptor.sites.map(site => Object.fromEntries(["id", "slot", "left", "top", "width", "height"].map(key => [key, site[key]])));
+  for (const mutate of [crop => { crop.width = 321; }, crop => { crop.slot = true; }, crop => { crop.x = 10; },
+    crop => { crop.id = "outside"; }, crop => { crop.slot = 1; }, crop => { crop.left = .5; }]) {
+    const changed = structuredClone(video); mutate(changed.segments[0].crops[0]); assert.throws(() => validateNativeVideo(changed));
+  }
+  const changed = structuredClone(video); changed.segments[0].crops = [];
+  assert.throws(() => validateNativeVideo(changed), /crop and captured pose/u);
+  descriptor.sites = []; descriptor.crops[0].width = 200;
+  descriptor.crops.push({ ...descriptor.crops[0], id: "other", slot: 1, left: 150, width: 170 });
+  assert.throws(() => validateNativeVideo(video), /crops overlap/u);
+});
+
 test("verified initialization is stream-bound and cannot be forged or reused after descriptor drift", () => {
   const { video, init, media, descriptor } = sample(), defaults = validateVideoInit(init, video);
   assert.throws(() => validateVideoBytes(media, descriptor, video, { ...defaults }), /verified initialization/u);

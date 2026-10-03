@@ -9,9 +9,10 @@ const MAX_INIT = 2 * 1024 * 1024, MAX_MEDIA = 16 * 1024 * 1024;
 function requireValue(condition, message) {
   if (!condition) throw Object.assign(new Error(`invalid-native-video: ${message}`), { code: "invalid-native-video" });
 }
-function object(value, required) {
+function object(value, required, optional = []) {
   requireValue(value && typeof value === "object" && !Array.isArray(value)
-    && required.length === Object.keys(value).length && required.every(key => Object.hasOwn(value, key)), "fields differ");
+    && required.every(key => Object.hasOwn(value, key))
+    && Object.keys(value).every(key => required.includes(key) || optional.includes(key)), "fields differ");
 }
 function integer(value, low = 0, high = Number.MAX_SAFE_INTEGER) {
   requireValue(Number.isSafeInteger(value) && value >= low && value <= high, "invalid integer");
@@ -24,6 +25,24 @@ function text(value, maximum, empty = false) {
     && !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/u.test(value), "invalid text");
 }
 function array(value, maximum) { requireValue(Array.isArray(value) && value.length <= maximum, "collection limit"); }
+
+const CROP_FIELDS = ["id", "slot", "left", "top", "width", "height"];
+function validateCrops(crops, width, height) {
+  array(crops, 4);
+  const ids = new Set(), slots = new Set(), rectangles = [];
+  for (const crop of crops) {
+    object(crop, CROP_FIELDS);
+    requireValue(typeof crop.id === "string" && /^[a-z][a-z0-9-]{0,47}$/u.test(crop.id) && !ids.has(crop.id), "crop identity differs");
+    ids.add(crop.id); integer(crop.slot, 0, 3);
+    requireValue(!slots.has(crop.slot), "duplicate crop slot"); slots.add(crop.slot);
+    integer(crop.left); integer(crop.top); integer(crop.width, 1); integer(crop.height, 1);
+    requireValue(crop.left + crop.width <= width && crop.top + crop.height <= height, "crop exceeds composite pixels");
+    const rectangle = [crop.left, crop.top, crop.left + crop.width, crop.top + crop.height];
+    requireValue(rectangles.every(other => rectangle[2] <= other[0] || rectangle[0] >= other[2]
+      || rectangle[3] <= other[1] || rectangle[1] >= other[3]), "composite crops overlap");
+    rectangles.push(rectangle);
+  }
+}
 
 /** Validate immutable video descriptors, capture receipts and composite crops. */
 export function validateNativeVideo(value, { now = Date.now() } = {}) {
@@ -48,7 +67,7 @@ export function validateNativeVideo(value, { now = Date.now() } = {}) {
   let previous = null;
   for (const segment of value.segments) {
     object(segment, ["sequence", "file", "sha256", "ptsStartMs", "durationMs", "capturedAtUnixMs", "endCapturedAtUnixMs",
-      "observerSequence", "worldHours", "endWorldHours", "firstFrameSequence", "lastFrameSequence", "sites"]);
+      "observerSequence", "worldHours", "endWorldHours", "firstFrameSequence", "lastFrameSequence", "sites"], ["crops"]);
     integer(segment.sequence, 1);
     requireValue(segment.file === `video-${value.streamId}-${String(segment.sequence).padStart(16, "0")}.m4s`
       && HASH.test(segment.sha256), "fragment identity differs");
@@ -76,6 +95,15 @@ export function validateNativeVideo(value, { now = Date.now() } = {}) {
       requireValue(rectangles.every(other => rectangle[2] <= other[0] || rectangle[0] >= other[2]
         || rectangle[3] <= other[1] || rectangle[1] >= other[3]), "composite crops overlap");
       rectangles.push(rectangle); number(site.zoom, .01, 100); number(site.targetZoom, .01, 100);
+    }
+    if (Object.hasOwn(segment, "crops")) {
+      validateCrops(segment.crops, value.width, value.height);
+      if (segment.sites.length) {
+        const crops = new Map(segment.crops.map(crop => [crop.id, crop]));
+        requireValue(crops.size === segment.sites.length && segment.sites.every(site => {
+          const crop = crops.get(site.id); return crop && CROP_FIELDS.every(key => crop[key] === site[key]);
+        }), "crop and captured pose differ");
+      }
     }
     previous = segment;
   }

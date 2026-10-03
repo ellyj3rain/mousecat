@@ -1,6 +1,6 @@
 | Document | Mousecat Architecture |
 |---|---|
-| Version | 1.11.0.0-alpha |
+| Version | 1.12.0.0-alpha |
 | Timestamp | 2026-09-30 10:10 UTC |
 | Status | ACTIVE - system architecture. |
 
@@ -352,3 +352,22 @@ time is zero. Explicit selected-action receipts govern result edges. Private
 claims, predictions, associated events and missing evidence retain their types.
 The snapshot exposes these optional contracts without granting source commands
 or changing native simulation/session ownership.
+
+### Shared continuous video and saved-frame browsing (A25)
+
+`native-video.js` owns one bounded MediaSource decoder per source binding and
+stream. Exact decoded callbacks paint the composite once and distribute its
+qualified rectangles to registered canvases, including adopted native Windows.
+Geometry-only crops carry six bounded fields; explicit withdrawal clears prior
+geometry. Stable pose and command epochs alone authorize pictured facts. Source
+replacement clears old presentation before PNG fallback. Freshness uses current
+video acquisition independently of an older PNG picture epoch.
+
+Window owns Frame/Fit presentation settings locally and fits its media to the
+available client area. Tools starts collapsed over the same view and reveals
+navigation, playback, settings and details without resizing the picture. The
+titlebar names the person; material state remains a quiet overlay.
+Redock releases its resize owner and restores the main presentation settings.
+Live commands use the existing per-site source owner. Ended or disconnected
+navigation changes only local captured-pixel pan/zoom; it does not post commands,
+restart a session or advance the world. Fit returns the complete retained frame.

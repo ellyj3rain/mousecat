@@ -2256,3 +2256,56 @@ All 21 focused video/graph cases, nine executing source controls and six real
 HTTP authority cases pass. The dependency audit is clear. Independent repair
 review finds no remaining coherence issue. Synthetic encoded pixels retain their
 declared provenance; this contract batch claims no loaded-game capture or FPS.
+
+## [A25] - Continuous video and complete-frame Windows
+
+*Timestamp:* 2026-10-03 04:36 UTC / 21:36 PST
+
+One source-bound decoder supplies congruous decoded frames to independent
+subject canvases and adopted native Windows. Optional six-field crop geometry
+permits first-fragment presentation during moving poses without granting pose,
+pictured zoom or person acknowledgement. Explicit withdrawal and stream
+replacement retire old presentation. Fresh video retains live command
+availability independently of an older PNG picture.
+
+Window defaults to Frame/Fit with native pixel ratio and Tools collapsed over
+the same view. Navigation, playback, settings and details appear on demand;
+disclosure never resizes the picture. The titlebar carries the subject name. Its
+settings stay local, and Redock restores main preferences. Compact arrows, wheel, keyboard, drag and Fit browse the final
+picture after ended/disconnected sources without posting expired commands or
+advancing the world. This public presentation and optional geometry contract
+expansion moves minor to 1.12.0.0-alpha; npm is 1.12.0-alpha.
+
+Actual encoded fixtures, production HTTP and four-width browser interaction
+cover first unknown-pose crops, adopted Window paints, geometry withdrawal,
+stream replacement, old-PNG/fresh-video liveness and local saved navigation.
+The real native host verifies pointer-operated Redock, movement, resize,
+navigation guard, shared appearance, title-bar close and owner retirement.
+Complete readiness, dependency audit and installed playback own their final
+closure receipts. Synthetic fixtures retain their provenance and make no native
+gameplay, learned-policy or rendered-FPS claim.
+
+Final readiness passes 349 Node cases (337 pass, twelve environment skips),
+16 classifier cases, all required runtime/governance/docs/hygiene stages and the
+dependency audit with zero vulnerabilities. The progressive-disclosure browser
+cases cover desktop/mobile widths and actual device-scale Window geometry.
+The actual native WinForms/WebView2 host verifies pointer-operated disclosure,
+unchanged fitted bounds, Escape, Redock, title-bar close and owner disposal.
+The installed integrated candidate uses the same frozen video/Window modules
+and records 1132 common decoded frames in 30 seconds through one decoder,
+including an adopted Window, with no sampled
+reset or media error. Saved arrows, zoom, keyboard and Fit issue no native POST.
+The source native renderer is NVIDIA in this bounded trial; configured ceiling
+and decoded presentations establish no engine rendering FPS or learned behavior.
+
+The normal release pre-push check exposed an existing cancellation fixture race:
+its 30 ms deadline could expire before HTTP initialization dispatched the tool.
+The fixture now holds deadline advancement until both real requests are pending,
+then verifies that cancellation names exactly the first request while the second
+completes. Production behavior and the 30/500 ms deadlines remain unchanged.
+All 22 connector cases pass. A delayed-initialization control reproduces the old
+failure, and an executing wrong-request cancellation mutation is rejected.
+Renewed readiness passes the 349 main cases and companion runtime stages under
+concurrent native validation load. That run stopped at the PR-documentation rule
+because this repair had no batch entry; this appended record closes that finding.
+The amended batch must pass the complete normal pre-push gate before publication.

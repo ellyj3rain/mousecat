@@ -32,6 +32,7 @@ const STATIC_FILES = new Map([
   ["/operator-model.js", { path: resolve(PUBLIC_DIR, "operator-model.js"), type: "text/javascript; charset=utf-8" }],
   ["/native-view.js", { path: resolve(PUBLIC_DIR, "native-view.js"), type: "text/javascript; charset=utf-8" }],
   ["/native-window.js", { path: resolve(PUBLIC_DIR, "native-window.js"), type: "text/javascript; charset=utf-8" }],
+  ["/native-video.js", { path: resolve(PUBLIC_DIR, "native-video.js"), type: "text/javascript; charset=utf-8" }],
   ["/native-feed.html", { path: resolve(PUBLIC_DIR, "native-feed.html"), type: "text/html; charset=utf-8" }],
   ["/native-view.css", { path: resolve(PUBLIC_DIR, "native-view.css"), type: "text/css; charset=utf-8" }],
   ["/project-model.js", { path: resolve(PUBLIC_DIR, "project-model.js"), type: "text/javascript; charset=utf-8" }],

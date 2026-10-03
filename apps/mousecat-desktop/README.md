@@ -100,3 +100,10 @@ node --test test/native-view-browser.test.mjs
 $env:MOUSECAT_DESKTOP_TEST='1'
 node --test test/native-window-desktop.test.mjs
 ```
+
+Independent simulation Windows start with Frame shape and Fit complete frame.
+The original feed DOM and shared decoder remain owned by the main view. Compact
+Tools reveals navigation, playback, settings and details over the same picture
+without resizing it. Window settings remain local.
+Redock restores the main presentation. Saved-view arrows, wheel, drag and Fit
+remain available after the simulation ends without issuing native commands.

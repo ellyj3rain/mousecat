@@ -110,7 +110,8 @@ test("validation retains explicit correlations without adding causal or external
 });
 
 test("source mutation controls flip fabricated selection, alternative outcome, acquisition time and provenance verdicts", async () => {
-  const sourceText = await readFile(new URL("../src/core/observation-graph.mjs", import.meta.url), "utf8");
+  const sourceBytesText = await readFile(new URL("../src/core/observation-graph.mjs", import.meta.url), "utf8");
+  const sourceText = sourceBytesText.replaceAll("\r\n", "\n");
   const controls = [
     ["selected", 'if (edge.relation === "selects") {', "if (false) {", value => { value.edges.find(item => item.relation === "selects").to = "food"; }],
     ["outcome", 'if (edge.relation === "result") {', "if (false) {", value => { value.edges.find(item => item.relation === "result").from = "food"; }],
@@ -127,5 +128,5 @@ test("source mutation controls flip fabricated selection, alternative outcome, a
     assert.doesNotThrow(() => module.validateObservationGraph(value, { now: 1000 }), `Mutated verdict flips ${label}`);
   }
   validateObservationGraph(sample(), { now: 1000 });
-  assert.equal(await readFile(new URL("../src/core/observation-graph.mjs", import.meta.url), "utf8"), sourceText);
+  assert.equal(await readFile(new URL("../src/core/observation-graph.mjs", import.meta.url), "utf8"), sourceBytesText);
 });

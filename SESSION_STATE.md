@@ -1,12 +1,42 @@
 | Document | Mousecat Session State |
 |---|---|
-| Version | 1.11.0.0-alpha |
+| Version | 1.12.0.0-alpha |
 | Timestamp | 2026-10-03 03:10 UTC / 20:10 PST |
-| Status | ACTIVE - A24 supplies source-bound video and observation contracts. |
+| Status | ACTIVE - A25 presents shared continuous video and complete-frame Windows. |
 
 # Session State
 
 ## Current state
+
+A25 presents the source-bound native composite through one shared decoder.
+Both subject canvases, including adopted Windows, receive the same decoded
+frame. Window defaults to Frame/Fit with independent settings and compact Tools
+over the same view. Navigation, playback and details appear on demand without
+resizing the picture or duplicating its titlebar subject caption.
+Geometry-only receipts retain strict pixel ownership while withholding pose
+claims. New streams retire prior presentation; older PNGs do not falsely disable
+controls while source video remains current. Saved-frame arrows, wheel, drag and
+Fit issue no expired source command. Version is 1.12.0.0-alpha.
+
+Actual-codec browser interaction, native WinForms/WebView2 acceptance, installed
+source-matched playback and complete readiness retain their separate receipts.
+Ancillary graph presentation follows in its own public slice.
+
+A25 final readiness passes 349 cases (337 passed, twelve environment skips), all
+required companion stages and audit. Native pointer acceptance and device-scale
+layout verify progressive disclosure over maximum fitted media. The installed
+native trial records 1132 shared decoded presentations in 30 seconds, one
+decoder, no sampled resets/media errors and local saved navigation without POST.
+The run saved normally. Viewer presentations remain distinct from engine FPS.
+
+The release check exposed a timing assumption in the existing concurrent
+cancellation fixture. The repaired fixture waits for both real HTTP requests
+before advancing the first deadline and verifies the exact cancellation target;
+production code and timeout values are unchanged. All 22 connector cases and the
+renewed main/companion runtime suites pass. Delayed initialization reproduces the
+old failure, and wrong-target cancellation is rejected. The intervening readiness
+run stopped on the missing repair batch entry, now recorded in BATCH_LOG.md.
+Complete normal pre-push readiness remains the publication check for this amendment.
 
 A24 adds strict optional native video, per-feed video camera and observation
 graph contracts. Registered media routes verify initialization and fragments
