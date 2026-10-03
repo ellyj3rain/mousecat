@@ -119,6 +119,10 @@
 .native-pan [data-direction="left"] { grid-area: left; }
 .native-pan [data-direction="right"] { grid-area: right; }
 .native-pan [data-direction="center"] { grid-area: center; }
+.native-observation-panel { flex: none; margin-top: 9px; min-width: 0; }
+.native-observation-panel > summary { color: var(--text-muted); font-size: 12px; cursor: pointer; padding: 5px 0; }
+.native-observation-panel[open] > summary { margin-bottom: 9px; }
+.native-stage:has(.native-observation-panel[open]) { overflow: auto; }
 .native-zoom { display: flex; align-items: center; gap: 6px; padding-right: 8px; border-right: 1px solid var(--line); }
 .native-zoom span { font-size: 12px; font-variant-numeric: tabular-nums; min-width: 36px; text-align: center; }
 .native-controls { margin: 6px 0; align-items: center; }

@@ -756,3 +756,13 @@ settings and details over the image without resizing it. One source-bound decode
 and existing command owner supply its pixels and live controls. Ended or
 disconnected arrows, wheel, drag and Fit inspect retained pixels locally. A
 missing subject does not remove a live source site's browsing capability.
+
+## DR-063 | 2026-10-03 05:35 UTC / 22:35 PST | Attributed ancillary observation map
+
+The operator selected a normalized ancillary map/graph for human comprehension
+alongside machine receipts, including implications, causality and externalities.
+The map progressively discloses the existing validated graph in the Simulation
+view. It shows explicit record types, perspective, source acquisition, receipt
+references and missing evidence. Position and evidence layouts arrange those
+records; supplied typed references alone connect them. Selection routes people
+to the existing inspector, and export preserves canonical source facts.

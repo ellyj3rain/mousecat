@@ -1,5 +1,6 @@
 import { createNativeFeedWindows } from "./native-window.js";
 import { createNativeVideoPlayer } from "./native-video.js";
+import { createNativeObservationMap } from "./native-observation-map.js";
 
 function node(tag, text, parent, className) {
   const value = document.createElement(tag);
@@ -66,6 +67,10 @@ export function createNativeImageDeliveryCounter() {
 }
 
 export function installNativeView(root) {
+  if (!document.querySelector('link[data-native-observation-style]')) {
+    const style = document.createElement("link"); style.rel = "stylesheet"; style.href = "/native-observation-map.css";
+    style.dataset.nativeObservationStyle = ""; document.head.append(style);
+  }
   const heading = node("header", undefined, root, "native-heading");
   const identity = node("div", undefined, heading);
   const title = node("h2", "Simulation", identity);
@@ -232,6 +237,9 @@ export function installNativeView(root) {
   const commandStatus = node("p", "", stage, "native-command-status"); commandStatus.setAttribute("role", "status");
   const summary = node("p", "", viewOptions, "native-summary");
   const videoStatus = node("p", "", viewOptions, "native-source"); videoStatus.hidden = true;
+  const observationPanel = node("details", undefined, stage, "native-observation-panel"); observationPanel.hidden = true;
+  node("summary", "Observation map", observationPanel);
+  const observationContainer = node("div", undefined, observationPanel);
   const inspector = node("aside", undefined, body, "native-inspector"); inspector.id = "native-person-inspector"; inspector.setAttribute("aria-label", "People inspector");
   const inspectorTitlebar = node("div", undefined, inspector, "native-inspector-titlebar");
   const personTitle = node("h3", "Inspect person", inspectorTitlebar, "native-person-title");
@@ -285,7 +293,7 @@ export function installNativeView(root) {
   const feedCards = new Map(), hiddenScreens = new Set(), mutedScreens = new Set();
   const cameraInputs = new Map();
   const browseStates = new Map();
-  let videoPlayer = null, videoSnapshot = null, primaryVideoFrame = null, primaryVideoSite = null;
+  let videoPlayer = null, observationMap = null, pendingObservation = null, videoSnapshot = null, primaryVideoFrame = null, primaryVideoSite = null;
   let primaryPngView = null, primaryPending = null;
   let screenSignature = "", cameraSite = null;
   const feedWindows = createNativeFeedWindows({
@@ -364,6 +372,23 @@ export function installNativeView(root) {
     if (frame?.alignment !== "verified" || frame.site?.id !== value.siteId) return null;
     return value.videoCameras?.get(`${frame.observerSequence}:${frame.endCapturedAtUnixMs}`) || null;
   }
+  function clearObservation() {
+    pendingObservation = null; observationMap?.destroy(); observationMap = null; observationPanel.hidden = true;
+  }
+  function renderObservation() {
+    if (!active || !observationPanel.open || !pendingObservation) return;
+    observationMap ||= createNativeObservationMap(observationContainer, { selectPerson(id) {
+      if (!current?.view.people.some(person => person.id === id)) return;
+      selected = id; explicitPerson = true; filter.value = ""; selectPeople(); renderPerson(); renderCognition(); setInspectorVisible(true);
+    } });
+    observationMap.update(pendingObservation);
+  }
+  function updateObservation(next) {
+    pendingObservation = next.view.observationGraph || null;
+    observationPanel.hidden = !pendingObservation;
+    if (pendingObservation) renderObservation();
+    else clearObservation();
+  }
   function presentPrimaryVideo(frame) {
     const previous = primaryVideoFrame;
     primaryVideoFrame = frame.ready ? frame : null;
@@ -379,7 +404,7 @@ export function installNativeView(root) {
   }
   function sourceRuntime(next) {
     if (videoSnapshot?.view.video?.streamId !== next.view.video?.streamId) for (const value of feedCards.values()) value.videoCameras?.clear();
-    videoSnapshot = next;
+    videoSnapshot = next; updateObservation(next);
     for (const value of feedCards.values()) rememberCamera(value, next.view.feeds?.find(feed => feed.siteId === value.siteId));
     if (!next.view.video) { videoPlayer?.update(next); return; }
     videoPlayer ||= createNativeVideoPlayer({ onStatus(facts) {
@@ -564,7 +589,7 @@ export function installNativeView(root) {
   function resetRun() {
     videoPlayer?.destroy(); videoPlayer = null; videoSnapshot = null; primaryVideoFrame = null; primaryVideoSite = null;
     primaryPending = null; primaryPngView = null;
-    videoStatus.hidden = true;
+    clearObservation(); videoStatus.hidden = true;
     resetBrowse(viewport);
     current = null; selected = null; explicitPerson = false; waiting = null; lastResult = null;
     peopleSignature = personSignature = cognitionSignature = imageKey = "";
@@ -1365,6 +1390,7 @@ export function installNativeView(root) {
     active = false; generation += 1; clearTimeout(timer); controller?.abort();
     feedWindows.closeAll();
     videoPlayer?.destroy(); videoPlayer = null; primaryVideoSite = null; primaryVideoFrame = null;
+    observationPanel.removeEventListener("toggle", renderObservation); clearObservation();
     for (const clear of cameraInputs.values()) clear();
     postController?.abort(); postController = null; posting = false; setFreshnessTimer(false);
   }
@@ -1372,6 +1398,7 @@ export function installNativeView(root) {
     open(id) {
       if (active && (requestedId === id || (!id && feedWindows.size))) return;
       close(true); active = true; requestedId = id; sessionId = null; resetRun();
+      observationPanel.addEventListener("toggle", renderObservation);
       settingsDirty = false; cognitionRequest = null; settingsStatus.textContent = ""; settingsDraft.textContent = "";
       registeredViews = []; registryCheckedAt = 0;
       void poll(generation);

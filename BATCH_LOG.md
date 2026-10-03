@@ -2309,3 +2309,56 @@ Renewed readiness passes the 349 main cases and companion runtime stages under
 concurrent native validation load. That run stopped at the PR-documentation rule
 because this repair had no batch entry; this appended record closes that finding.
 The amended batch must pass the complete normal pre-push gate before publication.
+
+## [A26] - Attributed observation map
+
+*Timestamp:* 2026-10-03 05:35 UTC / 22:35 PST
+
+The existing Simulation view presents its validated source observation graph
+through a collapsed Observation map disclosure. Positions and Evidence show
+people, context, beliefs, predictions, selected actions, outcomes and missing
+evidence with their actual source identity, acquisition time and perspective.
+Zero acquisition time remains unknown. Native-body positions and durable record
+positions retain their provenance. Temporal, correlation and explicit causal
+references keep distinct labels; presentation never adds an edge.
+
+Pan, zoom, recenter, keyboard selection and reference navigation inspect the
+same graph. Person selection opens the existing source inspector. Withdrawal,
+unbinding and disposal retire the projection. Snapshot export retains the
+canonical graph. Video decoding, Window disclosure, source commands and saved
+navigation keep their existing owners.
+
+The public presentation addition moves minor through the established cap from
+1.12.0.0-alpha to 2.0.0.0-alpha; npm projects to 2.0.0-alpha. Actual browser
+interaction at four widths, source/selection/export assertions, independent
+review and complete normal readiness own this batch's closing receipts.
+Fixture pixels and records retain synthetic provenance; map layout establishes
+no learned behavior or causal fact beyond supplied source receipts.
+
+Independent review identified avoidable graph projection behind a closed
+disclosure. The viewer retains the latest canonical graph while collapsed and
+creates or updates its SVG projection only when opened. Closed source updates
+leave projected nodes unchanged; reopening presents the latest source. Graph
+withdrawal, unbinding and disposal clear the retained projection and source.
+This removes verified hidden projection work; it claims no measured FPS gain.
+
+Semantic review corrected the external-effects group label, confidence rounding
+that hid uncertainty and keyboard focus after closing or traversing details.
+Observed and unknown externalities retain their actual perspective; source
+confidence and the canonical exported graph remain unchanged. Focus has an
+explicit destination when an inspected control is replaced.
+
+The final two affected browser cases pass at 1680/760/390/320 pixels, with
+measured device scale 1.5 at 760: actual exit zero, 33.685 seconds. They cover
+collapsed/latest-source projection, retained pan/selection, withdrawal and owner
+retirement, typed observed/unknown externalities, confidence bounds, keyboard
+destinations, exact graph export and no map command writes. Every A25 production
+video and terminal-navigation assertion remains. Protected video, Window, core,
+native-host and cancellation fixture bytes retain their public-base provenance.
+Complete readiness, audit and the normal publishing checks own final closure.
+
+Final readiness passes 350 Node cases (337 pass, thirteen environment skips),
+16 classifier cases and all 21 required stages, including clean governance,
+documentation and strict hygiene. SDK/conformance/integration cases pass and
+the dependency audit reports zero vulnerabilities. Independent lifecycle and
+semantic re-reviews are clear on the final browser-pinned source.

@@ -1,7 +1,7 @@
 | Document | Mousecat Architecture |
 |---|---|
-| Version | 1.12.0.0-alpha |
-| Timestamp | 2026-09-30 10:10 UTC |
+| Version | 2.0.0.0-alpha |
+| Timestamp | 2026-10-03 05:35 UTC / 22:35 PST |
 | Status | ACTIVE - system architecture. |
 
 # Mousecat Architecture
@@ -371,3 +371,21 @@ Redock releases its resize owner and restores the main presentation settings.
 Live commands use the existing per-site source owner. Ended or disconnected
 navigation changes only local captured-pixel pan/zoom; it does not post commands,
 restart a session or advance the world. Fit returns the complete retained frame.
+
+### Attributed observation map (A26)
+
+`native-observation-map.js` projects the already validated observation graph
+into Positions and Evidence layouts; its stylesheet uses the operator's existing
+tokens and responsive geometry. The Simulation view owns a collapsed disclosure,
+supplies snapshots and retires the renderer on graph withdrawal, unbinding or
+disposal. Person selection uses its existing inspector; machine export retains
+the canonical graph rather than a graph reconstructed from layout.
+
+Nodes display record kind, perspective, source acquisition, position provenance
+and labeled metrics. Zero acquisition remains unknown. Native-body observations
+and durable-record coordinates retain distinct provenance. Explicit source edges
+alone create references; causal, temporal and correlation labels stay distinct.
+Pan, zoom, recenter and selection are local presentation operations.
+The closed disclosure retains the latest canonical graph without building or
+updating SVG. Opening creates or refreshes that projection; source withdrawal,
+unbinding and disposal clear its graph and lifecycle owner.

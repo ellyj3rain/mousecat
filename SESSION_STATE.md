@@ -1,12 +1,34 @@
 | Document | Mousecat Session State |
 |---|---|
-| Version | 1.12.0.0-alpha |
-| Timestamp | 2026-10-03 03:10 UTC / 20:10 PST |
-| Status | ACTIVE - A25 presents shared continuous video and complete-frame Windows. |
+| Version | 2.0.0.0-alpha |
+| Timestamp | 2026-10-03 05:35 UTC / 22:35 PST |
+| Status | ACTIVE - A26 presents the attributed ancillary observation map. |
 
 # Session State
 
 ## Current state
+
+A26 adds a collapsed Observation map to the existing Simulation view. Positions
+and Evidence project validated source facts, attributed private accounts,
+predictions, selected actions, outcomes and unknowns. Explicit typed references
+retain their labels, zero clocks remain unknown, and native-body versus record
+coordinates retain provenance. Pan/zoom/recenter and selection are local; person
+selection opens the existing inspector. Export retains the canonical graph.
+Collapsed disclosure retains the latest graph without SVG projection work;
+opening renders the latest source, and retirement clears its lifecycle owner.
+Version is 2.0.0.0-alpha (npm 2.0.0-alpha), the established minor-cap rollover.
+Four-width browser acceptance, independent review and complete normal publishing
+readiness own the closing receipts. A25 video, Window, saved navigation and
+connector cancellation behavior remain the verified public foundation.
+
+The final combined browser acceptance passes both affected cases at four widths
+and device scale 1.5, including closed/latest-source projection, keyboard
+details navigation, uncertainty formatting and canonical export. All A25 video
+and terminal-navigation assertions remain, with protected source bytes pinned.
+Readiness and installed acceptance retain their own final receipts.
+Final readiness passes 350 cases (337 pass, thirteen environment skips), all
+required companion/governance/documentation/hygiene stages and a clear dependency
+audit. Both independent re-reviews are clear on the final browser-pinned source.
 
 A25 presents the source-bound native composite through one shared decoder.
 Both subject canvases, including adopted Windows, receive the same decoded
@@ -20,7 +42,7 @@ Fit issue no expired source command. Version is 1.12.0.0-alpha.
 
 Actual-codec browser interaction, native WinForms/WebView2 acceptance, installed
 source-matched playback and complete readiness retain their separate receipts.
-Ancillary graph presentation follows in its own public slice.
+A26 supplies the ancillary graph presentation over these retained contracts.
 
 A25 final readiness passes 349 cases (337 passed, twelve environment skips), all
 required companion stages and audit. Native pointer acceptance and device-scale
@@ -36,7 +58,7 @@ production code and timeout values are unchanged. All 22 connector cases and the
 renewed main/companion runtime suites pass. Delayed initialization reproduces the
 old failure, and wrong-target cancellation is rejected. The intervening readiness
 run stopped on the missing repair batch entry, now recorded in BATCH_LOG.md.
-Complete normal pre-push readiness remains the publication check for this amendment.
+The complete amended normal pre-push gate passed all required stages; A25 reached public main through merged PR #12.
 
 A24 adds strict optional native video, per-feed video camera and observation
 graph contracts. Registered media routes verify initialization and fragments
