@@ -696,3 +696,13 @@ source-timed cameraControls now preserve that distinction, with invalid clocks
 and values refused. Direct core tests and four-width browser cases cover the
 lagged image; actual WinForms/WebView2 confirms resize, navigation guard, shared
 presentation, redock, title-bar close and child-window retirement.
+
+## F-072 | 2026-10-03 04:02 UTC / 21:02 PST | Cached initialization admitted changed format
+
+*Severity:* Medium
+
+A higher source snapshot could change an initialized stream's codec while reusing
+its initialization hash. The cached-byte path then served the original bytes.
+Initialized codec, dimensions and capture ceiling now remain immutable. A real
+HTTP case caches initialization and media, mutates each field, verifies refusal
+and restores the original source with its valid cache still usable.

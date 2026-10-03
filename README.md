@@ -1,6 +1,6 @@
 | Document | Mousecat README |
 |---|---|
-| Version | 1.10.0.0-alpha |
+| Version | 1.11.0.0-alpha |
 | Timestamp | 2026-09-30 10:10 UTC |
 | Status | ACTIVE - participant entry point. |
 
@@ -25,6 +25,12 @@ frames and source-timed information, with adjustable panels and per-camera tools
 The live viewer requests its next snapshot after the previous request completes
 and yields to the browser scheduler. Producer and decoding speed determine
 delivery; the images/s counter measures accepted images rather than game FPS.
+
+Registered native producers can also supply source-bound H264 fragment receipts
+and a typed observation graph. The media API verifies complete initialization and
+fragment bytes, source clocks and retained descriptor identity. Graph intake keeps
+reported observations, private accounts, predictions and unknowns attributable
+to their source records. PNG remains available independently of media delivery.
 
 ## Quick Start
 

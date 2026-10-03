@@ -2232,3 +2232,27 @@ installed Window acceptance own their final receipts. Review found the
 unavailable-subject caption drift and malformed source site refusal; their
 repairs retain direct cases. Continuous encoded video and the normalized
 ancillary map/graph continue in the next slice.
+
+## [A24] - Source-bound native media and observation contracts
+
+*Timestamp:* 2026-10-03 04:02 UTC / 21:02 PST
+
+Registered producer snapshots accept strict optional native H264 video, captured
+video camera identity and typed observation graphs. A loopback media route serves
+only retained source-bound hashes after actual MP4/H264 byte validation. Codec,
+dimensions and capture ceiling stay immutable once initialized, including after
+cached byte delivery. PNG retains its image clock and independent delivery path.
+Graph facts retain source acquisition times, explicit receipts and perspectives.
+The public contract expansion moves minor to 1.11.0.0-alpha; npm is 1.11.0-alpha.
+
+Actual encoded synthetic fixtures, source mutations and production HTTP requests
+cover malformed media, descriptor reuse, source rebinding, native camera epochs
+and cached format drift. Full readiness owns its closure receipt. Loaded native
+capture and continuous browser/map presentation retain separate acceptance.
+
+Required readiness passes 342 Node cases (335 pass and seven environment-gated
+skips), the classifier cases, runtime smokes and governance/docs/hygiene checks.
+All 21 focused video/graph cases, nine executing source controls and six real
+HTTP authority cases pass. The dependency audit is clear. Independent repair
+review finds no remaining coherence issue. Synthetic encoded pixels retain their
+declared provenance; this contract batch claims no loaded-game capture or FPS.

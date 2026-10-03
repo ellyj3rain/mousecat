@@ -1,12 +1,20 @@
 | Document | Mousecat Session State |
 |---|---|
-| Version | 1.10.0.0-alpha |
+| Version | 1.11.0.0-alpha |
 | Timestamp | 2026-10-03 03:10 UTC / 20:10 PST |
-| Status | ACTIVE - A23.4 supplies subject views and independent Window tools. |
+| Status | ACTIVE - A24 supplies source-bound video and observation contracts. |
 
 # Session State
 
 ## Current state
+
+A24 adds strict optional native video, per-feed video camera and observation
+graph contracts. Registered media routes verify initialization and fragments
+under the retained source binding. Codec, dimensions, capture ceiling, hashes
+and source clocks remain immutable within their appropriate receipt scope.
+Invalid video delivery preserves the independent PNG endpoint. Version is
+1.11.0.0-alpha. Continuous browser playback and ancillary graph presentation
+are the next presentation batch over these complete contracts.
 
 A23.4 supplies persisted Wide/Square/Frame shape and Fit/Fill framing, quiet
 subject captions and independent resizable Window tools. Follow and browsing

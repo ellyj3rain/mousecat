@@ -736,3 +736,12 @@ Window views. Each Window adopts the original feed DOM, shares the source comman
 owner, and carries its own camera tools plus simulation playback controls. View
 shape and Fit/Fill presentation remain shared preferences. Current source camera
 controls keep their acquisition clock separately from pictured projection metadata.
+
+## DR-061 | 2026-10-03 04:02 UTC / 21:02 PST | Source-bound video and graph facts
+
+The operator selected actual continuous native video and a normalized ancillary
+observation map/graph. Optional typed source receipts preserve the actual captured
+frame clock, camera epoch and graph provenance. Initialization and fragments are
+verified before delivery under the registered source binding. Unknowns, private
+claims and predicted effects retain their attribution; receipt references govern
+selected actions and reported results. Simulation commands retain their owner.

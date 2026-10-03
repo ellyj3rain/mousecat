@@ -48,7 +48,7 @@ const SAFE_COMMAND_IDS = new Set(["respond", "hold", "defer"]);
 function securityHeaders(contentType) {
   return {
     "Cache-Control": "no-store",
-    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'",
     "Content-Type": contentType,
     "Referrer-Policy": "no-referrer",
     "X-Content-Type-Options": "nosniff",
@@ -475,7 +475,7 @@ export function createOperatorRequestHandler(options = {}) {
           sendJson(response, 200, { views: await nativeViews.list() });
           return;
         }
-        const route = /^\/api\/native-views\/([a-z0-9-]+)\/(snapshot|image|command)$/u.exec(requestUrl.pathname);
+        const route = /^\/api\/native-views\/([a-z0-9-]+)\/(snapshot|image|video|command)$/u.exec(requestUrl.pathname);
         if (!route) throw operatorRequestError("native-route-unavailable");
         const [, id, action] = route;
         if (request.method === "GET" && action === "snapshot") {
@@ -485,6 +485,11 @@ export function createOperatorRequestHandler(options = {}) {
         if (request.method === "GET" && action === "image") {
           const bytes = await nativeViews.image(id, requestUrl.searchParams);
           response.writeHead(200, securityHeaders("image/png")); response.end(bytes);
+          return;
+        }
+        if (request.method === "GET" && action === "video") {
+          const bytes = await nativeViews.video(id, requestUrl.searchParams);
+          response.writeHead(200, securityHeaders("video/mp4")); response.end(bytes);
           return;
         }
         if (request.method === "POST" && action === "command") {
