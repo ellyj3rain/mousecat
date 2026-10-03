@@ -304,36 +304,65 @@ test("HTTP connector does not treat notification acceptance as cancellation ackn
   }
 });
 
-test("HTTP connector correlates concurrent cancellation to one unique request", async () => {
+test("HTTP connector correlates concurrent cancellation to one unique request", async (t) => {
   const server = await createMockHttpMcpServer({ holdToolCall: true, cancellationMode: "acknowledge" });
+  const realFetch = globalThis.fetch;
+  const realSetTimeout = globalThis.setTimeout;
+  const requestIds = new Map();
+  t.mock.method(globalThis, "fetch", (url, options) => {
+    const message = JSON.parse(options.body);
+    if (message.method === "tools/call") requestIds.set(message.params.arguments.text, message.id);
+    return realFetch(url, options);
+  });
+  // This case tests correlation after dispatch. Initialization deadlines have
+  // their own cases; advance this clock only once both real requests are held.
+  t.mock.timers.enable({ apis: ["Date", "setTimeout"], now: Date.now() });
+  const firstPromise = invokeConnectorTool(
+    configWithHttpMockNeo(server.url),
+    "neo",
+    "neo.echo",
+    { text: "first" },
+    { timeoutMs: 30, cancellationGraceMs: 100 },
+  );
+  const secondPromise = invokeConnectorTool(
+    configWithHttpMockNeo(server.url),
+    "neo",
+    "neo.echo",
+    { text: "second" },
+    { timeoutMs: 500, cancellationGraceMs: 100 },
+  );
   try {
-    const firstPromise = invokeConnectorTool(
-      configWithHttpMockNeo(server.url),
-      "neo",
-      "neo.echo",
-      { text: "first" },
-      { timeoutMs: 30, cancellationGraceMs: 100 },
-    );
-    const secondPromise = invokeConnectorTool(
-      configWithHttpMockNeo(server.url),
-      "neo",
-      "neo.echo",
-      { text: "second" },
-      { timeoutMs: 500, cancellationGraceMs: 100 },
-    );
-    const first = await firstPromise;
-    for (let attempt = 0; attempt < 20 && server.pendingRequestIds.length === 0; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 5));
+    const started = performance.now();
+    while (server.pendingRequestIds.length !== 2) {
+      t.mock.timers.tick(0);
+      assert.ok(performance.now() - started < 5000, "both concurrent tool requests must reach the fixture");
+      await new Promise((resolve) => realSetTimeout(resolve, 5));
     }
-    const secondRequestId = server.pendingRequestIds.find((requestId) => requestId !== first.cancellation.requestId);
-    assert.ok(secondRequestId);
+    const firstRequestId = requestIds.get("first");
+    const secondRequestId = requestIds.get("second");
+    assert.match(firstRequestId, /^[0-9a-f-]{36}$/u);
+    assert.match(secondRequestId, /^[0-9a-f-]{36}$/u);
+    assert.notEqual(firstRequestId, secondRequestId);
+    assert.deepEqual(new Set(server.pendingRequestIds), new Set([firstRequestId, secondRequestId]));
+
+    t.mock.timers.tick(30);
+    const first = await firstPromise;
+    assert.equal(first.code, "connector-cancelled");
+    assert.equal(first.cancellation.acknowledged, true);
+    assert.equal(first.cancellation.requestId, firstRequestId);
+    assert.deepEqual(server.cancellations, [{ requestId: firstRequestId, reason: "deadline-exceeded" }]);
+    assert.ok(server.pendingRequestIds.includes(secondRequestId));
     assert.equal(server.complete(secondRequestId, { echoed: "second" }), true);
     const second = await secondPromise;
 
-    assert.equal(first.code, "connector-cancelled");
     assert.equal(second.ok, true);
     assert.deepEqual(second.result.structuredContent, { echoed: "second" });
   } finally {
+    t.mock.timers.runAll();
+    for (const requestId of server.pendingRequestIds) server.complete(requestId);
+    await Promise.allSettled([firstPromise, secondPromise]);
+    t.mock.timers.reset();
+    t.mock.restoreAll();
     await server.close();
   }
 });

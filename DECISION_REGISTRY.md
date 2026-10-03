@@ -745,3 +745,14 @@ frame clock, camera epoch and graph provenance. Initialization and fragments are
 verified before delivery under the registered source binding. Unknowns, private
 claims and predicted effects retain their attribution; receipt references govern
 selected actions and reported results. Simulation commands retain their owner.
+
+## DR-062 | 2026-10-03 04:36 UTC / 21:36 PST | Complete-frame Windows and retained navigation
+
+The operator selected Window fit to frame, neater command arrows and useful
+navigation after simulation end or subject disappearance, then clarified
+progressive disclosure in the same view. Window starts with complete native-frame
+Fit and independent settings. Compact Tools reveals navigation, playback,
+settings and details over the image without resizing it. One source-bound decoder
+and existing command owner supply its pixels and live controls. Ended or
+disconnected arrows, wheel, drag and Fit inspect retained pixels locally. A
+missing subject does not remove a live source site's browsing capability.

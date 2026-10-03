@@ -1,6 +1,6 @@
 | Document | Mousecat README |
 |---|---|
-| Version | 1.11.0.0-alpha |
+| Version | 1.12.0.0-alpha |
 | Timestamp | 2026-09-30 10:10 UTC |
 | Status | ACTIVE - participant entry point. |
 
@@ -31,6 +31,15 @@ and a typed observation graph. The media API verifies complete initialization an
 fragment bytes, source clocks and retained descriptor identity. Graph intake keeps
 reported observations, private accounts, predictions and unknowns attributable
 to their source records. PNG remains available independently of media delivery.
+
+Continuous native video uses one source-bound decoder for the composite and
+paints each declared camera into its own subject view. Native Windows adopt the
+same feed and start with Frame shape and Fit complete frame, preserving its
+pixel ratio. Compact Tools reveals navigation, playback, settings and details
+over the same view without shrinking the picture. Compact arrows,
+wheel, drag and Fit browse the retained picture after a source ends or
+disconnects. Fresh video keeps live controls available when PNG delivery lags.
+Crop geometry grants no pose, person acknowledgement or pictured zoom.
 
 ## Quick Start
 

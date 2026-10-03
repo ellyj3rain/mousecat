@@ -706,3 +706,17 @@ its initialization hash. The cached-byte path then served the original bytes.
 Initialized codec, dimensions and capture ceiling now remain immutable. A real
 HTTP case caches initialization and media, mutates each field, verifies refusal
 and restores the original source with its valid cache still usable.
+
+## F-073 | 2026-10-03 04:36 UTC / 21:36 PST | Window fitting and stale presentation blocked navigation
+
+Fitting the whole card narrowed the caption, creating a resize feedback loop
+that collapsed media and covered Redock. The first media-only repair still
+reserved most of a real native Window for a separate controls panel; the
+operator screenshot reproduced that defect. Tools now starts collapsed over
+the same view, with image bounds unchanged on disclosure. Native-scale layout
+and pointer-target checks retain usable Redock. First moving-pose video lacked independent crop
+geometry; explicit six-field receipts now permit pixels while withholding pose.
+Stream withdrawal clears old primary presentation, and current video acquisition
+keeps controls live when the independent PNG picture is old. Actual-codec cases
+exercise these transitions and preserve terminal local-navigation refusal to
+post native commands.

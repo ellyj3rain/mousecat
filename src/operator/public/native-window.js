@@ -1,6 +1,6 @@
 // A feed changes its document, not its observation or command owner. The live
 // tile, its event listeners and its decode/counter remain in the originating view.
-export function createNativeFeedWindows({ returned, changed, failed, requestTime, setFraming }) {
+export function createNativeFeedWindows({ returned, changed, failed, requestTime }) {
   const windows = new Map();
   let closing = false;
   function viewFraming(root, shape, framing) {
@@ -16,9 +16,15 @@ export function createNativeFeedWindows({ returned, changed, failed, requestTime
     parent?.append(value); return value;
   }
   function windowControls(entry, doc) {
-    const toolbar = node(doc, "div", undefined, null, "native-window-toolbar");
-    entry.root.before(toolbar);
-    entry.playback = node(doc, "div", undefined, toolbar, "native-window-playback");
+    entry.document = doc;
+    entry.tools = entry.card.querySelector(".native-tool-options");
+    entry.menu = entry.tools.parentElement; entry.menuWasOpen = entry.menu.open; entry.menu.open = false;
+    entry.tools.classList.add("native-window-options");
+    entry.caption = entry.card.querySelector(".native-panel-caption");
+    entry.meta = entry.caption.querySelector(".native-panel-meta"); entry.tools.prepend(entry.meta);
+    entry.follow = entry.caption.querySelector('.native-panel-tools > button[aria-label^="Follow "]');
+    if (entry.follow) { entry.followHome = entry.follow.parentElement; entry.tools.prepend(entry.follow); }
+    entry.playback = node(doc, "div", undefined, entry.tools, "native-window-playback");
     entry.pause = node(doc, "button", "Pause", entry.playback, "button secondary-button"); entry.pause.type = "button"; entry.pause.disabled = true;
     entry.pause.addEventListener("click", () => void requestTime("pause"));
     entry.speed = node(doc, "select", undefined, entry.playback); entry.speed.disabled = true;
@@ -32,25 +38,39 @@ export function createNativeFeedWindows({ returned, changed, failed, requestTime
       const value = Number(entry.speed.value); entry.speed.value = "";
       void requestTime("speed", { value });
     });
-    const settings = node(doc, "details", undefined, toolbar, "native-window-settings");
-    node(doc, "summary", "View settings", settings);
-    const presentation = node(doc, "div", undefined, settings, "native-window-presentation");
-    node(doc, "small", "Applies to all views", presentation);
+    entry.settings = node(doc, "details", undefined, entry.tools, "native-window-settings");
+    node(doc, "summary", "View settings", entry.settings);
+    const presentation = node(doc, "div", undefined, entry.settings, "native-window-presentation");
+    node(doc, "small", "This window", presentation);
     for (const [key, label, choices] of [["shape", "Shape", [["wide", "Wide"], ["square", "Square"], ["frame", "Frame"]]],
       ["framing", "Framing", [["fill", "Fill view"], ["fit", "Fit complete frame"]]]]) {
       const field = node(doc, "label", undefined, presentation); node(doc, "span", label, field);
       entry[key] = node(doc, "select", undefined, field); entry[key].setAttribute("aria-label", key === "shape" ? "View shape" : "Image framing");
       for (const [value, name] of choices) { const option = node(doc, "option", name, entry[key]); option.value = value; }
-      entry[key].addEventListener("change", () => setFraming({ shape: entry.shape.value, framing: entry.framing.value }));
+      entry[key].value = key === "shape" ? "frame" : "fit";
+      entry[key].addEventListener("change", () => {
+        viewFraming(entry.root, entry.shape.value, entry.framing.value); entry.fit?.();
+      });
     }
+    entry.dismiss = event => {
+      if (event.type === "keydown" && event.key === "Escape" && entry.menu.open) {
+        event.preventDefault(); entry.menu.open = false; entry.menu.querySelector("summary").focus();
+      } else if (event.type === "pointerdown" && !entry.menu.contains(event.target)) entry.menu.open = false;
+    };
+    doc.addEventListener("keydown", entry.dismiss); doc.addEventListener("pointerdown", entry.dismiss);
   }
   function release(key, restore = true) {
     const entry = windows.get(key);
     if (!entry) return;
     windows.delete(key); clearInterval(entry.timer);
     entry.resize?.disconnect();
-    if (entry.layoutFrame) entry.window.cancelAnimationFrame(entry.layoutFrame);
+    entry.document?.removeEventListener("keydown", entry.dismiss); entry.document?.removeEventListener("pointerdown", entry.dismiss);
+    entry.playback?.remove(); entry.settings?.remove(); entry.details?.remove();
+    entry.caption?.prepend(entry.meta);
+    if (entry.followHome) entry.followHome.insertBefore(entry.follow, entry.menu);
+    if (entry.menu) { entry.menu.open = entry.menuWasOpen; entry.tools.classList.remove("native-window-options"); }
     entry.card.style.removeProperty("width");
+    entry.media?.style.removeProperty("width");
     try { entry.window.removeEventListener("pagehide", entry.leaving); } catch { /* Already retired. */ }
     if (restore) returned(entry.card, key);
     try { if (!entry.window.closed) entry.window.close(); } catch { /* The host may already have closed it. */ }
@@ -60,9 +80,6 @@ export function createNativeFeedWindows({ returned, changed, failed, requestTime
     for (const [key, entry] of windows) {
       if (entry.window.closed) { release(key); continue; }
       if (!entry.root) continue;
-      viewFraming(entry.root, facts.shape, facts.framing);
-      if (entry.shape.value !== facts.shape) entry.shape.value = facts.shape;
-      if (entry.framing.value !== facts.framing) entry.framing.value = facts.framing;
       entry.playback.hidden = facts.playback.state === "ended";
       entry.pause.textContent = facts.playback.state === "paused" ? "Resume" : "Pause";
       entry.pause.title = `${entry.pause.textContent} simulation (all views)`;
@@ -87,14 +104,15 @@ export function createNativeFeedWindows({ returned, changed, failed, requestTime
     get size() { return windows.size; },
     has(key) { return windows.has(key); },
     focus(key) { try { windows.get(key)?.window.focus(); } catch { /* Retirement is reconciled by the owner. */ } },
-    open(key, { card, viewId, bindingId, label, shape, framing }) {
+    open(key, { card, viewId, bindingId, label }) {
       if (windows.has(key)) { this.focus(key); return; }
       if (windows.size >= 16) { failed("Close or redock a feed window before opening another."); return; }
       const url = new URL("/native-feed.html", location.origin);
       url.search = new URLSearchParams({ view: viewId, binding: bindingId, screen: key });
-      const aspect = shape === "wide" ? 16 / 9 : shape === "square" ? 1 : Number(card.dataset.frameWidth) / Number(card.dataset.frameHeight) || 16 / 9;
-      const height = Math.max(320, Math.min(screen.availHeight - 100, 960 / aspect + 110));
-      const width = Math.max(320, Math.min(960, screen.availWidth - 80, (height - 110) * aspect));
+      const aspect = Number(card.dataset.frameWidth) / Number(card.dataset.frameHeight) || 16 / 9;
+      const chrome = 48;
+      const height = Math.max(320, Math.min(screen.availHeight - 100, 960 / aspect + chrome));
+      const width = Math.max(320, Math.min(960, screen.availWidth - 80, (height - chrome) * aspect));
       const popup = window.open(url.href, `mousecat-native-${viewId}-${bindingId}-${key}`, `popup,resizable=yes,width=${Math.round(width)},height=${Math.round(height)}`);
       if (!popup) { failed("The feed window could not open. Allow Mousecat pop-ups and try again."); return; }
       const entry = { window: popup, card, bindingId, started: performance.now(), root: null };
@@ -110,7 +128,7 @@ export function createNativeFeedWindows({ returned, changed, failed, requestTime
             if (root) {
               clearInterval(entry.timer);
               popup.document.title = `${label} · Mousecat`;
-              viewFraming(root, shape, framing);
+              viewFraming(root, "frame", "fit");
               root.append(card); card.hidden = false;
               entry.root = root;
               windowControls(entry, popup.document);
@@ -120,30 +138,21 @@ export function createNativeFeedWindows({ returned, changed, failed, requestTime
               entry.clock = popup.document.querySelector("[data-native-clock]");
               entry.rate = popup.document.querySelector("[data-native-rate]");
               entry.command = popup.document.querySelector("[data-native-command]");
-              const details = popup.document.createElement("details");
-              details.className = "native-detached-details";
-              const summary = popup.document.createElement("summary"); summary.textContent = "Session details";
-              details.append(summary, entry.clock, entry.rate);
-              entry.command.before(details);
+              entry.details = node(popup.document, "details", undefined, entry.tools, "native-detached-details");
+              node(popup.document, "summary", "Session details", entry.details);
+              entry.details.append(entry.clock, entry.rate, entry.command);
+              entry.media = card.querySelector(".native-panel-media, .native-viewport");
               entry.fit = () => {
-                if (entry.layoutFrame || windows.get(key) !== entry) return;
-                entry.layoutFrame = popup.requestAnimationFrame(() => {
-                  entry.layoutFrame = null;
-                  if (!root.isConnected) return;
-                  const media = card.querySelector(".native-panel-media, .native-viewport");
-                  const ratio = root.dataset.viewShape === "wide" ? 16 / 9 : root.dataset.viewShape === "square" ? 1
-                    : Number(card.dataset.frameWidth) / Number(card.dataset.frameHeight) || 16 / 9;
-                  // Fit the complete frame into the window's remaining space.
-                  // The media keeps the accepted image's ratio at every size.
-                  for (let pass = 0; pass < 2; pass += 1) {
-                    const chrome = card.getBoundingClientRect().height - media.getBoundingClientRect().height;
-                    const fitted = Math.max(1, Math.min(root.clientWidth, (root.clientHeight - chrome) * ratio + 2));
-                    if (Math.abs(card.getBoundingClientRect().width - fitted) > 0.5) card.style.width = `${fitted}px`;
-                  }
-                });
+                if (windows.get(key) !== entry || !root.isConnected) return;
+                const ratio = root.dataset.viewShape === "wide" ? 16 / 9 : root.dataset.viewShape === "square" ? 1
+                  : Number(card.dataset.frameWidth) / Number(card.dataset.frameHeight) || 16 / 9;
+                // Tools and source details overlay the same view; they never
+                // subtract from the complete frame's available bounds.
+                const fitted = Math.max(1, Math.min(root.clientWidth, root.clientHeight * ratio));
+                if (Math.abs(parseFloat(entry.media.style.width) - fitted) > 0.5 || !entry.media.style.width) entry.media.style.width = `${fitted}px`;
               };
               entry.resize = new popup.ResizeObserver(entry.fit);
-              entry.resize.observe(root); entry.resize.observe(card.querySelector(".native-panel-caption"));
+              entry.resize.observe(root);
               entry.fit();
               popup.document.querySelector("[data-native-waiting]").remove();
               // Reloading or leaving the child document retires that presentation,

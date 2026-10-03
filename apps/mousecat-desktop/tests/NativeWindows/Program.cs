@@ -40,9 +40,16 @@ internal static class NativeWindowProbe
             await core.ExecuteScriptAsync("Boolean(" + expression + ")") == "true";
         private async Task ClickAt(CoreWebView2 core, string selector)
         {
-            var json = await core.ExecuteScriptAsync("(()=>{const r=document.querySelector(" + JsonSerializer.Serialize(selector)
-                + ").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()");
+            var json = await core.ExecuteScriptAsync("(()=>{const button=document.querySelector(" + JsonSerializer.Serialize(selector)
+                + ");const r=button.getBoundingClientRect();const x=r.x+r.width/2,y=r.y+r.height/2;"
+                + "const hit=document.elementFromPoint(x,y);const bounds=e=>{const b=e?.getBoundingClientRect();return b?{x:b.x,y:b.y,width:b.width,height:b.height}:null};"
+                + "return {x,y,visible:x>=0&&y>=0&&x<innerWidth&&y<innerHeight,hit:hit?.outerHTML?.slice(0,500),"
+                + "matches:hit===button||button.contains(hit),viewport:{width:innerWidth,height:innerHeight},button:bounds(button),"
+                + "card:bounds(document.querySelector('.native-feed-card')),media:bounds(document.querySelector('.native-panel-media')),"
+                + "root:bounds(document.querySelector('[data-native-feed-root]'))}})()");
             using var point = JsonDocument.Parse(json);
+            if (!point.RootElement.GetProperty("visible").GetBoolean() || !point.RootElement.GetProperty("matches").GetBoolean())
+                throw new Exception("Control is not reachable through native pointer input: " + selector + " " + json);
             var x = point.RootElement.GetProperty("x").GetDouble(); var y = point.RootElement.GetProperty("y").GetDouble();
             foreach (var type in new[] { "mousePressed", "mouseReleased" })
                 await core.CallDevToolsProtocolMethodAsync("Input.dispatchMouseEvent", JsonSerializer.Serialize(new { type, x, y, button = "left", clickCount = 1 }));
@@ -83,6 +90,29 @@ internal static class NativeWindowProbe
                 if (!await Truth(child.Core, "document.documentElement.scrollWidth <= innerWidth"))
                     throw new Exception("Narrow native feed window overflows: " + await child.Core.ExecuteScriptAsync("JSON.stringify({width:innerWidth,scroll:document.documentElement.scrollWidth,wide:[...document.querySelectorAll('*')].filter(e=>e.getBoundingClientRect().right>innerWidth).map(e=>[e.tagName,e.className,e.getBoundingClientRect().width])})"));
                 child.Size = new Size(700, 500);
+                await Task.Delay(100);
+                const string frameBounds = "(()=>{const media=document.querySelector('.native-panel-media'),root=document.querySelector('[data-native-feed-root]'),r=media.getBoundingClientRect();return {width:r.width,height:r.height,x:r.x,y:r.y,availableWidth:root.clientWidth,availableHeight:root.clientHeight}})()";
+                var beforeJson = await child.Core.ExecuteScriptAsync(frameBounds);
+                using var before = JsonDocument.Parse(beforeJson);
+                var bounds = before.RootElement;
+                var ratio = bounds.GetProperty("width").GetDouble() / bounds.GetProperty("height").GetDouble();
+                var fitted = Math.Min(bounds.GetProperty("availableWidth").GetDouble(), bounds.GetProperty("availableHeight").GetDouble() * ratio);
+                if (Math.Abs(bounds.GetProperty("width").GetDouble() - fitted) > 2)
+                    throw new Exception("Native Window lost available image area: " + beforeJson);
+                if (!await Truth(child.Core, "!document.querySelector('.native-panel-menu').open && !document.querySelector('.native-window-toolbar,.native-window-tools') && getComputedStyle(document.querySelector('.native-panel-caption')).position === 'absolute' && !document.querySelector('.native-panel-meta').checkVisibility()"))
+                    throw new Exception("Native Window did not begin with progressive tools over the same picture: " + await child.Core.ExecuteScriptAsync("JSON.stringify({open:document.querySelector('.native-panel-menu').open,panel:!!document.querySelector('.native-window-toolbar,.native-window-tools'),caption:getComputedStyle(document.querySelector('.native-panel-caption')).position,visible:document.querySelector('.native-panel-meta').checkVisibility()})"));
+                await ClickAt(child.Core, tile + " .native-panel-menu > summary");
+                if (!await Truth(child.Core, "document.querySelector('.native-panel-menu').open"))
+                    throw new Exception("Native pointer input did not disclose Tools");
+                using var after = JsonDocument.Parse(await child.Core.ExecuteScriptAsync(frameBounds));
+                foreach (var field in new[] { "x", "y", "width", "height" })
+                    if (Math.Abs(bounds.GetProperty(field).GetDouble() - after.RootElement.GetProperty(field).GetDouble()) > 0.5)
+                        throw new Exception("Native Tools disclosure changed image " + field);
+                foreach (var type in new[] { "keyDown", "keyUp" })
+                    await child.Core.CallDevToolsProtocolMethodAsync("Input.dispatchKeyEvent", JsonSerializer.Serialize(new { type, key = "Escape", code = "Escape", windowsVirtualKeyCode = 27 }));
+                if (!await Truth(child.Core, "!document.querySelector('.native-panel-menu').open"))
+                    throw new Exception("Native Escape input did not collapse Tools");
+                Console.WriteLine("PASS native progressive disclosure preserves maximum fitted picture bounds");
                 var original = child.Core.Source;
                 child.Core.Navigate(new Uri(origin, "#questions").AbsoluteUri); await Task.Delay(200);
                 if (child.Core.Source != original) throw new Exception("Detached host admitted a foreign route");

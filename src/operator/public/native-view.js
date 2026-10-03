@@ -1,4 +1,5 @@
 import { createNativeFeedWindows } from "./native-window.js";
+import { createNativeVideoPlayer } from "./native-video.js";
 
 function node(tag, text, parent, className) {
   const value = document.createElement(tag);
@@ -18,7 +19,7 @@ function toolIcon(control, name, label) {
 
 function frameGeometry(media, image) {
   // Geometry belongs to the accepted image, alongside its timestamp and subject.
-  const width = image.naturalWidth, height = image.naturalHeight;
+  const width = image.naturalWidth || image.width, height = image.naturalHeight || image.height;
   media.style.setProperty("--native-frame-aspect", `${width} / ${height}`);
   media.parentElement.dataset.frameWidth = String(width);
   media.parentElement.dataset.frameHeight = String(height);
@@ -160,6 +161,7 @@ export function installNativeView(root) {
   const viewport = node("div", undefined, primaryPanel, "native-viewport");
   viewport.tabIndex = 0; viewport.setAttribute("aria-label", "Native simulation view. Arrow keys move the camera; mouse wheel or plus and minus zoom; space pauses or resumes.");
   const picture = node("img", undefined, viewport); picture.alt = "Native simulation frame"; picture.hidden = true; picture.draggable = false;
+  const primaryCanvas = node("canvas", undefined, viewport, "native-video-surface"); primaryCanvas.hidden = true;
   const empty = node("p", "Waiting for the simulation feed.", viewport, "native-empty");
   const primaryOverlay = node("div", undefined, viewport, "native-panel-telemetry"); primaryOverlay.hidden = true;
   const primaryCaption = node("div", undefined, primaryPanel, "native-panel-caption");
@@ -188,7 +190,10 @@ export function installNativeView(root) {
   primaryFollow.addEventListener("click", () => void send("auto")); controlButtons.push(primaryFollow);
   function button(label, action, values, parent = controls) {
     const value = node("button", label, parent, "button secondary-button"); value.type = "button"; value.disabled = true;
-    value.addEventListener("click", () => void send(action, typeof values === "function" ? values() : values));
+    value.addEventListener("click", () => {
+      const payload = typeof values === "function" ? values() : values;
+      if (["pan", "zoom"].includes(action)) moveCamera(action, payload, viewport); else void send(action, payload);
+    });
     controlButtons.push(value); return value;
   }
   const pause = button("Pause", "pause");
@@ -200,9 +205,11 @@ export function installNativeView(root) {
   const zoomLabel = node("span", "", zoomControls); zoomLabel.setAttribute("aria-live", "off");
   const zoomIn = button("+", "zoom", { value: -1 }, zoomControls); zoomIn.setAttribute("aria-label", "Zoom in"); zoomIn.title = "Zoom in (mouse wheel up or +)";
   const pan = node("div", undefined, primaryCameraTools, "native-pan");
-  for (const [label, dx, dy] of [["←", -8, 0], ["↑", 0, -8], ["↓", 0, 8], ["→", 8, 0]]) {
-    const b = button(label, "pan", { dx, dy }, pan); b.setAttribute("aria-label", `Move camera ${label}`);
+  for (const [label, dx, dy, direction] of [["←", -8, 8, "left"], ["↑", -8, -8, "up"], ["↓", 8, 8, "down"], ["→", 8, -8, "right"]]) {
+    const b = button(label, "pan", { dx, dy }, pan); b.dataset.direction = direction; b.setAttribute("aria-label", `Move camera ${label}`);
   }
+  const primaryFit = node("button", "⌾", pan, "button secondary-button"); primaryFit.type = "button"; primaryFit.dataset.direction = "center";
+  primaryFit.setAttribute("aria-label", "Fit saved view"); primaryFit.addEventListener("click", () => { resetBrowse(viewport); freshness(); }); primaryFit.hidden = true;
   const endRun = button("End run", "stop");
   const sessionBar = node("section", undefined, controls, "native-session-bar"); sessionBar.hidden = true;
   const sessionActions = node("div", undefined, sessionBar, "native-session-actions");
@@ -224,6 +231,7 @@ export function installNativeView(root) {
   const sessionSettingsStatus = node("p", "", sessionSettings, "native-command-status"); sessionSettingsStatus.setAttribute("role", "status");
   const commandStatus = node("p", "", stage, "native-command-status"); commandStatus.setAttribute("role", "status");
   const summary = node("p", "", viewOptions, "native-summary");
+  const videoStatus = node("p", "", viewOptions, "native-source"); videoStatus.hidden = true;
   const inspector = node("aside", undefined, body, "native-inspector"); inspector.id = "native-person-inspector"; inspector.setAttribute("aria-label", "People inspector");
   const inspectorTitlebar = node("div", undefined, inspector, "native-inspector-titlebar");
   const personTitle = node("h3", "Inspect person", inspectorTitlebar, "native-person-title");
@@ -276,14 +284,12 @@ export function installNativeView(root) {
   let registeredViews = [], registryCheckedAt = 0;
   const feedCards = new Map(), hiddenScreens = new Set(), mutedScreens = new Set();
   const cameraInputs = new Map();
+  const browseStates = new Map();
+  let videoPlayer = null, videoSnapshot = null, primaryVideoFrame = null, primaryVideoSite = null;
+  let primaryPngView = null, primaryPending = null;
   let screenSignature = "", cameraSite = null;
   const feedWindows = createNativeFeedWindows({
     requestTime(action, values) { return send(action, values); },
-    setFraming(values) {
-      shape.value = values.shape; framing.value = values.framing;
-      writePreference("shape", shape.value); writePreference("framing", framing.value);
-      applyFraming(); refreshFeedWindows();
-    },
     returned(card) {
       cameraInputs.get(card.querySelector(".native-panel-media, .native-viewport"))?.();
       panelGrid.append(card);
@@ -314,6 +320,97 @@ export function installNativeView(root) {
     return target?.cameraControls?.viewport || target?.viewport;
   }
 
+  function sourceCaptureTime(view) {
+    const videoCapture = view?.video?.state === "running" ? view.video.segments.at(-1)?.endCapturedAtUnixMs : 0;
+    return Math.max(view?.capturedAtUnixMs || 0, videoCapture || 0);
+  }
+  function browseOnly() {
+    const view = current?.view;
+    return Boolean(view && (view.state === "ended" || feedError || current.connection === "disconnected"
+      || (view.state !== "paused" && Date.now() - sourceCaptureTime(view) >= 30000)));
+  }
+  function browseState(media) {
+    if (!browseStates.has(media)) browseStates.set(media, { zoom: 1, x: 0, y: 0, local: false });
+    return browseStates.get(media);
+  }
+  function applyBrowse(media) {
+    const value = browseState(media), limit = (value.zoom - 1) * 50;
+    value.x = Math.max(-limit, Math.min(limit, value.x)); value.y = Math.max(-limit, Math.min(limit, value.y));
+    media.style.setProperty("--native-browse-zoom", value.zoom);
+    media.style.setProperty("--native-browse-x", `${value.x}%`); media.style.setProperty("--native-browse-y", `${value.y}%`);
+  }
+  function resetBrowse(media) { browseStates.set(media, { zoom: 1, x: 0, y: 0, local: false }); applyBrowse(media); }
+  function moveCamera(action, values = {}, media = viewport) {
+    if (!browseOnly()) { void send(action, values); return; }
+    const visual = media.querySelector("img, canvas");
+    if (!visual || !(visual.naturalWidth || media.querySelector("canvas:not([hidden])")?.width)) return;
+    const value = browseState(media); value.local = true;
+    if (action === "zoom") value.zoom = Math.max(1, Math.min(8, value.zoom * (values.value === 1 ? 1 / 1.25 : 1.25)));
+    else if (action === "pan") {
+      value.zoom = Math.max(1.25, value.zoom);
+      value.x -= (values.dx - values.dy) * 1.5; value.y -= (values.dx + values.dy) * 1.5;
+    } else return;
+    applyBrowse(media); freshness();
+  }
+  function cameraEpoch(value) { return `${value.observerSequence}:${value.capturedAtUnixMs}`; }
+  function rememberCamera(value, feed) {
+    if (!feed?.videoCamera) return;
+    value.videoCameras ||= new Map(); value.videoCameras.set(cameraEpoch(feed.videoCamera), {
+      camera: structuredClone(feed.videoCamera.camera), names: feed.videoCamera.camera.personIds.map(id => videoSnapshot?.view.people.find(person => person.id === id)?.label).filter(Boolean),
+    });
+    while (value.videoCameras.size > 8) value.videoCameras.delete(value.videoCameras.keys().next().value);
+  }
+  function videoCamera(value, frame) {
+    if (frame?.alignment !== "verified" || frame.site?.id !== value.siteId) return null;
+    return value.videoCameras?.get(`${frame.observerSequence}:${frame.endCapturedAtUnixMs}`) || null;
+  }
+  function presentPrimaryVideo(frame) {
+    const previous = primaryVideoFrame;
+    primaryVideoFrame = frame.ready ? frame : null;
+    primaryCanvas.hidden = !frame.ready; picture.hidden = frame.ready || !picture.getAttribute("src");
+    viewport.dataset.videoSequence = frame.ready ? String(frame.sequence) : "";
+    viewport.dataset.videoAlignment = frame.ready ? frame.alignment : "unknown";
+    if (frame.ready) { frameGeometry(viewport, primaryCanvas); empty.hidden = true; primaryOverlay.hidden = true; }
+    else if (picture.naturalWidth) { frameGeometry(viewport, picture); empty.hidden = true; }
+    else empty.hidden = false;
+    renderPrimaryFrame();
+    if (Boolean(previous) !== Boolean(frame.ready) || previous?.alignment !== frame.alignment || previous?.site?.zoom !== frame.site?.zoom) freshness();
+    else { refreshFeedAges(); refreshFeedWindows(); }
+  }
+  function sourceRuntime(next) {
+    if (videoSnapshot?.view.video?.streamId !== next.view.video?.streamId) for (const value of feedCards.values()) value.videoCameras?.clear();
+    videoSnapshot = next;
+    for (const value of feedCards.values()) rememberCamera(value, next.view.feeds?.find(feed => feed.siteId === value.siteId));
+    if (!next.view.video) { videoPlayer?.update(next); return; }
+    videoPlayer ||= createNativeVideoPlayer({ onStatus(facts) {
+      videoStatus.hidden = false;
+      videoStatus.textContent = facts.ready ? "Continuous video" : facts.message || "Waiting for continuous video.";
+    } });
+    const primaryCrops = !next.view.feeds?.length ? next.view.video.segments.map(segment => Object.hasOwn(segment, "crops") ? segment.crops : segment.sites)
+      .findLast(crops => Array.isArray(crops) && crops.length === 1) : null;
+    const primarySite = primaryCrops?.[0].id || null;
+    if (primarySite && primaryVideoSite !== primarySite) {
+      primaryVideoSite = primarySite;
+      videoPlayer.registerSurface("current", { canvas: primaryCanvas, siteId: primarySite, onPresent: presentPrimaryVideo });
+    } else if (!primarySite && primaryVideoSite) {
+      presentPrimaryVideo({ ready: false, alignment: "unknown" });
+      videoPlayer.unregisterSurface("current"); primaryVideoSite = null;
+    }
+    for (const value of feedCards.values()) {
+      if (!value.videoRegistered && value.siteId) {
+        value.videoRegistered = true;
+        videoPlayer.registerSurface(value.screenKey, { canvas: value.canvas, siteId: value.siteId, onPresent(frame) {
+          value.videoFrame = frame.ready ? frame : null; value.canvas.hidden = !frame.ready; value.image.hidden = frame.ready;
+          value.media.dataset.videoSequence = frame.ready ? String(frame.sequence) : "";
+          value.media.dataset.videoAlignment = frame.ready ? frame.alignment : "unknown";
+          if (frame.ready) frameGeometry(value.media, value.canvas); else if (value.image.naturalWidth) frameGeometry(value.media, value.image);
+          renderFeedFrame(value); refreshFeedAges(); refreshFeedWindows();
+        } });
+      }
+    }
+    videoPlayer.update(next);
+  }
+
   function refreshCameraContext() {
     const view = current?.view, feed = currentCameraFeed(), observed = feed?.camera || view?.camera;
     const names = (observed?.personIds || []).map(id => view.people.find(person => person.id === id)?.label).filter(Boolean);
@@ -325,8 +422,9 @@ export function installNativeView(root) {
   }
 
   function removeFeedCard(value) {
+    videoPlayer?.unregisterSurface(value.screenKey);
     feedWindows.release(value.screenKey, false);
-    cameraInputs.get(value.media)?.(); cameraInputs.delete(value.media); value.card.remove();
+    cameraInputs.get(value.media)?.(); cameraInputs.delete(value.media); browseStates.delete(value.media); value.card.remove();
   }
 
   function toggleScreenWindow(key) {
@@ -337,7 +435,7 @@ export function installNativeView(root) {
     if (!value) return;
     cameraInputs.get(value.media || viewport)?.();
     feedWindows.open(key, { card: value.card, viewId: sessionId, bindingId: current.binding.bindingId,
-      label: key === "current" ? primaryLabel.textContent : value.label.textContent, shape: shape.value, framing: framing.value });
+      label: key === "current" ? primaryLabel.textContent : value.label.textContent });
     freshness();
   }
 
@@ -464,6 +562,10 @@ export function installNativeView(root) {
   sessions.addEventListener("change", () => route(sessions.value));
 
   function resetRun() {
+    videoPlayer?.destroy(); videoPlayer = null; videoSnapshot = null; primaryVideoFrame = null; primaryVideoSite = null;
+    primaryPending = null; primaryPngView = null;
+    videoStatus.hidden = true;
+    resetBrowse(viewport);
     current = null; selected = null; explicitPerson = false; waiting = null; lastResult = null;
     peopleSignature = personSignature = cognitionSignature = imageKey = "";
     imageDeliveries.reset(); rateStarted = performance.now(); deliveryRate.textContent = "";
@@ -475,6 +577,7 @@ export function installNativeView(root) {
     primaryOverlay.replaceChildren(); primaryOverlay._nativeGroups = new Map(); primaryOverlay._nativeAge = null;
     primaryOverlay.hidden = true; noScreens.hidden = true;
     picture.hidden = true; picture.removeAttribute("src"); empty.hidden = false; empty.textContent = "Waiting for the simulation feed.";
+    primaryCanvas.hidden = true;
     personBody.replaceChildren(); cognitionBody.replaceChildren(); cognition.hidden = true;
     commandStatus.textContent = ""; summary.textContent = ""; sessionSettingsStatus.textContent = "";
     sessionBar.hidden = true; endRun.hidden = false;
@@ -612,18 +715,39 @@ export function installNativeView(root) {
   }
 
   function refreshFeedAges() {
-    if (current) { primaryAge.textContent = ageText(current.view.capturedAtUnixMs); primaryAge.hidden = !primaryAge.textContent; }
+    if (current) { primaryAge.textContent = browseState(viewport).local ? "Saved · Browse" : ageText(primaryVideoFrame?.endCapturedAtUnixMs || primaryPngView?.capturedAtUnixMs || current.view.capturedAtUnixMs); primaryAge.hidden = !primaryAge.textContent; }
     for (const value of feedCards.values()) {
-      const age = value.displayedFeed ? ageText(value.displayedFeed.capturedAtUnixMs) : "Waiting for image";
-      value.age.textContent = value.imageError ? [age, "Image unavailable"].filter(Boolean).join(" · ") : age;
+      const capturedAt = value.videoFrame?.endCapturedAtUnixMs || value.displayedFeed?.capturedAtUnixMs;
+      const age = capturedAt ? ageText(capturedAt) : "Waiting for image";
+      value.age.textContent = browseState(value.media).local ? "Saved · Browse" : value.imageError && !value.videoFrame ? [age, "Image unavailable"].filter(Boolean).join(" · ") : age;
       value.age.hidden = !value.age.textContent;
-      value.age.title = value.displayedFeed ? new Date(value.displayedFeed.capturedAtUnixMs).toISOString() : "";
+      value.age.title = value.videoFrame ? `${new Date(value.videoFrame.capturedAtUnixMs).toISOString()} – ${new Date(value.videoFrame.endCapturedAtUnixMs).toISOString()}` : capturedAt ? new Date(capturedAt).toISOString() : "";
     }
   }
 
+  function renderPrimaryFrame() {
+    if (primaryVideoFrame) {
+      const assigned = (current?.view.camera?.personIds || []).map(id => current.view.people.find(person => person.id === id)?.label).filter(Boolean).join(", ");
+      primaryLabel.textContent = (assigned ? `Assigned: ${assigned}` : "Assigned camera") + (primaryVideoFrame.alignment === "unknown" ? " · pose unknown" : "");
+      return;
+    }
+    const view = primaryPngView || current?.view;
+    if (!view) return;
+    const feed = view.feeds?.find(value => value.image.file === view.image.file);
+    const name = feed?.label || (view.camera?.personIds || []).map(id => view.people.find(person => person.id === id)?.label).filter(Boolean).join(", ") || "Current camera";
+    primaryLabel.textContent = name === "Current camera" ? name : `Current: ${name}`;
+  }
+
   function renderFeedFrame(value) {
-    const feed = value.displayedFeed;
-    const names = value.displayedNames || [];
+    let feed = value.displayedFeed, names = value.displayedNames || [];
+    if (value.videoFrame) {
+      const frame = value.videoFrame, qualified = videoCamera(value, frame), sourceFeed = value.nextFeed || feed;
+      names = qualified?.names || [];
+      feed = { ...sourceFeed, label: sourceFeed?.label || "Assigned subject", capturedAtUnixMs: frame.endCapturedAtUnixMs,
+        camera: qualified?.camera || { mode: "automatic", personIds: [], summary: frame.alignment === "unknown" ? "Assigned · pose unknown" : "Assigned · awaiting camera sample" },
+        viewport: frame.site ? { zoom: frame.site.zoom, targetZoom: frame.site.targetZoom } : null,
+        overlay: qualified && sourceFeed?.overlay?.capturedAtUnixMs === frame.endCapturedAtUnixMs ? sourceFeed.overlay : null };
+    }
     value.label.textContent = feed?.label || "Waiting for image";
     value.label.title = feed?.label || "";
     value.image.alt = feed ? `Native view: ${feed.label}` : "";
@@ -634,8 +758,10 @@ export function installNativeView(root) {
       ? (!feed.camera.personIds.length ? feed.camera.summary : sameSubject || !names.length ? "" : `Following ${names.join(", ")}`)
       : `Manual camera${names.length && !sameSubject ? ` · ${names.join(", ")}` : ""}`;
     value.subject.hidden = !value.subject.textContent;
-    value.regionalZoom.hidden = !feed?.viewport;
-    if (feed?.viewport) value.regionalZoom.textContent = `${Math.round(100 / feed.viewport.zoom)}%`;
+    const browse = browseState(value.media);
+    value.regionalZoom.hidden = !feed?.viewport && !browseOnly();
+    if (browseOnly()) value.regionalZoom.textContent = `${Math.round(browse.zoom * 100)}% saved`;
+    else if (feed?.viewport) value.regionalZoom.textContent = `${Math.round(100 / feed.viewport.zoom)}%`;
     toolIcon(value.follow, "LocateFixed", `Follow ${names.join(", ") || feed?.label || "subject"}`);
     value.follow.title = `Follow ${names.join(", ") || feed?.label || "subject"}. Drag or arrow keys browse this view; wheel zooms.`;
     renderOverlay(value.overlay, feed?.overlay, feed?.capturedAtUnixMs, value.screenKey);
@@ -664,7 +790,7 @@ export function installNativeView(root) {
     feedWindows.reconcile(next.binding.bindingId, new Set(screens.map(screen => screen.key)));
     renderViewToggles(screens);
 
-    primaryLabel.textContent = primaryDisplay;
+    primaryLabel.textContent = primaryDisplay; renderPrimaryFrame();
     primaryPanel.hidden = feeds.length > 0 || hiddenScreens.has("current");
     renderOverlay(primaryOverlay, primaryFeed?.overlay, next.view.capturedAtUnixMs, "current");
     updatePanelTools(primaryToolsState, "current");
@@ -680,6 +806,7 @@ export function installNativeView(root) {
         card.dataset.feedSlot = String(index);
         const media = node("div", undefined, card, "native-panel-media");
         const image = node("img", undefined, media); image.alt = ""; image.decoding = "async"; image.draggable = false;
+        const canvas = node("canvas", undefined, media, "native-video-surface"); canvas.hidden = true;
         const overlay = node("div", undefined, media, "native-panel-telemetry"); overlay.hidden = true;
         const caption = node("div", undefined, card, "native-panel-caption");
         const meta = node("div", undefined, caption, "native-panel-meta");
@@ -688,19 +815,23 @@ export function installNativeView(root) {
         const cameraTools = node("div", undefined, options, "native-controls native-camera-controls");
         const cameraButtons = [follow]; follow.dataset.cameraAction = "auto";
         follow.addEventListener("click", () => { cameraSite = value.siteId; void send("auto", { siteId: value.siteId }); });
-        const cameraButton = (label, action, values = {}) => {
-          const control = node("button", label, cameraTools, "button secondary-button"); control.type = "button";
+        const cameraButton = (label, action, values = {}, parent = cameraTools) => {
+          const control = node("button", label, parent, "button secondary-button"); control.type = "button";
           control.dataset.cameraAction = action;
-          control.addEventListener("click", () => { cameraSite = value.siteId; void send(action, { ...values, siteId: value.siteId }); });
+          control.addEventListener("click", () => { cameraSite = value.siteId; moveCamera(action, { ...values, ...(value.siteId ? { siteId: value.siteId } : {}) }, value.media); });
           cameraButtons.push(control); return control;
         };
         const regionalOut = cameraButton("−", "zoom", { value: 1 }); regionalOut.setAttribute("aria-label", "Zoom this view out");
         const regionalZoom = node("span", "", cameraTools);
         const regionalIn = cameraButton("+", "zoom", { value: -1 }); regionalIn.setAttribute("aria-label", "Zoom this view in");
-        for (const [label, dx, dy] of [["←", -8, 0], ["↑", 0, -8], ["↓", 0, 8], ["→", 8, 0]]) {
-          cameraButton(label, "pan", { dx, dy }).setAttribute("aria-label", `Move this view ${label}`);
+        const directions = node("div", undefined, cameraTools, "native-pan");
+        for (const [label, dx, dy, direction] of [["←", -8, 8, "left"], ["↑", -8, -8, "up"], ["↓", 8, 8, "down"], ["→", 8, -8, "right"]]) {
+          const control = cameraButton(label, "pan", { dx, dy }, directions); control.dataset.direction = direction; control.setAttribute("aria-label", `Move this view ${label}`);
         }
-        value = { card, media, image, overlay, label, subject, age, info, windowButton, follow, hide, screenKey,
+        const fit = node("button", "⌾", directions, "button secondary-button"); fit.type = "button"; fit.dataset.direction = "center";
+        fit.setAttribute("aria-label", "Fit saved view"); fit.title = "Reset saved image pan and zoom"; fit.hidden = true;
+        fit.addEventListener("click", () => { resetBrowse(value.media); renderFeedFrame(value); freshness(); });
+        value = { card, media, image, canvas, overlay, label, subject, age, info, windowButton, follow, hide, fit, screenKey,
           cameraTools, cameraButtons, regionalOut, regionalIn, regionalZoom,
           key: "" }; feedCards.set(id, value);
         info.addEventListener("click", () => toggleScreenInfo(value.screenKey));
@@ -710,7 +841,7 @@ export function installNativeView(root) {
       }
       value.screenKey = screenKey;
       value.siteId = feed.siteId || null;
-      value.cameraTools.hidden = !feed.siteId;
+      value.cameraTools.hidden = !feed.siteId && !browseOnly();
       value.follow.hidden = !feed.siteId;
       value.card.dataset.siteId = feed.siteId || "";
       value.card.hidden = hiddenScreens.has(screenKey);
@@ -721,15 +852,16 @@ export function installNativeView(root) {
       if (key === value.key) {
         value.pendingKey = ""; value.imageError = false; value.displayedFeed = feed; value.displayedNames = value.nextNames;
       }
-      else if (key !== value.pendingKey) {
+      else if (key !== value.pendingKey && !value.videoFrame) {
         value.pendingKey = key;
+        const sourceFeed = feed, sourceNames = [...value.nextNames];
         const candidate = new Image(); candidate.decoding = "async"; candidate.src = urls.get(feed.id);
         candidate.decode().then(() => {
           if (active && value.pendingKey === key && feedCards.get(id) === value && current?.binding.bindingId === next.binding.bindingId) {
             value.image.src = candidate.src; value.key = key; value.pendingKey = ""; value.imageError = false;
-            frameGeometry(value.media, candidate);
-            value.displayedFeed = value.nextFeed;
-            value.displayedNames = value.nextNames;
+            if (!value.videoFrame) frameGeometry(value.media, candidate);
+            value.displayedFeed = sourceFeed;
+            value.displayedNames = sourceNames;
             renderFeedFrame(value); refreshFeedAges();
             imageDeliveries.accept(`${next.binding.bindingId}:${key}`);
           }
@@ -753,7 +885,7 @@ export function installNativeView(root) {
   function refreshFeedWindows() {
     const view = current?.view;
     const disconnected = view?.state !== "ended" && view?.state !== "paused"
-      && (Boolean(feedError) || current?.connection === "disconnected" || Date.now() - (view?.capturedAtUnixMs || 0) >= 30000);
+      && (Boolean(feedError) || current?.connection === "disconnected" || Date.now() - sourceCaptureTime(view) >= 30000);
     const commandable = Boolean(view && view.state !== "ended" && !feedError && !disconnected && !posting);
     feedWindows.refresh({ opacity: String(Number(infoOpacity.value) / 100), state: connection.textContent,
       connectionState: connection.dataset.state, clock: current?.view.study ? nativeSessionFacts(current.view) : current?.view.summary || "",
@@ -915,27 +1047,36 @@ export function installNativeView(root) {
 
   function freshness() {
     if (!active || !current) return;
+    const localBrowse = browseOnly();
+    if (!localBrowse) for (const [media, browse] of browseStates) if (browse.local) resetBrowse(media);
     refreshFeedAges();
-    const view = current.view, age = Math.max(0, Date.now() - view.capturedAtUnixMs);
+    const view = current.view, age = Math.max(0, Date.now() - sourceCaptureTime(view));
     refreshCameraContext();
     const disconnected = view.state !== "ended" && view.state !== "paused"
       && (Boolean(feedError) || current.connection === "disconnected" || age >= 30000);
     const commandable = view.state !== "ended" && !feedError && !disconnected;
     for (const value of feedCards.values()) {
       const feed = view.feeds?.find(feed => feed.siteId && feed.siteId === value.siteId);
+      const hasFrame = Boolean(value.videoFrame || value.image.naturalWidth);
       for (const control of value.cameraButtons) {
-        control.disabled = !commandable || posting || !feed;
+        control.disabled = localBrowse && control.dataset.cameraAction !== "auto" ? !hasFrame : !commandable || posting || !feed;
         if (control.dataset.cameraAction === "auto") control.setAttribute("aria-pressed", String(feed?.camera.mode === "automatic"));
       }
-      value.follow.hidden = !feed || view.state === "ended";
+      value.follow.hidden = !feed || localBrowse;
       value.follow.disabled ||= !feed?.camera.personIds.length;
+      value.cameraTools.hidden = !feed && !localBrowse;
+      value.fit.hidden = !localBrowse; value.fit.disabled = !hasFrame;
       const controlsViewport = feed?.cameraControls?.viewport || feed?.viewport;
-      value.regionalOut.hidden = value.regionalIn.hidden = !controlsViewport;
-      if (controlsViewport) {
+      value.regionalOut.hidden = value.regionalIn.hidden = !controlsViewport && !localBrowse;
+      if (localBrowse) {
+        value.regionalOut.disabled ||= browseState(value.media).zoom <= 1;
+        value.regionalIn.disabled ||= browseState(value.media).zoom >= 8;
+      } else if (controlsViewport) {
         const { targetZoom, zoomLevels } = controlsViewport;
         value.regionalOut.disabled ||= targetZoom >= zoomLevels.at(-1) - 0.0001;
         value.regionalIn.disabled ||= targetZoom <= zoomLevels[0] + 0.0001;
       }
+      renderFeedFrame(value);
     }
     connection.textContent = feedError ? "Feed unavailable" : view.state === "ended"
       ? (view.study?.status === "saved" ? "Session saved" : "Run ended")
@@ -948,6 +1089,8 @@ export function installNativeView(root) {
     if (view.state === "ended") deliveryRate.textContent = "Run ended";
     else if (disconnected) deliveryRate.textContent = "No live frames";
     for (const value of controlButtons) value.disabled = !commandable || posting;
+    if (localBrowse) for (const control of primaryCameraTools.querySelectorAll("button")) control.disabled = !(picture.naturalWidth || primaryVideoFrame);
+    primaryFit.hidden = !localBrowse;
     checkpoint.disabled = posting || !view.study?.canCheckpoint;
     continueSession.disabled = posting || !view.study?.canContinue || view.state !== "ended";
     applySession.disabled = posting || !view.study || !sessionSettingsValid();
@@ -968,10 +1111,15 @@ export function installNativeView(root) {
     primaryFollow.setAttribute("aria-pressed", String(view.camera?.mode === "automatic"));
     primaryFollow.disabled ||= !view.camera?.personIds.length;
     const activeViewport = cameraViewport();
-    zoomControls.hidden = !activeViewport;
-    if (activeViewport) {
+    zoomControls.hidden = !activeViewport && !localBrowse;
+    if (localBrowse) {
+      zoomLabel.hidden = false; zoomLabel.textContent = `${Math.round(browseState(viewport).zoom * 100)}% saved`;
+      zoomOut.disabled ||= browseState(viewport).zoom <= 1; zoomIn.disabled ||= browseState(viewport).zoom >= 8;
+    } else if (activeViewport) {
       const { targetZoom, zoomLevels } = activeViewport;
-      const pictured = currentCameraFeed()?.viewport || view.viewport;
+      const regional = currentCameraFeed();
+      const acceptedVideo = regional ? [...feedCards.values()].find(value => value.siteId === regional.siteId)?.videoFrame : primaryVideoFrame;
+      const pictured = acceptedVideo ? acceptedVideo.site : regional?.viewport || view.viewport;
       zoomLabel.hidden = !pictured;
       if (pictured) {
         zoomLabel.textContent = Math.round(100 / pictured.zoom) + "%";
@@ -1007,7 +1155,7 @@ export function installNativeView(root) {
     project.href = "#projects?" + new URLSearchParams({ project: next.binding.projectRef || "" });
     if (!view.people.some(person => person.id === selected)) { selected = null; explicitPerson = false; }
     if (!explicitPerson) selected = view.camera?.personIds[0] || selected || view.people[0]?.id || null;
-    selectPeople(); renderPerson(); renderCognition(); renderFeeds(next); updateSession(); freshness();
+    selectPeople(); renderPerson(); renderCognition(); renderFeeds(next); sourceRuntime(next); updateSession(); freshness();
     if (view.commandResult && (!lastResult || view.commandResult.sequence > lastResult.sequence)) {
       lastResult = view.commandResult;
       commandStatus.textContent = `${lastResult.status === "applied" ? "Applied" : "Rejected"}: ${lastResult.message}`;
@@ -1022,11 +1170,11 @@ export function installNativeView(root) {
 
   async function send(action, values = {}) {
     values = cameraValues(action, values);
-    const age = current ? Date.now() - current.view.capturedAtUnixMs : Infinity;
+    const age = current ? Date.now() - sourceCaptureTime(current.view) : Infinity;
     const lifecycle = action === "checkpoint" || action === "continue" || action === "configure";
     if (!active || !current || posting || (feedError && !lifecycle)
       || (current.view.state === "ended" && !lifecycle)
-      || (!lifecycle && current.view.state !== "paused" && age >= 30000)) return;
+      || (!lifecycle && current.view.state !== "paused" && (current.connection === "disconnected" || age >= 30000))) return;
     if (action === "cognition") {
       if (!settingsValid() || !current.view.people.find(person => person.id === selected)?.cognition || ["pending", "sending"].includes(cognitionRequest?.status)) return;
       cognitionRequest = { values: { ...values }, sequence: null, status: "sending", message: "Sending settings request.",
@@ -1087,31 +1235,40 @@ export function installNativeView(root) {
       if (previous && surface.hasPointerCapture(previous.id)) surface.releasePointerCapture(previous.id);
     });
     surface.addEventListener("keydown", event => {
-      const move = { ArrowLeft: [-8, 0], ArrowRight: [8, 0], ArrowUp: [0, -8], ArrowDown: [0, 8] }[event.key];
-      if (move) { event.preventDefault(); void send("pan", { dx: move[0], dy: move[1], ...target() }); }
+      const move = { ArrowLeft: [-8, 8], ArrowRight: [8, -8], ArrowUp: [-8, -8], ArrowDown: [8, 8] }[event.key];
+      if (move) { event.preventDefault(); moveCamera("pan", { dx: move[0], dy: move[1], ...target() }, surface); }
       if (event.code === "Space") { event.preventDefault(); void send("pause"); }
-      if (["-", "_", "+", "="].includes(event.key) && cameraViewport(target())) {
-        event.preventDefault(); void send("zoom", { value: ["-", "_"].includes(event.key) ? 1 : -1, ...target() });
+      if (["-", "_", "+", "="].includes(event.key) && (browseOnly() || cameraViewport(target()))) {
+        event.preventDefault(); moveCamera("zoom", { value: ["-", "_"].includes(event.key) ? 1 : -1, ...target() }, surface);
       }
     });
     surface.addEventListener("wheel", event => {
       const values = target();
-      if (!cameraViewport(values) || !event.deltaY) return;
+      if ((!browseOnly() && !cameraViewport(values)) || !event.deltaY) return;
       event.preventDefault();
       if (performance.now() - lastZoomAt < 150) return;
-      lastZoomAt = performance.now(); void send("zoom", { value: event.deltaY > 0 ? 1 : -1, ...values });
+      lastZoomAt = performance.now(); moveCamera("zoom", { value: event.deltaY > 0 ? 1 : -1, ...values }, surface);
     }, { passive: false });
     surface.addEventListener("pointerdown", event => {
       if (event.button !== 0 || event.target.closest("button, input, select, details")) return;
-      pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, values: target() };
+      pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, values: target(), local: browseOnly(), browse: { ...browseState(surface) } };
       surface.focus({ preventScroll: true }); surface.setPointerCapture(event.pointerId);
+    });
+    surface.addEventListener("pointermove", event => {
+      if (!pointer || pointer.id !== event.pointerId || !pointer.local) return;
+      const box = surface.getBoundingClientRect(), browse = browseState(surface);
+      browse.zoom = Math.max(1.25, pointer.browse.zoom); browse.local = true;
+      browse.x = pointer.browse.x + (event.clientX - pointer.x) * 100 / box.width;
+      browse.y = pointer.browse.y + (event.clientY - pointer.y) * 100 / box.height;
+      applyBrowse(surface);
     });
     surface.addEventListener("pointerup", event => {
       if (!pointer || pointer.id !== event.pointerId) return;
       const start = pointer; pointer = null;
+      if (start.local) { freshness(); return; }
       const dx = Math.max(-8, Math.min(8, Math.round((start.x - event.clientX) / 24)));
       const dy = Math.max(-8, Math.min(8, Math.round((start.y - event.clientY) / 24)));
-      if (dx || dy) void send("pan", { dx, dy, ...start.values });
+      if (dx || dy) moveCamera("pan", { dx: Math.max(-8, Math.min(8, dx + dy)), dy: Math.max(-8, Math.min(8, dy - dx)), ...start.values }, surface);
     });
     for (const event of ["pointercancel", "lostpointercapture"]) surface.addEventListener(event, () => { pointer = null; });
   }
@@ -1150,17 +1307,31 @@ export function installNativeView(root) {
       const next = await response.json();
       if (!response.ok) throw new Error(next.code || "Simulation feed is unavailable.");
       if (current && current.binding.bindingId !== next.binding.bindingId) resetRun();
+      const videoOwned = Boolean(next.view.video);
+      if (videoOwned) update(next);
       const key = `${next.binding.bindingId}:${next.view.image.file}:${next.view.image.sha256}`;
       if (key !== imageKey) {
-        const decoded = await decodedImage(next.imageUrl, signal);
-        if (expected !== generation) return;
-        picture.src = decoded.src; frameGeometry(viewport, decoded);
-        picture.hidden = false; empty.hidden = true; imageKey = key; imageDeliveries.accept(key);
+        const accept = decoded => {
+          if (!active || expected !== generation || current && current.binding.bindingId !== next.binding.bindingId) return;
+          primaryPngView = next.view; picture.src = decoded.src; if (!primaryVideoFrame) frameGeometry(viewport, decoded);
+          picture.hidden = Boolean(primaryVideoFrame); empty.hidden = true; imageKey = key; imageDeliveries.accept(key); renderPrimaryFrame();
+        };
+        if (videoOwned) {
+          if (!primaryPending && !videoPlayer?.stats().ready) {
+            const pending = decodedImage(next.imageUrl, signal); primaryPending = pending;
+            pending.then(accept, () => { if (expected === generation && !primaryVideoFrame && !picture.naturalWidth) { empty.hidden = false; empty.textContent = "Image unavailable; waiting for continuous video."; } })
+              .finally(() => { if (primaryPending === pending) primaryPending = null; });
+          }
+        } else {
+          const decoded = await decodedImage(next.imageUrl, signal); if (expected !== generation) return; accept(decoded);
+        }
+      } else if (!primaryVideoFrame) {
+        primaryPngView = next.view;
       }
       if (expected !== generation) return;
       if (feedError && commandStatus.textContent === feedError) commandStatus.textContent = "";
       feedError = null;
-      update(next);
+      if (!videoOwned) update(next);
       const elapsed = performance.now() - rateStarted;
       if (next.view.state === "ended") deliveryRate.textContent = "Run ended";
       else if (next.connection === "disconnected") deliveryRate.textContent = "No live frames";
@@ -1178,6 +1349,7 @@ export function installNativeView(root) {
       if (!current) { empty.hidden = false; empty.textContent = error.message; }
       else commandStatus.textContent = error.message;
       for (const value of controlButtons) value.disabled = true;
+      freshness();
     } finally {
       if (active && expected === generation) timer = setTimeout(() => void poll(expected), delay);
     }
@@ -1192,6 +1364,7 @@ export function installNativeView(root) {
     if (!force && feedWindows.size) return;
     active = false; generation += 1; clearTimeout(timer); controller?.abort();
     feedWindows.closeAll();
+    videoPlayer?.destroy(); videoPlayer = null; primaryVideoSite = null; primaryVideoFrame = null;
     for (const clear of cameraInputs.values()) clear();
     postController?.abort(); postController = null; posting = false; setFreshnessTimer(false);
   }
