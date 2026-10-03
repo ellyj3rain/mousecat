@@ -31,6 +31,17 @@ function png(color, width = 1, height = 1) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", header), chunk("IDAT", deflateSync(rows)), chunk("IEND", Buffer.alloc(0))]);
 }
 
+function integratedObservation(capturedAtUnixMs) {
+  const source = (recordId, captured = capturedAtUnixMs) => ({ name: "Native contract browser fixture", recordId, worldHours: 31.2, capturedAtUnixMs: captured });
+  const person = (id, label, x, provenance, perspective) => ({ id: `body:${id}`, kind: "person", label, summary: "Position supplied by the source.", perspective, actorId: id,
+    source: source(`body:${id}`), status: "Source observation", position: { x, y: 20, z: -0.25, source: provenance } });
+  return { schema: "simulation.observation-graph/1", status: "available", message: "", capturedAtUnixMs, worldHours: 31.2, omittedNodes: 0, omittedEdges: 0,
+    nodes: [person("person-a", "Barney Billingsley", 10, "native-body", "observed"), person("person-b", "Blair", 18, "durable-record", "unknown"),
+      { id: "belief", kind: "belief", label: "A window may be open", summary: "Person's reported belief.", perspective: "private", actorId: "person-a", source: source("belief", 0), status: "Acquisition time unavailable" },
+      { id: "unknown", kind: "externality", label: "Alarm response unobserved", summary: "No downstream result has been supplied.", perspective: "unknown", actorId: "person-a", source: source("unknown", 0), status: "Unknown" }],
+    edges: [{ id: "belief-report", from: "body:person-a", to: "belief", relation: "reports", label: "Source belief reference", perspective: "private", source: source("belief-report", 0) }] };
+}
+
 async function assertFrameRatio(surface, ratio, message, fit = "contain") {
   const result = await surface.evaluate(element => {
     const box = element.getBoundingClientRect(), image = element.querySelector("img");
@@ -849,6 +860,7 @@ test("production video authority shares Window canvases, qualifies subject epoch
   const app = await startOperatorServer({ port: 0, nativeViews: { registryPath } }); t.after(() => app.close());
   const browser = await chromium.launch(process.platform === "win32" ? { channel: "msedge" } : {}); t.after(() => browser.close());
   const errors = [], output = resolve(".mousecat/browser-check"); await mkdir(output, { recursive: true });
+  const graphOutput = resolve("artifacts/local/a26/browser-v2"); await mkdir(graphOutput, { recursive: true });
   let sequence = 0;
   for (const width of [1680, 760, 390, 320]) {
     const streamId = randomUUID(), video = structuredClone(raw); video.schema = "mousecat.native-video/1"; video.streamId = streamId; video.state = "running";
@@ -867,7 +879,7 @@ test("production video authority shares Window canvases, qualifies subject epoch
     const viewport = { zoom: 1, targetZoom: 1, zoomLevels: [0.5, 1, 2] }, now = Date.now();
     const view = { schema: "mousecat.native-view/1", sessionId, sequence: ++sequence, capturedAtUnixMs: now, image, state: "running", title: "Native video authority fixture", summary: "Actual encoded fixture, synthetic source observations.",
       people: [{ id: "person-a", label: "Barney Billingsley", summary: "First assigned subject." }, { id: "person-b", label: "Blair", summary: "Second assigned subject." }], lastCommandSequence: 0,
-      camera: { mode: "automatic", personIds: ["person-a"], summary: "Assigned Barney." }, viewport, video,
+      camera: { mode: "automatic", personIds: ["person-a"], summary: "Assigned Barney." }, viewport, video, observationGraph: integratedObservation(now),
       feeds: sites.map((site, index) => ({ id: `site:${site.id}`, siteId: site.id, label: index ? "Blair" : "Barney Billingsley", capturedAtUnixMs: now, image,
         viewport: structuredClone(viewport), cameraControls: { capturedAtUnixMs: now, viewport: { ...viewport, zoom: 2, targetZoom: 2 } },
         camera: { mode: "automatic", personIds: ["person-b"], summary: "PNG has its own pictured epoch." },
@@ -878,8 +890,20 @@ test("production video authority shares Window canvases, qualifies subject epoch
     await save();
     const contractResponse = await fetch(new URL("/api/native-views/video/snapshot", app.url));
     assert.equal(contractResponse.status, 200, await contractResponse.text());
-    const context = await browser.newContext({ viewport: { width, height: 950 } }), page = await context.newPage();
+    const context = await browser.newContext({ viewport: { width, height: 950 }, deviceScaleFactor: width === 760 ? 1.5 : 1 }), page = await context.newPage();
     page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript(() => {
+      const listeners = new Set(), add = EventTarget.prototype.addEventListener, remove = EventTarget.prototype.removeEventListener;
+      window.observationListenerCount = () => listeners.size;
+      EventTarget.prototype.addEventListener = function (type, listener, options) {
+        if (type === "toggle" && this.classList?.contains("native-observation-panel")) listeners.add(listener);
+        return add.call(this, type, listener, options);
+      };
+      EventTarget.prototype.removeEventListener = function (type, listener, options) {
+        if (type === "toggle" && this.classList?.contains("native-observation-panel")) listeners.delete(listener);
+        return remove.call(this, type, listener, options);
+      };
+    });
     await page.addInitScript(() => {
       window.sharedPaints = [];
       // Native windows may be occluded while their originating view remains
@@ -901,6 +925,7 @@ test("production video authority shares Window canvases, qualifies subject epoch
     try {
       const initRequest = page.waitForRequest(request => new URL(request.url()).searchParams.get("file") === video.init.file);
       await page.goto(app.url + "#native-view?session=video"); await initRequest;
+      assert.equal(await page.evaluate(() => devicePixelRatio), width === 760 ? 1.5 : 1);
       const east = page.locator('[data-site-id="east"]'), west = page.locator('[data-site-id="west"]');
       await page.waitForFunction(() => [...document.querySelectorAll(".native-feed-card img")].length === 2 && [...document.querySelectorAll(".native-feed-card img")].every(image => image.naturalWidth === 160));
       assert.equal(await east.locator(".native-panel-meta strong").innerText(), "Barney Billingsley");
@@ -959,6 +984,66 @@ test("production video authority shares Window canvases, qualifies subject epoch
       assert.deepEqual(exported.view.video, view.video, "public video metadata differs from the decoded source window");
       assert.equal(exported.videoUrls.streamId, view.video.streamId);
       assert.equal((await readdir(commands)).length, 0, "video presentation issued a source command");
+      const graphPanel = page.locator(".native-observation-panel");
+      assert.equal(await graphPanel.evaluate(element => element.open), false, "the graph disclosure starts expanded");
+      assert.equal(await page.locator(".native-observation").count(), 0, "closed graph disclosure eagerly created an SVG renderer");
+      assert.equal(await page.evaluate(() => window.observationListenerCount()), 1);
+      const publishGraph = async (message, graph) => {
+        view.summary = message; view.observationGraph = graph; await save();
+        await page.waitForFunction(value => document.querySelector(".native-summary")?.textContent === value, message);
+      };
+      assert.equal(await page.locator(".native-panel-media .native-observation").count(), 0, "the graph intrudes into native feed pixels");
+      assert.deepEqual(exported.view.observationGraph, view.observationGraph, "machine projection differs from the displayed source graph");
+      const firstClosedGraph = structuredClone(view.observationGraph); firstClosedGraph.capturedAtUnixMs = Date.now();
+      firstClosedGraph.nodes.find(node => node.id === "belief").label = "Latest source belief while collapsed";
+      await publishGraph("Observed first source graph update while collapsed", firstClosedGraph);
+      assert.equal(await page.locator(".native-observation").count(), 0, "closed source update created a graph renderer");
+      await page.locator(".native-observation-panel > summary").click();
+      await page.locator('[data-node-id="body:person-b"]').focus(); await page.keyboard.press("Enter");
+      assert.equal(await page.locator(".native-person-title").innerText(), "Inspecting Blair");
+      assert.equal(await page.locator(".native-inspector").isVisible(), true);
+      await page.getByRole("button", { name: "Hide person details", exact: true }).click();
+      await page.getByRole("tab", { name: "Evidence", exact: true }).click();
+      await page.locator('[data-node-id="belief"]').focus(); await page.keyboard.press("Enter");
+      assert.match(await page.locator(".native-observation-detail").innerText(), /Person's private account/u);
+      assert.match(await page.locator(".native-observation-provenance").innerText(), /Acquisition time unknown/u);
+      assert.equal(await page.locator(".native-observation-provenance time").getAttribute("datetime"), null);
+      assert.equal(await page.locator(".native-observation-detail h3").innerText(), firstClosedGraph.nodes.find(node => node.id === "belief").label, "opening omitted the latest cached source graph");
+      await page.getByRole("button", { name: "Zoom observation in", exact: true }).click();
+      const graphTransform = await page.locator(".native-observation-plane").getAttribute("transform");
+      await graphPanel.locator(":scope > summary").click(); await graphPanel.locator(":scope > summary").click();
+      await page.locator(".native-observation-viewport").waitFor({ state: "visible" });
+      assert.equal(await page.locator(".native-observation-plane").getAttribute("transform"), graphTransform, "closing the same source graph reset map browsing");
+      assert.equal(await page.locator(".native-observation-detail h3").innerText(), firstClosedGraph.nodes.find(node => node.id === "belief").label, "closing the same graph lost selection");
+      await graphPanel.locator(":scope > summary").click();
+      await page.locator(".native-observation-viewport svg").evaluate(element => {
+        window.closedGraphMutations = 0;
+        window.closedGraphObserver = new MutationObserver(records => { window.closedGraphMutations += records.length; });
+        window.closedGraphObserver.observe(element, { subtree: true, attributes: true, characterData: true, childList: true });
+      });
+      const newerClosedGraph = structuredClone(firstClosedGraph); newerClosedGraph.capturedAtUnixMs = Date.now();
+      newerClosedGraph.nodes.find(node => node.id === "belief").label = "Newest source belief after closed updates";
+      await publishGraph("Observed newer source graph while collapsed", newerClosedGraph);
+      assert.equal(await page.evaluate(() => window.closedGraphMutations), 0, "closed graph clock updates rebuilt SVG");
+      await page.evaluate(() => window.closedGraphObserver.disconnect());
+      await graphPanel.locator(":scope > summary").click();
+      await page.waitForFunction(label => document.querySelector(".native-observation-detail h3")?.textContent === label, newerClosedGraph.nodes.find(node => node.id === "belief").label);
+      assert.equal(await page.locator(".native-observation-plane").getAttribute("transform"), graphTransform, "opening the latest graph lost retained browsing");
+      const latestGraphExport = await (await fetch(new URL("/api/native-views/video/snapshot", app.url))).json();
+      assert.deepEqual(latestGraphExport.view.observationGraph, newerClosedGraph, "cached display diverged from latest machine export");
+      assert.equal((await readdir(commands)).length, 0, "ancillary graph selection issued a source command");
+      await page.screenshot({ path: join(graphOutput, `native-observation-production-${width}.png`), fullPage: true, animations: "disabled" });
+      await graphPanel.locator(":scope > summary").click();
+      delete view.observationGraph; await save();
+      await graphPanel.waitFor({ state: "hidden" });
+      assert.equal(await page.locator(".native-observation").count(), 0, "withdrawn source graph retained a renderer");
+      await graphPanel.evaluate(element => { element.open = true; element.dispatchEvent(new Event("toggle")); });
+      assert.equal(await page.locator(".native-observation").count(), 0, "withdrawn graph kept a pending render");
+      await graphPanel.evaluate(element => { element.open = false; });
+      view.observationGraph = integratedObservation(now); await save();
+      await graphPanel.waitFor({ state: "visible" });
+      assert.equal(await page.locator(".native-observation").count(), 0, "returning source data bypassed the closed disclosure");
+      await graphPanel.locator(":scope > summary").click(); await page.locator(".native-observation-viewport").waitFor({ state: "visible" });
       view.state = view.video.state = "ended"; await save();
       await child.getByText("Run ended", { exact: true }).first().waitFor({ state: "visible" });
       const media = tile.locator(".native-panel-media"), canvas = tile.locator("canvas"), fit = child.getByRole("button", { name: "Fit saved view", exact: true });
@@ -1048,6 +1133,13 @@ test("production video authority shares Window canvases, qualifies subject epoch
       await page.waitForFunction(() => document.querySelector('.native-observatory-primary canvas')?.hidden === true && document.querySelector('.native-viewport img')?.hidden === false);
       assert.equal(await primary.locator(".native-panel-meta strong").innerText(), "Current: Barney Billingsley", "withdrawn retained geometry kept a video caption");
       assert.equal(await primary.locator(".native-viewport").getAttribute("data-video-alignment"), "unknown");
+      assert.equal(await page.locator(".native-observation").count(), 1);
+      await page.evaluate(() => { location.hash = "#projects"; });
+      await page.waitForFunction(() => document.querySelector(".native-observation-panel")?.hidden === true && document.querySelectorAll(".native-observation").length === 0);
+      assert.equal(await page.evaluate(() => window.observationListenerCount()), 0, "unbinding kept the graph toggle owner");
+      await graphPanel.evaluate(element => { element.open = true; element.dispatchEvent(new Event("toggle")); });
+      assert.equal(await page.locator(".native-observation").count(), 0, "disposed graph disclosure recreated pending data");
+      assert.equal((await readdir(commands)).length, 0, "graph lifecycle issued a source command");
     } finally { release(); await page.unrouteAll(); await context.close(); }
   }
   assert.deepEqual(errors, []);

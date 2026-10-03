@@ -1,7 +1,7 @@
 | Document | Mousecat Memory |
 |---|---|
-| Version | 1.12.0.0-alpha |
-| Timestamp | 2026-09-22 04:38 UTC / 21:38 PDT |
+| Version | 2.0.0.0-alpha |
+| Timestamp | 2026-10-03 05:35 UTC / 22:35 PST |
 | Status | ACTIVE - repo memory index. |
 
 # Mousecat Memory

@@ -1,7 +1,7 @@
 | Document | Mousecat Roadmap |
 |---|---|
-| Version | 1.12.0.0-alpha |
-| Timestamp | 2026-09-30 10:10 UTC |
+| Version | 2.0.0.0-alpha |
+| Timestamp | 2026-10-03 05:35 UTC / 22:35 PST |
 | Status | ACTIVE - project roadmap. |
 
 # Mousecat Roadmap

@@ -720,3 +720,23 @@ Stream withdrawal clears old primary presentation, and current video acquisition
 keeps controls live when the independent PNG picture is old. Actual-codec cases
 exercise these transitions and preserve terminal local-navigation refusal to
 post native commands.
+
+## F-074 | 2026-10-03 05:35 UTC / 22:35 PST | Unknown clocks and positions need visible provenance
+
+An acquisition value of zero means unknown; formatting it as a date would
+manufacture a 1970 observation. A durable person position is a record position
+until a native body receipt observes it. The ancillary projection labels both
+distinctions, preserves fractional floors, and retains private accounts,
+predictions and explicit missing evidence. Reference labels distinguish causal,
+temporal and correlation receipts. Browser cases cover zero clocks, position
+provenance, typed references, keyboard person selection, exact graph export and
+the absence of native command writes during map inspection.
+
+Independent review also found three presentation defects. Observed externality
+receipts were grouped under Missing evidence; the group now names external
+effects and unknowns while each record retains its source perspective. Whole
+percent rounding made uncertain confidence appear as 100%; formatted confidence
+now preserves uncertainty, including near-boundary values. Closing details or
+following a reference removed the focused keyboard control; focus now returns
+to the selected map record or moves into the referenced details. Browser cases
+exercise these source distinctions and keyboard destinations.

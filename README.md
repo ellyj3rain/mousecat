@@ -1,7 +1,7 @@
 | Document | Mousecat README |
 |---|---|
-| Version | 1.12.0.0-alpha |
-| Timestamp | 2026-09-30 10:10 UTC |
+| Version | 2.0.0.0-alpha |
+| Timestamp | 2026-10-03 05:35 UTC / 22:35 PST |
 | Status | ACTIVE - participant entry point. |
 
 # Mousecat
@@ -40,6 +40,14 @@ over the same view without shrinking the picture. Compact arrows,
 wheel, drag and Fit browse the retained picture after a source ends or
 disconnects. Fresh video keeps live controls available when PNG delivery lags.
 Crop geometry grants no pose, person acknowledgement or pictured zoom.
+
+The collapsed Observation map presents a source's typed graph through Positions
+and Evidence views. Inspect people, context, beliefs, predictions, actions,
+outcomes and missing evidence with their source clocks and perspective. Pan,
+zoom, recenter and keyboard selection browse the map; selecting a person opens
+the existing inspector. Unknown times and recorded positions remain labeled,
+and references follow explicit source receipts. Snapshot export includes the
+same canonical graph.
 
 ## Quick Start
 
