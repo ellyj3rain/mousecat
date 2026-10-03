@@ -728,3 +728,11 @@ The operator requests removal of artificial simulation frame ceilings. The viewe
 retains one sequential poller and yields without an added active-feed delay.
 Source and decoder readiness determine cadence; failed and ended feeds retain
 backoff. No timing setting changes simulation authority or promises delivery FPS.
+
+## DR-060 | 2026-10-03 03:29 UTC / 20:29 PST | Independent subject Windows
+
+The operator selected persistent subjects, strategy-style browsing and resizable
+Window views. Each Window adopts the original feed DOM, shares the source command
+owner, and carries its own camera tools plus simulation playback controls. View
+shape and Fit/Fill presentation remain shared preferences. Current source camera
+controls keep their acquisition clock separately from pictured projection metadata.

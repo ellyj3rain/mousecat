@@ -1,6 +1,6 @@
 | Document | Mousecat Governance |
 |---|---|
-| Version | 1.9.0.0-alpha |
+| Version | 1.10.0.0-alpha |
 | Timestamp | 2026-09-30 10:10 UTC |
 | Status | ACTIVE - operating discipline. |
 
@@ -24,7 +24,7 @@ Mousecat is governed by GZDS standards expressed as public, repository-local che
 | Operating rules | `GOVERNANCE.md`, `AGENTS.md` | Update when repository discipline changes. |
 | Runtime contract | `src/core/catalog.mjs`, `src/core/connectors.mjs`, `src/core/delegation.mjs`, `src/core/integration-contracts.mjs`, `src/core/integration-adapters.mjs`, `src/core/integration-runner.mjs`, `src/core/mcp-client.mjs`, `src/core/project-workbench.mjs`, `src/core/skill-invocation.mjs`, `src/core/runtime.mjs`, `src/mcp/server.mjs`, `src/operator/server.mjs`, `src/sdk/` | Source-owned tool names, skills, connector and cancellation semantics, provider manifests and execution boundaries, project-adapter and development-representation contracts, delegation custody, intake normalization, permits, adapter render packets, executable SDK bindings, host command packs, host-state bindings, operator command dispatch, and boundaries. |
 | Append-only history | `BATCH_LOG.md`, `DECISION_REGISTRY.md`, `FINDINGS.md` | Append entries only. Corrections supersede by new entry. |
-| Version | `VERSION`, `package.json`, `package-lock.json`, `src/core/governance/version.mjs` | Keep the Kohai-aware root odometer and npm package projection aligned. |
+| Version | 1.10.0.0-alpha | Keep the Kohai-aware root odometer and npm package projection aligned. |
 
 ## Version Discipline
 

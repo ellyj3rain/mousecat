@@ -1,6 +1,6 @@
 | Document | Mousecat Architecture |
 |---|---|
-| Version | 1.9.0.0-alpha |
+| Version | 1.10.0.0-alpha |
 | Timestamp | 2026-09-30 10:10 UTC |
 | Status | ACTIVE - system architecture. |
 
@@ -314,3 +314,15 @@ evidence. Deliberate history navigation focuses the selected heading; an in-reco
 outline jumps to supplied document sections. Small question outlines display
 literal titles and draft states. Narrow layouts retain the waiting-review count.
 Browser contracts exercise these mechanisms on isolated demo servers in CI.
+
+### Subject presentation and current camera controls (A23.4)
+
+The native-view producer may supply `cameraControls` at the view or declared
+feed: a source sample clock and validated current engine viewport. It is
+independent of pictured `viewport`, so image lag retains supported camera
+operations while displayed projection stays attached to accepted pixels.
+The browser and independent Window presentation share one source command
+owner. Window tools route camera and playback requests through that owner;
+shape and framing remain persisted client presentation. Accepted images own
+their labels, clocks, overlays and Frame geometry. Fresh captions stay quiet,
+and unavailable, failed and terminal reports remain explicit.

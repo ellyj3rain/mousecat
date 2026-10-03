@@ -102,7 +102,7 @@ internal static class NativeWindowProbe
                 child.Close();
                 await Wait(() => Task.FromResult(windows.Windows.Count == 0), "native close retirement");
                 await Wait(() => Truth(web.CoreWebView2, "document.querySelector(" + JsonSerializer.Serialize(tile) + ") === window.__probeTile"), "native close restores original tile");
-                await Wait(() => Truth(web.CoreWebView2, "window.__probeTile.querySelector('.native-panel-tools > button').textContent === 'Focus'"), "native close completes owner retirement");
+                await Wait(() => Truth(web.CoreWebView2, "window.__probeTile.querySelector('.native-panel-tools > button').getAttribute('aria-label') === 'Window'"), "native close completes owner retirement");
                 Console.WriteLine("PASS native title-bar close returns original live DOM");
                 await ClickAt(web.CoreWebView2, tile + " .native-panel-tools > button");
                 await Wait(() => Task.FromResult(windows.Windows.Count == 1), "third native Form");

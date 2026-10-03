@@ -1,6 +1,6 @@
 {
   "name": "mousecat",
-  "version": "1.9.0-alpha",
+  "version": "1.10.0-alpha",
   "description": "A compact cross-harness MCP operator widget for normalized skill decisions and structured returns.",
   "type": "module",
   "bin": {

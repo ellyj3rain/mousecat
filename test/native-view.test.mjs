@@ -555,6 +555,26 @@ test("native commands retain exact producer schema and consecutive immutable seq
   assert.equal((await readdir(f.commands)).filter(name => name.endsWith(".tmp")).length, 0);
 });
 
+test("current camera controls permit zoom while pictured projection is unavailable", async t => {
+  const f = await fixture(t), viewport = { zoom: 1, targetZoom: 1, zoomLevels: [0.5, 1, 2] };
+  f.view.cameraControls = { capturedAtUnixMs: Date.now(), viewport };
+  f.view.feeds = [{ id: "west", siteId: "west", label: "Avery", capturedAtUnixMs: f.view.capturedAtUnixMs,
+    image: { ...f.view.image }, camera: { ...f.view.camera }, cameraControls: { ...f.view.cameraControls } }];
+  await f.save(f.view);
+  const result = await f.adapter.command(f.row.id, await f.payload({ action: "zoom", siteId: "west", value: -1 }));
+  assert.equal((await f.command(result.sequence)).siteId, "west");
+  const current = await f.adapter.snapshot(f.row.id);
+  assert.equal(current.view.feeds[0].viewport, undefined, "current controls must not invent pictured projection");
+  for (const bad of [null, {}, { ...f.view.cameraControls, capturedAtUnixMs: -1 },
+    { ...f.view.cameraControls, viewport: { ...viewport, targetZoom: 3 } },
+    { ...f.view.cameraControls, privatePath: "private" }])
+    assert.throws(() => validateNativeView({ ...f.view, cameraControls: bad }));
+  f.view.sequence += 1;
+  f.view.feeds[0].cameraControls.capturedAtUnixMs = Date.now() + 10000;
+  await f.save(f.view);
+  await assert.rejects(f.adapter.snapshot(f.row.id), /future-native-camera-controls/u);
+});
+
 test("native zoom uses advertised engine levels and publishes only bounded steps", async t => {
   const f = await fixture(t);
   await assert.rejects(f.adapter.command(f.row.id, await f.payload({ action: "zoom", value: 1 })), /invalid-native-zoom/u);

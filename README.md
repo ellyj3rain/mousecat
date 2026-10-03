@@ -1,6 +1,6 @@
 | Document | Mousecat README |
 |---|---|
-| Version | 1.9.0.0-alpha |
+| Version | 1.10.0.0-alpha |
 | Timestamp | 2026-09-30 10:10 UTC |
 | Status | ACTIVE - participant entry point. |
 
@@ -229,28 +229,24 @@ ML rulings may add a `mousecat.ml-review/1` record to the existing decision item
 
 ## Native Simulation Observatory
 
-The Simulation route accepts a locally registered `mousecat.native-view/1`
-producer without turning Mousecat into the simulation owner. It verifies native
-PNG identity, source session and monotonic cursors, then displays the current
-engine frame beside up to four retained activity views. The screens share one
-adjustable size, remain equal, and can be hidden or restored individually. The
-person inspector can release its full width back to the screens, and that choice,
-panel size, information opacity and visible data groups persist in the client
-profile. Every screen keeps its frame age visible.
+The Simulation route displays verified source-native images and separate
+source-timed person information. Each subject appears once in its caption.
+Fresh images stay quiet; delayed, paused, failed and final frames retain clear
+status and their capture time. Inspector and source metadata open on demand.
 
-Simultaneous source-declared regional feeds may supply a stable `siteId` and
-native viewport. Regional tiles retain their positions when the producer reorders
-its reports. Their captions name the region and observed camera subject; frame
-ages describe the displayed image, including while a replacement loads or fails.
-Each regional tile exposes its own camera tools on demand;
-zoom, pan and activity-follow requests carry that declared site identity. Focus
-opens that feed in a movable, resizable window. Redock or closing its window
-returns the same live tile to the observatory. The region remains stable when
-feeds reorder, and keyboard, drag and wheel controls use its declared camera.
-The shared camera controls identify their selected region above the feeds.
-Tools reveal information, visibility and camera controls when needed; View
-settings holds shared sizing and overlay preferences. Native inspection retains up to
-sixteen source sections, including the existing thirteen-section projection.
+View settings offer Wide, Square and Frame shape, plus Fill or Fit framing.
+Wide and Fill are the defaults. Fill crops without distortion; Fit retains the
+complete captured frame; Frame follows accepted native image geometry. These
+choices persist and apply to docked and independent windows. Each declared
+site keeps its own camera tools: wheel zoom, drag/arrow browsing, and Follow.
+Only source-owned commands change the native camera or simulation.
+
+Window opens a real movable, resizable view with camera and playback tools.
+Redock or closing it returns the same view. Source binding and subject identity
+remain stable across feed reordering. Optional current camera control samples
+carry their own clock; an older image does not remove a supported zoom operation
+or acquire the later projection. Source unavailable-subject reports remain
+visible even when they have no pictured person.
 
 Detached feeds remain live while the main window opens Questions or Reviews.
 They share the original source polling, command owner and aggregate images/s
