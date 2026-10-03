@@ -687,3 +687,12 @@ observed the asynchronous popup callback exception.
 and disposes each popup deferral once. The actual installed host renders the
 child and redocks it successfully. The native fixture captures asynchronous
 callback failures, and four path cases exercise equivalence and refusal.
+
+## F-071 | 2026-10-03 03:29 UTC / 20:29 PST | Zoom raced the pictured command epoch
+
+An image may lag a successful native camera update. Treating pictured projection
+as current control availability disabled zoom during ordinary lag. Optional
+source-timed cameraControls now preserve that distinction, with invalid clocks
+and values refused. Direct core tests and four-width browser cases cover the
+lagged image; actual WinForms/WebView2 confirms resize, navigation guard, shared
+presentation, redock, title-bar close and child-window retirement.

@@ -2209,3 +2209,26 @@ Both browser suites pass at four widths; added instrumentation counts complete
 native snapshot fetches and confirms sequential requests during camera actions.
 Independent review finds no blocking defect. Existing reviews and saved native
 state remain producer-owned.
+
+## [A23.4] - Subject views and independent Window tools
+
+*Timestamp:* 2026-10-03 03:10 UTC / 20:10 PST
+
+The viewer names each assigned subject once, keeps fresh captions quiet and
+retains source unavailable, stale, error, paused and final states. Persisted
+Wide, Square and Frame shapes combine with Fit or Fill framing in docked and
+resizable Window views. Wide and Fill are the defaults. Each view's Follow,
+wheel and drag controls route to that declared native site. Window replaces
+the product name Focus and exposes camera, playback and presentation tools.
+
+Optional source `cameraControls` separate current control availability from
+the pictured projection epoch, fixing zoom rejection during ordinary image
+lag. Strict source clocks, bounds, binding, commands and image validation
+remain. This public optional contract expansion moves the minor coordinate to
+1.10.0.0-alpha; npm metadata projects to 1.10.0-alpha.
+
+Readiness, dependency audit, browser acceptance at four widths and actual
+installed Window acceptance own their final receipts. Review found the
+unavailable-subject caption drift and malformed source site refusal; their
+repairs retain direct cases. Continuous encoded video and the normalized
+ancillary map/graph continue in the next slice.

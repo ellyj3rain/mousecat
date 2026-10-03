@@ -1,12 +1,20 @@
 | Document | Mousecat Session State |
 |---|---|
-| Version | 1.9.0.0-alpha |
-| Timestamp | 2026-10-02 22:44 UTC |
-| Status | ACTIVE - A23.3 removes the active feed's added polling delay. |
+| Version | 1.10.0.0-alpha |
+| Timestamp | 2026-10-03 03:10 UTC / 20:10 PST |
+| Status | ACTIVE - A23.4 supplies subject views and independent Window tools. |
 
 # Session State
 
 ## Current state
+
+A23.4 supplies persisted Wide/Square/Frame shape and Fit/Fill framing, quiet
+subject captions and independent resizable Window tools. Follow and browsing
+retain each declared site. Optional source `cameraControls` keep current
+engine command availability separate from older pictured projection. Window
+tools route through the existing owner; no second runtime controller appears.
+The public contract expansion moves VERSION to 1.10.0.0-alpha.
+Readiness and actual installed acceptance remain recorded by their final receipts.
 
 A23.3 yields to the browser scheduler immediately after each completed live
 snapshot request. One sequential poller still owns delivery; failure and ended

@@ -8,6 +8,22 @@ function node(tag, text, parent, className) {
   return value;
 }
 
+function toolIcon(control, name, label) {
+  control.setAttribute("aria-label", label);
+  if (control.dataset.icon === name) return;
+  control.dataset.icon = name;
+  const icon = globalThis.lucide?.icons?.[name];
+  control.replaceChildren(icon ? globalThis.lucide.createElement(icon, { "aria-hidden": "true" }) : document.createTextNode(label));
+}
+
+function frameGeometry(media, image) {
+  // Geometry belongs to the accepted image, alongside its timestamp and subject.
+  const width = image.naturalWidth, height = image.naturalHeight;
+  media.style.setProperty("--native-frame-aspect", `${width} / ${height}`);
+  media.parentElement.dataset.frameWidth = String(width);
+  media.parentElement.dataset.frameHeight = String(height);
+}
+
 function readPreference(name, fallback) {
   try {
     const value = localStorage.getItem(`mousecat.native-view.${name}`);
@@ -70,7 +86,22 @@ export function installNativeView(root) {
   const inspectedName = node("strong", "No person selected", inspected);
   const viewOptions = node("details", undefined, stage, "native-view-options");
   node("summary", "View settings", viewOptions);
+  viewOptions.append(context);
   const observatoryTools = node("div", undefined, viewOptions, "native-observatory-tools");
+  const shapeControl = node("label", undefined, observatoryTools, "native-view-choice");
+  node("span", "Shape", shapeControl);
+  const shape = node("select", undefined, shapeControl); shape.setAttribute("aria-label", "View shape");
+  for (const [value, label] of [["wide", "Wide"], ["square", "Square"], ["frame", "Frame"]]) {
+    const option = node("option", label, shape); option.value = value;
+  }
+  const savedShape = readPreference("shape", "wide"); shape.value = ["wide", "square", "frame"].includes(savedShape) ? savedShape : "wide";
+  const framingControl = node("label", undefined, observatoryTools, "native-view-choice");
+  node("span", "Framing", framingControl);
+  const framing = node("select", undefined, framingControl); framing.setAttribute("aria-label", "Image framing");
+  for (const [value, label] of [["fill", "Fill view"], ["fit", "Fit complete frame"]]) {
+    const option = node("option", label, framing); option.value = value;
+  }
+  const savedFraming = readPreference("framing", "fill"); framing.value = ["fill", "fit"].includes(savedFraming) ? savedFraming : "fill";
   const sizeControl = node("label", undefined, observatoryTools, "native-panel-size");
   node("span", "Panel size", sizeControl);
   const panelSize = node("input", undefined, sizeControl); panelSize.type = "range"; panelSize.id = "native-observatory-panel-size"; panelSize.min = "280"; panelSize.max = "640"; panelSize.step = "40";
@@ -104,6 +135,16 @@ export function installNativeView(root) {
     });
   }
   const panelGrid = node("div", undefined, stage, "native-observatory-grid");
+  function applyFraming() {
+    if (shape.value === "frame") stage.style.removeProperty("--native-view-aspect");
+    else stage.style.setProperty("--native-view-aspect", shape.value === "wide" ? "16 / 9" : "1 / 1");
+    stage.style.setProperty("--native-frame-fit", framing.value === "fill" ? "cover" : "contain");
+  }
+  applyFraming();
+  for (const control of [shape, framing]) control.addEventListener("change", () => {
+    writePreference("shape", shape.value); writePreference("framing", framing.value);
+    applyFraming(); refreshFeedWindows();
+  });
   stage.style.setProperty("--native-panel-size", `${panelSize.value}px`);
   stage.style.setProperty("--native-info-opacity", String(Number(infoOpacity.value) / 100));
   panelSize.addEventListener("input", () => {
@@ -124,25 +165,27 @@ export function installNativeView(root) {
   const primaryCaption = node("div", undefined, primaryPanel, "native-panel-caption");
   const primaryMeta = node("div", undefined, primaryCaption, "native-panel-meta");
   const primaryLabel = node("strong", "Current camera", primaryMeta), primaryAge = node("span", "No frame", primaryMeta);
-  function panelTools(caption, regional = false) {
+  function panelTools(caption) {
     const tools = node("div", undefined, caption, "native-panel-tools");
-    const focus = node("button", "Focus", tools); focus.type = "button";
+    const windowButton = node("button", "Window", tools); windowButton.type = "button";
+    const follow = node("button", "Follow", tools); follow.type = "button"; follow.hidden = true;
+    toolIcon(follow, "LocateFixed", "Follow subject");
     const menu = node("details", undefined, tools, "native-panel-menu");
-    node("summary", "Tools", menu);
+    const menuToggle = node("summary", "", menu); menuToggle.title = "Screen tools";
+    toolIcon(menuToggle, "Ellipsis", "Tools");
     const options = node("div", undefined, menu, "native-tool-options");
     const info = node("button", "Info", options); info.type = "button";
     const hide = node("button", "Hide", options); hide.type = "button";
-    const cameraToggle = regional ? node("button", "Camera", options) : null;
-    if (cameraToggle) cameraToggle.type = "button";
-    return { focus, info, hide, cameraToggle };
+    return { windowButton, follow, info, hide, options };
   }
-  const { info: primaryInfo, focus: primaryFocus, hide: primaryHide } = panelTools(primaryCaption);
+  const { info: primaryInfo, windowButton: primaryWindow, follow: primaryFollow, hide: primaryHide, options: primaryOptions } = panelTools(primaryCaption);
   const noScreens = node("p", "Choose a view above to restore the observatory.", panelGrid, "native-observatory-empty"); noScreens.hidden = true;
-  const frameState = node("div", undefined, stage, "native-frame-state");
+  const frameState = node("div", undefined, viewOptions, "native-frame-state");
   const imageAge = node("span", "No frame received", frameState);
   const deliveryRate = node("span", "", frameState);
   const controls = node("div", undefined, stage, "native-controls"); controls.setAttribute("aria-label", "Observer controls");
   const controlButtons = [];
+  primaryFollow.addEventListener("click", () => void send("auto")); controlButtons.push(primaryFollow);
   function button(label, action, values, parent = controls) {
     const value = node("button", label, parent, "button secondary-button"); value.type = "button"; value.disabled = true;
     value.addEventListener("click", () => void send(action, typeof values === "function" ? values() : values));
@@ -151,24 +194,24 @@ export function installNativeView(root) {
   const pause = button("Pause", "pause");
   const speeds = node("div", undefined, controls, "native-speeds"); speeds.setAttribute("aria-label", "Simulation speed");
   for (const value of [1, 2, 3]) button(["Normal", "Fast", "Fastest"][value - 1], "speed", { value }, speeds);
-  const automatic = button("Follow activity", "auto");
-  const zoomControls = node("div", undefined, controls, "native-zoom"); zoomControls.hidden = true;
+  const primaryCameraTools = node("div", undefined, primaryOptions, "native-controls native-camera-controls");
+  const zoomControls = node("div", undefined, primaryCameraTools, "native-zoom"); zoomControls.hidden = true;
   const zoomOut = button("−", "zoom", { value: 1 }, zoomControls); zoomOut.setAttribute("aria-label", "Zoom out"); zoomOut.title = "Zoom out (mouse wheel down or −)";
   const zoomLabel = node("span", "", zoomControls); zoomLabel.setAttribute("aria-live", "off");
   const zoomIn = button("+", "zoom", { value: -1 }, zoomControls); zoomIn.setAttribute("aria-label", "Zoom in"); zoomIn.title = "Zoom in (mouse wheel up or +)";
-  const pan = node("div", undefined, controls, "native-pan");
+  const pan = node("div", undefined, primaryCameraTools, "native-pan");
   for (const [label, dx, dy] of [["←", -8, 0], ["↑", 0, -8], ["↓", 0, 8], ["→", 8, 0]]) {
     const b = button(label, "pan", { dx, dy }, pan); b.setAttribute("aria-label", `Move camera ${label}`);
   }
   const endRun = button("End run", "stop");
-  const sessionBar = node("section", undefined, stage, "native-session-bar"); sessionBar.hidden = true;
-  const sessionFacts = node("p", "", sessionBar, "native-session-facts");
-  const sessionReview = node("p", "", sessionBar, "native-session-review"); sessionReview.hidden = true;
+  const sessionBar = node("section", undefined, controls, "native-session-bar"); sessionBar.hidden = true;
   const sessionActions = node("div", undefined, sessionBar, "native-session-actions");
   const checkpoint = button("Save session", "checkpoint", undefined, sessionActions);
   const continueSession = button("Continue session", "continue", undefined, sessionActions);
   const sessionSettings = node("details", undefined, sessionBar, "native-session-settings");
   node("summary", "Session settings", sessionSettings);
+  const sessionFacts = node("p", "", sessionSettings, "native-session-facts");
+  const sessionReview = node("p", "", sessionSettings, "native-session-review"); sessionReview.hidden = true;
   const sessionForm = node("form", undefined, sessionSettings, "native-session-form");
   const durationLabel = node("label", undefined, sessionForm);
   node("span", "Attempt duration (minutes)", durationLabel);
@@ -180,7 +223,7 @@ export function installNativeView(root) {
   const applySession = node("button", "Apply", sessionForm, "button secondary-button"); applySession.type = "submit";
   const sessionSettingsStatus = node("p", "", sessionSettings, "native-command-status"); sessionSettingsStatus.setAttribute("role", "status");
   const commandStatus = node("p", "", stage, "native-command-status"); commandStatus.setAttribute("role", "status");
-  const summary = node("p", "", stage, "native-summary");
+  const summary = node("p", "", viewOptions, "native-summary");
   const inspector = node("aside", undefined, body, "native-inspector"); inspector.id = "native-person-inspector"; inspector.setAttribute("aria-label", "People inspector");
   const inspectorTitlebar = node("div", undefined, inspector, "native-inspector-titlebar");
   const personTitle = node("h3", "Inspect person", inspectorTitlebar, "native-person-title");
@@ -214,7 +257,7 @@ export function installNativeView(root) {
   const settingsDraft = node("p", "", cognitionControls, "native-source");
   const settingsStatus = node("p", "", cognitionControls, "native-command-status"); settingsStatus.setAttribute("role", "status");
   const cognitionBody = node("div", undefined, cognition);
-  let inspectorVisible = readPreference("inspector", true) !== false;
+  let inspectorVisible = readPreference("inspector", false) === true;
   function setInspectorVisible(visible) {
     inspectorVisible = visible; inspector.hidden = !visible; body.classList.toggle("native-inspector-hidden", !visible);
     inspectorToggle.textContent = visible ? "Hide details" : "Show details";
@@ -235,6 +278,12 @@ export function installNativeView(root) {
   const cameraInputs = new Map();
   let screenSignature = "", cameraSite = null;
   const feedWindows = createNativeFeedWindows({
+    requestTime(action, values) { return send(action, values); },
+    setFraming(values) {
+      shape.value = values.shape; framing.value = values.framing;
+      writePreference("shape", shape.value); writePreference("framing", framing.value);
+      applyFraming(); refreshFeedWindows();
+    },
     returned(card) {
       cameraInputs.get(card.querySelector(".native-panel-media, .native-viewport"))?.();
       panelGrid.append(card);
@@ -260,17 +309,19 @@ export function installNativeView(root) {
   }
 
   function cameraViewport(values = {}) {
-    return values.siteId ? current?.view.feeds?.find(feed => feed.siteId === values.siteId)?.viewport
-      : currentCameraFeed()?.viewport || current?.view.viewport;
+    const target = values.siteId ? current?.view.feeds?.find(feed => feed.siteId === values.siteId)
+      : currentCameraFeed() || current?.view;
+    return target?.cameraControls?.viewport || target?.viewport;
   }
 
   function refreshCameraContext() {
     const view = current?.view, feed = currentCameraFeed(), observed = feed?.camera || view?.camera;
     const names = (observed?.personIds || []).map(id => view.people.find(person => person.id === id)?.label).filter(Boolean);
+    const unassigned = observed?.mode === "automatic" && !observed.personIds.length;
     cameraSubject.textContent = (feed ? `${feed.label} · ` : "") + (!observed ? "Camera state unavailable" : observed.mode === "automatic"
-      ? `Camera follows ${names.length ? names.join(", ") : "activity"}`
+      ? (unassigned ? observed.summary : `Camera follows ${names.join(", ") || feed?.label || "the reported subject"}`)
       : `Camera: manual${names.length ? ` · ${names.join(", ")}` : ""}`);
-    cameraSummary.textContent = observed?.summary || "";
+    cameraSummary.textContent = unassigned ? "" : observed?.summary || "";
   }
 
   function removeFeedCard(value) {
@@ -278,7 +329,7 @@ export function installNativeView(root) {
     cameraInputs.get(value.media)?.(); cameraInputs.delete(value.media); value.card.remove();
   }
 
-  function toggleScreenFocus(key) {
+  function toggleScreenWindow(key) {
     if (feedWindows.has(key)) { feedWindows.release(key); return; }
     if (!current) return;
     if (key.startsWith("site:")) cameraSite = key.slice(5);
@@ -286,7 +337,7 @@ export function installNativeView(root) {
     if (!value) return;
     cameraInputs.get(value.media || viewport)?.();
     feedWindows.open(key, { card: value.card, viewId: sessionId, bindingId: current.binding.bindingId,
-      label: key === "current" ? primaryLabel.textContent : value.label.textContent });
+      label: key === "current" ? primaryLabel.textContent : value.label.textContent, shape: shape.value, framing: framing.value });
     freshness();
   }
 
@@ -303,15 +354,15 @@ export function installNativeView(root) {
 
   function updatePanelTools(value, key) {
     const detached = feedWindows.has(key);
-    value.focus.textContent = detached ? "Redock" : "Focus";
-    value.focus.title = detached ? "Return this feed to the observatory" : "Open this feed in a movable window";
+    toolIcon(value.windowButton, detached ? "Minimize" : "Maximize", detached ? "Redock" : "Window");
+    value.windowButton.title = detached ? "Return this view to the main window" : "Open this view in a resizable window";
     value.info.setAttribute("aria-pressed", String(!mutedScreens.has(key)));
     value.info.title = mutedScreens.has(key) ? "Show this screen's information" : "Hide this screen's information";
     value.hide.title = "Hide this screen";
   }
 
-  const primaryToolsState = { card: primaryPanel, focus: primaryFocus, info: primaryInfo, hide: primaryHide };
-  primaryFocus.addEventListener("click", () => toggleScreenFocus("current"));
+  const primaryToolsState = { card: primaryPanel, windowButton: primaryWindow, info: primaryInfo, hide: primaryHide };
+  primaryWindow.addEventListener("click", () => toggleScreenWindow("current"));
   primaryInfo.addEventListener("click", () => toggleScreenInfo("current"));
   primaryHide.addEventListener("click", () => hideScreen("current"));
 
@@ -492,8 +543,9 @@ export function installNativeView(root) {
     if (current?.connection === "disconnected" || feedError) {
       return `captured ${new Date(capturedAtUnixMs).toLocaleString()}`;
     }
+    if (current?.view.state === "paused") return "Paused";
     const age = Math.max(0, Date.now() - capturedAtUnixMs);
-    return age < 1000 ? "just received" : `${(age / 1000).toFixed(1)}s old`;
+    return age < 3000 ? "" : `Delayed frame · ${Math.floor(age / 1000)}s old`;
   }
 
   function renderOverlay(container, overlay, frameCapturedAtUnixMs, screenKey) {
@@ -560,10 +612,11 @@ export function installNativeView(root) {
   }
 
   function refreshFeedAges() {
-    if (current) primaryAge.textContent = ageText(current.view.capturedAtUnixMs);
+    if (current) { primaryAge.textContent = ageText(current.view.capturedAtUnixMs); primaryAge.hidden = !primaryAge.textContent; }
     for (const value of feedCards.values()) {
-      const age = value.displayedFeed ? ageText(value.displayedFeed.capturedAtUnixMs) : "No frame";
-      value.age.textContent = `${age}${value.imageError ? " · Image unavailable" : value.pendingKey ? " · Loading image" : ""}`;
+      const age = value.displayedFeed ? ageText(value.displayedFeed.capturedAtUnixMs) : "Waiting for image";
+      value.age.textContent = value.imageError ? [age, "Image unavailable"].filter(Boolean).join(" · ") : age;
+      value.age.hidden = !value.age.textContent;
       value.age.title = value.displayedFeed ? new Date(value.displayedFeed.capturedAtUnixMs).toISOString() : "";
     }
   }
@@ -571,8 +624,20 @@ export function installNativeView(root) {
   function renderFeedFrame(value) {
     const feed = value.displayedFeed;
     const names = value.displayedNames || [];
-    value.subject.textContent = !feed ? "Waiting for image" : feed.camera.mode === "automatic"
-      ? `Following ${names.length ? names.join(", ") : "activity"}` : `Manual camera${names.length ? ` · ${names.join(", ")}` : ""}`;
+    value.label.textContent = feed?.label || "Waiting for image";
+    value.label.title = feed?.label || "";
+    value.image.alt = feed ? `Native view: ${feed.label}` : "";
+    value.media.title = "Drag or arrow keys to browse this view. Use the wheel or + and − to zoom; Follow returns to its subject.";
+    value.media.setAttribute("aria-label", `View of ${feed?.label || "the subject"}. Drag or arrow keys browse; wheel or plus and minus zoom; space pauses.`);
+    const sameSubject = names.length && feed?.label === names.join(", ");
+    value.subject.textContent = !feed ? "" : feed.camera.mode === "automatic"
+      ? (!feed.camera.personIds.length ? feed.camera.summary : sameSubject || !names.length ? "" : `Following ${names.join(", ")}`)
+      : `Manual camera${names.length && !sameSubject ? ` · ${names.join(", ")}` : ""}`;
+    value.subject.hidden = !value.subject.textContent;
+    value.regionalZoom.hidden = !feed?.viewport;
+    if (feed?.viewport) value.regionalZoom.textContent = `${Math.round(100 / feed.viewport.zoom)}%`;
+    toolIcon(value.follow, "LocateFixed", `Follow ${names.join(", ") || feed?.label || "subject"}`);
+    value.follow.title = `Follow ${names.join(", ") || feed?.label || "subject"}. Drag or arrow keys browse this view; wheel zooms.`;
     renderOverlay(value.overlay, feed?.overlay, feed?.capturedAtUnixMs, value.screenKey);
   }
 
@@ -619,9 +684,10 @@ export function installNativeView(root) {
         const caption = node("div", undefined, card, "native-panel-caption");
         const meta = node("div", undefined, caption, "native-panel-meta");
         const label = node("strong", "", meta), subject = node("span", "", meta, "native-feed-subject"), age = node("span", "", meta, "native-feed-age");
-        const { info, focus, hide, cameraToggle } = panelTools(caption, true);
-        const cameraTools = node("div", undefined, card, "native-controls"); cameraTools.hidden = true;
-        const cameraButtons = [];
+        const { info, windowButton, follow, hide, options } = panelTools(caption);
+        const cameraTools = node("div", undefined, options, "native-controls native-camera-controls");
+        const cameraButtons = [follow]; follow.dataset.cameraAction = "auto";
+        follow.addEventListener("click", () => { cameraSite = value.siteId; void send("auto", { siteId: value.siteId }); });
         const cameraButton = (label, action, values = {}) => {
           const control = node("button", label, cameraTools, "button secondary-button"); control.type = "button";
           control.dataset.cameraAction = action;
@@ -631,30 +697,22 @@ export function installNativeView(root) {
         const regionalOut = cameraButton("−", "zoom", { value: 1 }); regionalOut.setAttribute("aria-label", "Zoom this view out");
         const regionalZoom = node("span", "", cameraTools);
         const regionalIn = cameraButton("+", "zoom", { value: -1 }); regionalIn.setAttribute("aria-label", "Zoom this view in");
-        cameraButton("Follow activity", "auto");
         for (const [label, dx, dy] of [["←", -8, 0], ["↑", 0, -8], ["↓", 0, 8], ["→", 8, 0]]) {
           cameraButton(label, "pan", { dx, dy }).setAttribute("aria-label", `Move this view ${label}`);
         }
-        value = { card, media, image, overlay, label, subject, age, info, focus, hide, screenKey,
-          cameraToggle, cameraTools, cameraButtons, regionalOut, regionalIn, regionalZoom,
+        value = { card, media, image, overlay, label, subject, age, info, windowButton, follow, hide, screenKey,
+          cameraTools, cameraButtons, regionalOut, regionalIn, regionalZoom,
           key: "" }; feedCards.set(id, value);
         info.addEventListener("click", () => toggleScreenInfo(value.screenKey));
-        focus.addEventListener("click", () => toggleScreenFocus(value.screenKey));
+        windowButton.addEventListener("click", () => toggleScreenWindow(value.screenKey));
         hide.addEventListener("click", () => hideScreen(value.screenKey));
-        cameraToggle.addEventListener("click", () => {
-          cameraSite = value.siteId; cameraTools.hidden = !cameraTools.hidden;
-          cameraToggle.setAttribute("aria-expanded", String(!cameraTools.hidden)); freshness();
-        });
         bindCameraInput(media, () => value.siteId);
       }
       value.screenKey = screenKey;
       value.siteId = feed.siteId || null;
-      value.cameraToggle.hidden = !feed.siteId;
-      if (!feed.siteId) value.cameraTools.hidden = true;
+      value.cameraTools.hidden = !feed.siteId;
+      value.follow.hidden = !feed.siteId;
       value.card.dataset.siteId = feed.siteId || "";
-      value.label.textContent = feed.label;
-      value.label.title = feed.label;
-      value.image.alt = `Native view: ${feed.label}`;
       value.card.hidden = hiddenScreens.has(screenKey);
       updatePanelTools(value, screenKey);
       const key = `${feed.image.file}:${feed.image.sha256}`;
@@ -664,11 +722,12 @@ export function installNativeView(root) {
         value.pendingKey = ""; value.imageError = false; value.displayedFeed = feed; value.displayedNames = value.nextNames;
       }
       else if (key !== value.pendingKey) {
-        value.pendingKey = key; value.imageError = false;
+        value.pendingKey = key;
         const candidate = new Image(); candidate.decoding = "async"; candidate.src = urls.get(feed.id);
         candidate.decode().then(() => {
           if (active && value.pendingKey === key && feedCards.get(id) === value && current?.binding.bindingId === next.binding.bindingId) {
-            value.image.src = candidate.src; value.key = key; value.pendingKey = "";
+            value.image.src = candidate.src; value.key = key; value.pendingKey = ""; value.imageError = false;
+            frameGeometry(value.media, candidate);
             value.displayedFeed = value.nextFeed;
             value.displayedNames = value.nextNames;
             renderFeedFrame(value); refreshFeedAges();
@@ -692,9 +751,14 @@ export function installNativeView(root) {
   }
 
   function refreshFeedWindows() {
+    const view = current?.view;
+    const disconnected = view?.state !== "ended" && view?.state !== "paused"
+      && (Boolean(feedError) || current?.connection === "disconnected" || Date.now() - (view?.capturedAtUnixMs || 0) >= 30000);
+    const commandable = Boolean(view && view.state !== "ended" && !feedError && !disconnected && !posting);
     feedWindows.refresh({ opacity: String(Number(infoOpacity.value) / 100), state: connection.textContent,
       connectionState: connection.dataset.state, clock: current?.view.study ? nativeSessionFacts(current.view) : current?.view.summary || "",
-      rate: deliveryRate.textContent ? `Shared delivery: ${deliveryRate.textContent}` : "", command: commandStatus.textContent });
+      rate: deliveryRate.textContent ? `Shared delivery: ${deliveryRate.textContent}` : "", command: commandStatus.textContent,
+      shape: shape.value, framing: framing.value, playback: { state: view?.state, commandable } });
   }
 
   function renderPerson() {
@@ -863,10 +927,12 @@ export function installNativeView(root) {
         control.disabled = !commandable || posting || !feed;
         if (control.dataset.cameraAction === "auto") control.setAttribute("aria-pressed", String(feed?.camera.mode === "automatic"));
       }
-      value.regionalOut.hidden = value.regionalIn.hidden = value.regionalZoom.hidden = !feed?.viewport;
-      if (feed?.viewport) {
-        const { zoom, targetZoom, zoomLevels } = feed.viewport;
-        value.regionalZoom.textContent = `${Math.round(100 / zoom)}%`;
+      value.follow.hidden = !feed || view.state === "ended";
+      value.follow.disabled ||= !feed?.camera.personIds.length;
+      const controlsViewport = feed?.cameraControls?.viewport || feed?.viewport;
+      value.regionalOut.hidden = value.regionalIn.hidden = !controlsViewport;
+      if (controlsViewport) {
+        const { targetZoom, zoomLevels } = controlsViewport;
         value.regionalOut.disabled ||= targetZoom >= zoomLevels.at(-1) - 0.0001;
         value.regionalIn.disabled ||= targetZoom <= zoomLevels[0] + 0.0001;
       }
@@ -878,7 +944,7 @@ export function installNativeView(root) {
     connection.dataset.state = feedError || disconnected ? "stale" : view.state === "ended" ? "ended" : view.state === "paused" ? "paused" : age >= 3000 ? "stale" : "live";
     imageAge.textContent = view.state === "ended" ? "Final frame" : disconnected
       ? `Last frame ${new Date(view.capturedAtUnixMs).toLocaleString()}`
-      : "Frame " + (age < 1000 ? "just received" : (age / 1000).toFixed(1) + "s old");
+      : view.state === "paused" ? "Paused" : age >= 3000 ? `Delayed frame · ${Math.floor(age / 1000)}s old` : "";
     if (view.state === "ended") deliveryRate.textContent = "Run ended";
     else if (disconnected) deliveryRate.textContent = "No live frames";
     for (const value of controlButtons) value.disabled = !commandable || posting;
@@ -892,13 +958,25 @@ export function installNativeView(root) {
     applyCognition.disabled = !commandable || posting || !view.people.find(person => person.id === selected)?.cognition
       || !settingsValid() || ["pending", "sending"].includes(cognitionRequest?.status);
     pause.textContent = view.state === "paused" ? "Resume" : "Pause";
-    automatic.setAttribute("aria-pressed", String((currentCameraFeed()?.camera || view.camera)?.mode === "automatic"));
+    pause.hidden = speeds.hidden = view.state === "ended";
+    endRun.hidden = Boolean(view.study) || view.state === "ended";
+    panelOpen.hidden = panelClose.hidden = !view.panels?.length;
+    primaryFollow.hidden = Boolean(view.feeds?.length) || view.state === "ended";
+    const primaryNames = (view.camera?.personIds || []).map(id => view.people.find(person => person.id === id)?.label).filter(Boolean);
+    toolIcon(primaryFollow, "LocateFixed", `Follow ${primaryNames.join(", ") || "activity"}`);
+    primaryFollow.title = `Follow ${primaryNames.join(", ") || "activity"}. Drag or arrow keys browse; wheel zooms.`;
+    primaryFollow.setAttribute("aria-pressed", String(view.camera?.mode === "automatic"));
+    primaryFollow.disabled ||= !view.camera?.personIds.length;
     const activeViewport = cameraViewport();
     zoomControls.hidden = !activeViewport;
     if (activeViewport) {
-      const { zoom, targetZoom, zoomLevels } = activeViewport;
-      zoomLabel.textContent = Math.round(100 / zoom) + "%";
-      zoomLabel.title = "Camera zoom " + zoom.toFixed(2) + "; target " + targetZoom.toFixed(2);
+      const { targetZoom, zoomLevels } = activeViewport;
+      const pictured = currentCameraFeed()?.viewport || view.viewport;
+      zoomLabel.hidden = !pictured;
+      if (pictured) {
+        zoomLabel.textContent = Math.round(100 / pictured.zoom) + "%";
+        zoomLabel.title = "Pictured zoom " + pictured.zoom.toFixed(2);
+      }
       zoomOut.disabled ||= targetZoom >= zoomLevels.at(-1) - 0.0001;
       zoomIn.disabled ||= targetZoom <= zoomLevels[0] + 0.0001;
     }
@@ -1046,7 +1124,7 @@ export function installNativeView(root) {
         if (signal.aborted) reject(signal.reason);
         else signal.addEventListener("abort", () => reject(signal.reason), { once: true });
       })]);
-      return image.src;
+      return image;
     } catch (error) {
       image.src = ""; throw error;
     }
@@ -1074,11 +1152,13 @@ export function installNativeView(root) {
       if (current && current.binding.bindingId !== next.binding.bindingId) resetRun();
       const key = `${next.binding.bindingId}:${next.view.image.file}:${next.view.image.sha256}`;
       if (key !== imageKey) {
-        const url = await decodedImage(next.imageUrl, signal);
+        const decoded = await decodedImage(next.imageUrl, signal);
         if (expected !== generation) return;
-        picture.src = url; picture.hidden = false; empty.hidden = true; imageKey = key; imageDeliveries.accept(key);
+        picture.src = decoded.src; frameGeometry(viewport, decoded);
+        picture.hidden = false; empty.hidden = true; imageKey = key; imageDeliveries.accept(key);
       }
       if (expected !== generation) return;
+      if (feedError && commandStatus.textContent === feedError) commandStatus.textContent = "";
       feedError = null;
       update(next);
       const elapsed = performance.now() - rateStarted;
