@@ -82,9 +82,12 @@ test("Window progressive tools preserve the complete frame at native device scal
       assert.equal(await child.locator(".native-window-playback").isVisible(), false); assert.equal(await child.locator(".native-camera-controls").isVisible(), false);
       assert.equal(await child.locator(".native-window-toolbar, .native-window-tools").count(), 0, "an external control panel still consumes frame area");
       await assertFrameRatio(media, 16 / 9, `native Window frame at ${width}x${height}@${scale}`);
-      const bounds = await media.boundingBox(), fitWidth = Math.min(width, height * 16 / 9);
+      const bounds = await media.boundingBox(), contextBounds = await tile.locator(".native-feed-context").boundingBox();
+      assert.ok(contextBounds && contextBounds.height > 0, "Window source context is missing");
+      const availableHeight = height - contextBounds.height, fitWidth = Math.min(width, availableHeight * 16 / 9);
       assert.ok(bounds.width >= fitWidth - 2 && bounds.height >= fitWidth * 9 / 16 - 2, `native frame lost usable area at ${width}x${height}@${scale}`);
-      if (width >= 620) assert.ok(bounds.height >= height * 0.8, "native-scale image is smaller than the usable majority of the window");
+      assert.ok(bounds.y + bounds.height <= contextBounds.y + 1, "Window frame overlaps its permanent source context");
+      if (width >= 620) assert.ok(bounds.height >= availableHeight * 0.8, "native-scale image is smaller than the usable majority of the window");
       assert.equal(await child.evaluate(() => devicePixelRatio), scale);
       const sameBounds = async () => { const next = await media.boundingBox(); for (const key of ["x", "y", "width", "height"]) assert.ok(Math.abs(next[key] - bounds[key]) < 0.5, `opening Tools changed frame ${key}`); };
       await summary.focus(); await child.keyboard.press("Enter");

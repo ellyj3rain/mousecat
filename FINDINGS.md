@@ -740,3 +740,15 @@ now preserves uncertainty, including near-boundary values. Closing details or
 following a reference removed the focused keyboard control; focus now returns
 to the selected map record or moves into the referenced details. Browser cases
 exercise these source distinctions and keyboard destinations.
+
+## F-075 | 2026-10-04 21:00 UTC / 14:00 PST | Detached CSS overrides the selected window shape
+
+The detached media rule forced full width and height with automatic aspect,
+overriding the existing native-window fit calculation. The image retained
+contain framing, but Frame, Wide and Square could not control media geometry.
+The repair restores the existing fit owner and reserves the permanent source
+context footer. A ResizeObserver accounts for footer changes. Original camera
+ratio checks remain unchanged; the Window fixture now excludes the footer from
+usable height and verifies no overlap. Five viewport/scale cases and the
+regional and named-subject cases pass. Failed preimage logs remain retained in
+the ignored window-geometry-repair-01 evidence directory.

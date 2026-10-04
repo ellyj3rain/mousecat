@@ -2613,3 +2613,10 @@ Actual completed simulation video fully decoded 337 fragments without PTS gaps;
 
 This integration extends the locally delivered A28 candidate. Public PR 14
 remains draft for the required large-diff and surface-span ratification.
+
+The operator clarified on 2026-10-04 that Mousecat remains one PR; the requested
+coherent split and era reconciliation concern SAO. A28 includes the subsequent
+F-075 detached-window geometry repair, verified against retained browser cases.
+The current installed service serves the repaired assets; refreshing the
+existing desktop preserves its process and reloads the visible shell. The
+single PR retains A27/A28 chronology and requires protected checks before merge.
