@@ -146,13 +146,17 @@ export function createNativeFeedWindows({ returned, changed, failed, requestTime
                 if (windows.get(key) !== entry || !root.isConnected) return;
                 const ratio = root.dataset.viewShape === "wide" ? 16 / 9 : root.dataset.viewShape === "square" ? 1
                   : Number(card.dataset.frameWidth) / Number(card.dataset.frameHeight) || 16 / 9;
-                // Tools and source details overlay the same view; they never
-                // subtract from the complete frame's available bounds.
-                const fitted = Math.max(1, Math.min(root.clientWidth, root.clientHeight * ratio));
+                // Tools overlay the frame. The permanent source-context footer
+                // occupies its own row and leaves the frame's shape intact.
+                const context = card.querySelector(".native-feed-context");
+                const availableHeight = Math.max(1, root.clientHeight - (context?.offsetHeight || 0));
+                const fitted = Math.max(1, Math.min(root.clientWidth, availableHeight * ratio));
                 if (Math.abs(parseFloat(entry.media.style.width) - fitted) > 0.5 || !entry.media.style.width) entry.media.style.width = `${fitted}px`;
               };
               entry.resize = new popup.ResizeObserver(entry.fit);
               entry.resize.observe(root);
+              const context = card.querySelector(".native-feed-context");
+              if (context) entry.resize.observe(context);
               entry.fit();
               popup.document.querySelector("[data-native-waiting]").remove();
               // Reloading or leaving the child document retires that presentation,

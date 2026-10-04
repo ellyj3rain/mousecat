@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { projectModel, inQuestionScope, projectRoute, questionRoute, pendingQuestionCount } from "../src/operator/public/project-model.js";
+import { projectModel, inQuestionScope, projectRoute, projectGraphRoute, questionRoute, pendingQuestionCount, registeredGraphs } from "../src/operator/public/project-model.js";
 import { compileSkillInvocation } from "../src/core/skill-invocation.mjs";
 import { createMousecatRuntime } from "../src/core/runtime.mjs";
 
@@ -49,4 +49,29 @@ test("retained unanswered history is not presented as an available response form
   const resumed = projectModel(snapshot).projects.get("project:work").threads.get("retained");
   assert.equal(pendingQuestionCount(resumed), 2);
   assert.equal(resumed.availability, "live");
+});
+
+test("direct graph navigation preserves exact project and registered source identity", () => {
+  const params = new URLSearchParams(projectGraphRoute("project:example & test", "primary", "continuity").split("?")[1]);
+  assert.equal(params.get("project"), "project:example & test");
+  assert.equal(params.get("graph"), "primary:continuity");
+});
+
+test("global graph discovery keeps project/source identities and unavailable declarations", () => {
+  const source = (projectRef, surfaceId) => ({ surface: { projectRef, surfaceId }, page: { dataSources: [
+    { name: "a & b", label: "Continuity", schema: "development.continuity-graph/1", exists: true },
+    { name: "missing", schema: "development.continuity-graph/1", exists: false },
+    { name: "ordinary-data", schema: "example.data/1", exists: true },
+  ] } });
+  const entries = registeredGraphs({ projects: [source("project:one", "main"), source("project:two", "second")],
+    projectGroups: [{ groupId: "both", memberSurfaceIds: ["main", "second"] }] });
+  assert.equal(entries.length, 4);
+  assert.equal(new Set(entries.map(entry => entry.id)).size, 4);
+  assert.equal(entries.filter(entry => !entry.exists).length, 2);
+  for (const entry of entries) {
+    const params = new URLSearchParams(entry.href.split("?")[1]);
+    assert.equal(params.get("project"), entry.projectRef);
+    assert.equal(params.get("graph"), entry.surfaceId + ":" + entry.source);
+  }
+  assert.deepEqual(registeredGraphs({ projects: [{ surface: { projectRef: "project:unread", surfaceId: "unread" } }] }), []);
 });

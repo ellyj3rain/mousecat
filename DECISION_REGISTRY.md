@@ -766,3 +766,70 @@ view. It shows explicit record types, perspective, source acquisition, receipt
 references and missing evidence. Position and evidence layouts arrange those
 records; supplied typed references alone connect them. Selection routes people
 to the existing inspector, and export preserves canonical source facts.
+
+## DR-064 | 2026-10-04 00:08 UTC / 17:08 PST | A visual paradise for humans and agents
+
+The operator establishes Mousecat's platform goal as "a visual paradise for
+humans and agents" and identifies the standalone development graph as the
+stronger reference. Rich graphics and subject-appropriate interaction belong to
+Mousecat's core identity. Human-readable spatial and multimodal representations
+share stable identities, explicit relationships and evidence with machine
+consumers. Mousecat owns visual composition and exploration; source projects
+own domain facts and commands. The immediate A27 correction gives development
+continuity its own continuous canvas, with visible paths, pan/zoom, neighborhood
+exploration and contextual details. The broader goal guides future surfaces;
+this correction supplies measured evidence for the development graph.
+
+## DR-065 | 2026-10-04 00:31 UTC / 17:31 PST | App work includes installed delivery
+
+The operator states that updating the app is a given and directs a permanent
+correction to preview-only completion. Authorized Mousecat app implementation
+therefore includes activation in the installed desktop/service, retention of
+existing configuration and saved work, and verification of the changed surface
+there. Routine deployment and observation need no additional approval. Explicit
+source-only or preview-only scope remains authoritative. AGENTS.md and
+GOVERNANCE.md carry the rule across sessions; installed:check supplies a read-only
+checkout, workspace, runtime-freshness and served-asset check. Native observation
+and interaction remain separate evidence of the open client's actual behavior.
+
+## DR-066 | 2026-10-04 01:11 UTC / 18:11 PST | Global graph discovery
+
+The operator requests an easier global graph selector. Mousecat provides a
+top-level Graphs entry across registered projects. Its selector displays actual
+graph previews and project context, supports search, and opens the existing
+source-bound canvas directly. Project pages retain their contextual graph links.
+The selector reads the shared registry and graph contract; source projects keep
+ownership of identities, relationships, evidence and measured status.
+
+## DR-067 | 2026-10-04 01:24 UTC / 18:24 PST | Automatic repository graphs and reorganization
+
+The operator directs future Mousecat support for automatic graphing and
+reorganization of repositories, especially repositories resembling GZDS, the
+founding substrate of the operator's projects. Repository structure, governed
+records and their continuity provide a practical starting point for mechanical
+extraction and richer interpretation. Accuracy and usefulness are the goal.
+Incomplete or imperfect results can still be useful when their provenance,
+uncertainty and correction remain visible; imperfection is not the target.
+Graphs should make development, branches, successive eras, concepts and shared
+boundaries legible to humans and machine consumers. Reorganization preserves
+source history and records the transformation. This is a recorded future
+direction; the current registered-source graph viewer does not establish that
+automatic repository analysis or reorganization has been implemented.
+
+## DR-068 | 2026-10-04 11:05 UTC / 04:05 PST | Project and repository bulletin
+
+The operator authorizes building a per-project/repository bulletin for open
+ideas and propositions, with prunable short- and mid-term memory and graphics
+on par with the continuity graph. Hosts capture mapped ideas during work with
+stable source identity and explicit provenance. Mousecat owns validated records,
+revision and correction history, persistence, graphical exploration, disposition
+and pruning. Recording an idea supplies neither authorization nor assignment.
+FIFO and operator control govern the assistant's execution loop; the operator
+retains nonlinear graphical navigation.
+
+A28 closes when the real capture/query/amend path, restart persistence, project
+isolation, correction/pruning and graphical interaction are verified and delivered
+to the installed app. Synthetic fixtures establish public contract checks;
+actual conversational records remain ignored local runtime state. This bulletin
+is outcome two in the operator's bounded seven-outcome run; the root work loop
+retains the successive SAO outcomes and informs Pico when logging off.

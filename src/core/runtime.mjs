@@ -1,3 +1,5 @@
+import { readDevelopmentGraph } from "./development-graph.mjs";
+import { createBulletinController } from "./bulletin.mjs";
 import { randomUUID } from "node:crypto";
 
 import {
@@ -447,6 +449,7 @@ export function createMousecatRuntime(options = {}) {
     projectWorkbenches: new Map(),
     projectRepresentations: new Map(),
     projectOperationReceipts: new Map(),
+    bulletin: new Map(),
   };
   const interactionWaiters = new Map();
   const delegationWaiters = new Map();
@@ -513,6 +516,8 @@ export function createMousecatRuntime(options = {}) {
     state.projectWorkbenches = restored.projectWorkbenches || state.projectWorkbenches;
     state.projectRepresentations = restored.projectRepresentations || state.projectRepresentations;
     state.projectOperationReceipts = restored.projectOperationReceipts || state.projectOperationReceipts;
+    state.bulletin = restored.bulletin || state.bulletin;
+    state.bulletinQuarantine = restored.bulletinQuarantine || [];
     state.historyRecords = restored.historyRecords || new Map();
     state.historyCoverage = restored.historyCoverage || new Map();
   }
@@ -560,6 +565,7 @@ export function createMousecatRuntime(options = {}) {
     permitAllows,
     now: nowIso,
   });
+  const bulletinController = createBulletinController({ state, permitAllows, persist: () => !stateStore.enabled || stateStore.save(state) });
 
   function routePlanLimit() {
     const max = config.state?.maxRoutePlans;
@@ -2312,7 +2318,7 @@ export function createMousecatRuntime(options = {}) {
       };
     }
 
-    if (action === "data") {
+    if (action === "data" || action === "graph") {
       if (!args.surfaceId) {
         return { schema: "mousecat.error/1", ok: false, code: "project-surface-required" };
       }
@@ -2325,7 +2331,7 @@ export function createMousecatRuntime(options = {}) {
           surfaceId: args.surfaceId,
         };
       }
-      return summarizeProjectDataSource(surface, args.source);
+      return action === "graph" ? readDevelopmentGraph(surface, args.source) : summarizeProjectDataSource(surface, args.source);
     }
 
     return { schema: "mousecat.error/1", ok: false, code: "unknown-project-surface-action", action };
@@ -2333,6 +2339,8 @@ export function createMousecatRuntime(options = {}) {
 
   function handleTool(name, args = {}, context = {}) {
     switch (name) {
+      case "mousecat.bulletin":
+        return bulletinController.tool({ ...args, permit: args.permit || context.permit });
       case "mousecat.history": {
         const action = args.action || "query";
         if (!permitAllows(args.permit || context.permit, name, action).allowed) return { ok: false, code: "history-permit-required" };
@@ -2394,6 +2402,8 @@ export function createMousecatRuntime(options = {}) {
     emit,
     handleTool,
     readOperatorState,
+    bulletinQuery: bulletinController.query,
+    bulletinCommand: bulletinController.operator,
     status,
   };
 }

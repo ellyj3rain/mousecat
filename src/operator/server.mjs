@@ -29,6 +29,8 @@ const STATIC_FILES = new Map([
   ["/index.html", { path: resolve(PUBLIC_DIR, "index.html"), type: "text/html; charset=utf-8" }],
   ["/operator.css", { path: resolve(PUBLIC_DIR, "operator.css"), type: "text/css; charset=utf-8" }],
   ["/operator.js", { path: resolve(PUBLIC_DIR, "operator.js"), type: "text/javascript; charset=utf-8" }],
+  ["/bulletin.js", { path: resolve(PUBLIC_DIR, "bulletin.js"), type: "text/javascript; charset=utf-8" }],
+  ["/bulletin.css", { path: resolve(PUBLIC_DIR, "bulletin.css"), type: "text/css; charset=utf-8" }],
   ["/operator-model.js", { path: resolve(PUBLIC_DIR, "operator-model.js"), type: "text/javascript; charset=utf-8" }],
   ["/native-view.js", { path: resolve(PUBLIC_DIR, "native-view.js"), type: "text/javascript; charset=utf-8" }],
   ["/native-window.js", { path: resolve(PUBLIC_DIR, "native-window.js"), type: "text/javascript; charset=utf-8" }],
@@ -38,6 +40,10 @@ const STATIC_FILES = new Map([
   ["/native-feed.html", { path: resolve(PUBLIC_DIR, "native-feed.html"), type: "text/html; charset=utf-8" }],
   ["/native-view.css", { path: resolve(PUBLIC_DIR, "native-view.css"), type: "text/css; charset=utf-8" }],
   ["/project-model.js", { path: resolve(PUBLIC_DIR, "project-model.js"), type: "text/javascript; charset=utf-8" }],
+  ["/graph-library.js", { path: resolve(PUBLIC_DIR, "graph-library.js"), type: "text/javascript; charset=utf-8" }],
+  ["/development-graph-view.js", { path: resolve(PUBLIC_DIR, "development-graph-view.js"), type: "text/javascript; charset=utf-8" }],
+  ["/development-graph-model.js", { path: resolve(PUBLIC_DIR, "development-graph-model.js"), type: "text/javascript; charset=utf-8" }],
+  ["/development-graph.css", { path: resolve(PUBLIC_DIR, "development-graph.css"), type: "text/css; charset=utf-8" }],
   ["/project-view.js", { path: resolve(PUBLIC_DIR, "project-view.js"), type: "text/javascript; charset=utf-8" }],
   ["/history.js", { path: resolve(PUBLIC_DIR, "history.js"), type: "text/javascript; charset=utf-8" }],
   ["/history.css", { path: resolve(PUBLIC_DIR, "history.css"), type: "text/css; charset=utf-8" }],
@@ -46,7 +52,7 @@ const STATIC_FILES = new Map([
   ["/vendor/lucide.js", { path: lucideBrowserBundle, type: "text/javascript; charset=utf-8" }],
 ]);
 
-const SAFE_COMMAND_IDS = new Set(["respond", "hold", "defer"]);
+const SAFE_COMMAND_IDS = new Set(["respond", "hold", "defer", "bulletin-capture", "bulletin-amend", "bulletin-disposition", "bulletin-prune"]);
 
 function securityHeaders(contentType) {
   return {
@@ -237,6 +243,7 @@ export async function operatorSnapshot(runtime, options = {}) {
     surface: "summoned-widget",
     projects,
     projectGroups: projectsList.groups || [],
+    bulletin: runtime.bulletinQuery(),
     status: {
       ok: runtimeStatus.ok === true,
       hostProfile: runtimeStatus.config?.hostProfile || null,
@@ -513,6 +520,14 @@ export function createOperatorRequestHandler(options = {}) {
       }
       return;
     }
+    if (requestUrl.pathname.startsWith("/api/project-graphs/")) {
+      if (request.method !== "GET") { sendJson(response, 405, { ok: false, code: "method-not-allowed" }); return; }
+      const route = /^\/api\/project-graphs\/([a-z0-9._-]+)\/([a-z0-9._-]+)$/u.exec(requestUrl.pathname);
+      if (!route) { sendJson(response, 404, { ok: false, code: "development-graph-source-unavailable" }); return; }
+      const result = runtime.handleTool("mousecat.projects", { action: "graph", surfaceId: route[1], source: route[2], permit: { profileId: "observer" } });
+      sendJson(response, result.ok ? 200 : 404, result);
+      return;
+    }
     if (request.method === "GET" && requestUrl.pathname === "/api/history") {
       const args = { action: "query", permit: { profileId: "observer" } };
       for (const key of ["ref", "revision", "query", "kind", "project", "standing", "from", "to"]) {
@@ -532,6 +547,11 @@ export function createOperatorRequestHandler(options = {}) {
       });
       snapshot.nativeViews = await nativeViews.list().catch(() => []);
       sendJson(response, snapshot.status.ok === false ? 400 : 200, snapshot);
+      return;
+    }
+    if (request.method === "GET" && requestUrl.pathname === "/api/bulletin") {
+      const result = runtime.bulletinQuery(Object.fromEntries(requestUrl.searchParams));
+      sendJson(response, result.ok ? 200 : 400, result);
       return;
     }
     if (request.method === "POST" && requestUrl.pathname === "/api/command") {
@@ -566,7 +586,9 @@ export function createOperatorRequestHandler(options = {}) {
         });
         return;
       }
-      const result = await runtime.handleTool(command.tool, command.arguments);
+      const result = payload.commandId.startsWith("bulletin-")
+        ? runtime.bulletinCommand(command.arguments)
+        : await runtime.handleTool(command.tool, command.arguments);
       const snapshot = await operatorSnapshot(runtime, {
         profileId: payload.profileId || undefined,
         limit: payload.limit,

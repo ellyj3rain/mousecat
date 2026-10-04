@@ -1,6 +1,6 @@
 {
   "name": "mousecat",
-  "version": "2.0.0-alpha",
+  "version": "2.2.0-alpha",
   "description": "A compact cross-harness MCP operator widget for normalized skill decisions and structured returns.",
   "type": "module",
   "bin": {
@@ -47,7 +47,11 @@
     "test:browser": "node scripts/operator-browser-check.mjs",
     "release:check": "node scripts/public-release-check.mjs",
     "release:package-check": "node scripts/package-boundary-check.mjs",
-    "prepack": "node scripts/package-boundary-check.mjs"
+    "prepack": "node scripts/package-boundary-check.mjs",
+    "test:graph-browser": "node scripts/development-graph-browser-check.mjs",
+    "installed:check": "node scripts/installed-check.mjs",
+    "test:graph-library-browser": "node scripts/graph-library-browser-check.mjs",
+    "test:bulletin-browser": "node scripts/bulletin-browser-check.mjs"
   },
   "keywords": [
     "mcp",

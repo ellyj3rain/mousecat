@@ -1,7 +1,7 @@
 | Document | Mousecat Memory |
 |---|---|
-| Version | 2.0.0.0-alpha |
-| Timestamp | 2026-10-03 05:35 UTC / 22:35 PST |
+| Version | 2.1.0.0-alpha |
+| Timestamp | 2026-10-03 23:05 UTC / 16:05 PST |
 | Status | ACTIVE - repo memory index. |
 
 # Mousecat Memory
@@ -27,3 +27,7 @@ Use this file as the local doc-pack index.
 | `src/core/mcp-client.mjs` | Minimal stdio MCP client for local/private upstreams. |
 | `src/core/project-workbench.mjs` | Project-adapter, workbench-session, and layered development-representation validators. |
 | `src/core/ml-review.mjs` | Narrative ML review schema and validation boundary for inspectable learning decisions. |
+
+Development continuity intake and project rendering are owned by
+`src/core/development-graph.mjs` and
+`src/operator/public/development-graph-view.js`; ARCHITECTURE records their contract.

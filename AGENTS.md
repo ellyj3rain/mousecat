@@ -29,6 +29,24 @@ This runs the complete AI-native readiness surface: tests, GitHub classifier tes
 
 Graphical changes also require browser interaction and layout checks at desktop and mobile viewports after the final diff is assembled.
 
+## Delivery means the installed app
+
+An authorized Mousecat app change includes updating the installation the operator
+uses and verifying the result there. Complete that delivery before reporting the
+change finished. Use the existing configuration and persistent state, update both
+the service registration and desktop checkout binding, and retain saved work and
+source registrations. Reuse an open client or reopen the installed executable
+when its update requires it; leave one working app instance.
+
+Run `npm run installed:check` from the intended checkout after activation. It
+must verify the desktop/service binding, persistent workspace, fresh runtime and
+exact served UI bytes. Then inspect and exercise the changed surface in the
+actual installed desktop; record that evidence separately from browser fixtures.
+A preview, passing repository checks or an open PR does not establish installed
+delivery. Routine activation and verification are already part of the authorized
+app work and do not need another approval. Honor an explicit source-only or
+preview-only request, and report a real delivery blocker when one exists.
+
 For a local checkout, install and verify hooks once:
 
 ```powershell

@@ -2362,3 +2362,261 @@ Final readiness passes 350 Node cases (337 pass, thirteen environment skips),
 documentation and strict hygiene. SDK/conformance/integration cases pass and
 the dependency audit reports zero vulnerabilities. Independent lifecycle and
 semantic re-reviews are clear on the final browser-pinned source.
+
+## [A27] | 2026-10-03 23:05 UTC / 16:05 PST | Source-owned development continuity
+
+*Scope:* Present an existing project's recorded development through typed,
+source-grounded continuity without changing its catalogue or native simulation.
+The local candidate adds an observer graph action, registered-source read route
+and Projects visualization. Source references remain metadata; project data and
+private bindings stay outside public platform source.
+
+*Behavior:* Separate implementation/verification/publication standing and exact
+provenance survive filtering, selection, paged SVG/list views, endpoint navigation
+and canonical export. Input admits 10,000 nodes, 30,000 edges and 16 MiB, refusing
+invalid grounding, endpoints, path escape and malformed/changing files. Optional
+media references are bounded descriptive data. Existing project summaries and
+native observer contracts retain their interfaces.
+
+*Verification:* Ten focused graph tests and 33 affected regression tests pass.
+The isolated browser check exercises four widths, three themes, keyboard details,
+relationship navigation, search/filtering, pagination, export and unavailable-source
+recovery. Full normal readiness passes: 361 tests, 348 passing and thirteen environment
+skips, followed by the required companion smoke/governance/documentation/hygiene
+stages. Direct graph URLs open the selected registered source.
+Independent review reproduced stale removed filters after a valid source refresh.
+The repaired view resets only removed identities and retains valid selections;
+model and four-width browser regressions pass. Natural label order preserves
+canonical graph bytes.
+
+*Boundary:* No installed-service restart, real-source registration or publication.
+
+*Version:* 2.1.0.0-alpha (npm 2.1.0-alpha).
+
+### A27 visual correction | 2026-10-04 00:08 UTC / 17:08 PST
+
+The operator found the standalone graph substantially better and directed
+Mousecat toward a visual paradise for humans and agents (DR-064). The A27
+candidate now presents a full-workspace continuous canvas. Supplied node kinds
+form colored spatial regions; all matching relationships remain connected.
+Pan, zoom, fit, a minimap, keyboard/touch interaction and neighborhood exploration
+support overview and close inspection. Selection opens a contextual inspector.
+Filters and the optional record index are disclosed on demand. Graph routes
+retain local camera state and survive unrelated project snapshot updates.
+
+This supersedes the earlier A27 pagination description. Canonical schema,
+measured statuses, source ownership, source bounds and exact export remain the
+same. Root-owned visual acceptance covers real source graphs and synthetic
+interaction controls at desktop and mobile sizes. Candidate receipts under
+ignored .mousecat/ distinguish this canvas revision from the earlier paged
+surface's passing receipt. This entry records the implementation correction;
+final readiness and independent review receipts own its verification standing.
+
+The canvas correction also closes independent-review findings: selecting a node
+reveals it at readable scale beside or above its contextual inspector;
+connection exploration includes neighbours across filtered kinds and restores
+the prior view on return; relationship paths activate by keyboard; route entry
+and Escape preserve meaningful focus. The four-width regression covers these
+behaviours, inert source text, exact export and invalid-source recovery.
+
+Final canvas readiness passes: 361 tests, 348 passing and thirteen explicit
+environment skips, all companion smoke checks, governance floor/ceiling,
+documentation and strict hygiene. Independent interaction and visual reviewers
+rechecked their fixes with no remaining actionable findings in scope. Synthetic
+browser acceptance passes at 1680/760/390/320 pixels. Actual registered-source
+acceptance preserves every recorded identity, relationship, measured completion
+status and canonical JSON export. Screenshots and source-pinned receipts remain
+local under .mousecat/; publication and installed-service adoption remain distinct.
+
+### A27 installed delivery correction | 2026-10-04 00:31 UTC / 17:31 PST
+
+The operator identified the omission of installed-app activation and required a
+permanent correction (DR-065). The desktop configuration, shortcuts and login
+service registration now target the verified A27 checkout using the existing
+persistent configuration and state store. The actual service retains all nine
+prior project surfaces, fourteen simulation views and 28 decision items. The
+registered development source presents the same canonical graph in the installed
+app. The native executable and simulation implementation are reused unchanged.
+
+The read-only installed:check command compares desktop/service bindings, state
+store, runtime freshness and exact served UI bytes. Five regression controls
+cover a matching installation, wrong checkout, healthy server with old assets,
+stale loaded runtime and a stopped/misbound persistent service. Deployment and
+actual installed verification are now explicit completion obligations in AGENTS.md
+and GOVERNANCE.md. Local activation, native observation, installed-browser
+interaction and source-byte receipts remain under ignored .mousecat/.
+
+Review strengthened the installed check against stale process records and
+preserved file timestamps. The runner now records a startup content fingerprint
+of runtime modules, configuration and package/dependency metadata in its private
+service record. The check binds the actual loopback listener to the recorded
+process, executable, runner, configuration, port and creation time before comparing
+fingerprints and served bytes. Eight focused controls pass, including the two
+false-pass cases, changed configuration/dependencies, deleted modules and npm
+packages without lock files. The runner refuses inputs changed during startup.
+
+### A27 installed delivery verified | 2026-10-04 00:47 UTC / 17:47 PST
+
+Final readiness passes 370 tests: 357 passing, zero failures and thirteen explicit
+environment skips, followed by every required companion, governance,
+documentation and strict-hygiene stage. Nine installed-check regression controls
+now include the existing missing-configuration default. Independent review cleared
+the final runtime fingerprint ordering and configuration compatibility changes.
+
+The actual service restarted with the verified runtime. The installed check
+matches its live listener, startup input fingerprint, persistent state binding
+and all twenty interface files. A pre-restart negative control rejected the stale
+runtime. Actual desktop interaction passes graph observation, node selection and
+closing details in the operator's current chronology view. Installed-browser
+acceptance passes zoom/fit, neighborhood return and exact 989-node/2702-edge export
+with no browser errors. All nine prior project surfaces, fourteen simulation
+views and 28 decision items remain present. Private activation and verification
+receipts are retained in .mousecat/installed-delivery/.
+
+### A27 global graph selector | 2026-10-04 01:11 UTC / 18:11 PST
+
+The operator requested an easier global graph selector. Graphs is now a top-level
+navigation entry and direct #graphs route. A searchable gallery discovers graph
+sources across registered projects and opens each existing canvas by its exact
+project/source identity. Visible cards preview actual source nodes and edges;
+large opening views carry an explicit sample count. Missing and invalid sources
+retain their source status and route. Pending preview reads retire with the
+selector or registration revision, with at most three concurrent requests.
+
+The synthetic selector acceptance passes at 1680/760/390/320 pixels, covering
+cross-project discovery, keyboard entry, retained search, unavailable sources,
+direct reload and overflow. Five project-navigation tests pass. Final combined
+readiness, independent review and installed delivery retain their own receipts.
+
+### A27 selector delivered | 2026-10-04 01:20 UTC / 18:20 PST
+
+Independent review corrected keyboard focus into the canvas, explicit preview
+refresh/retry and duplicate source labels. The final four-width selector proof
+includes equal-byte-length source rewrites and transient 503 recovery; the
+existing graph interaction suite also passes all four widths after the fixes.
+Combined readiness passed 371 tests (358 passing, thirteen environment skips),
+all companion stages, governance, documentation and hygiene before those bounded
+UI repairs; the final browser proofs cover their changed behavior. Re-review is
+clear. Applicable service and source-contract checks retain their existing pass.
+
+The managed installed service runs this checkout, and installed:check matches
+its startup identity and all 21 interface files. Actual desktop automation opens
+Graphs, opens the registered graph card and returns to the selector. The desktop
+was left on Graphs as the user-facing entry point. Private installed receipts and
+the actual-window image are under .mousecat/graph-library-browser/.
+
+### Installed observation selection correction | 2026-10-04 02:25 UTC / 19:25 PST
+
+Selecting a completed native trial immediately redirected the operator to an
+older paused/stale observation. The simulation view now retains explicit URL and
+selector choices after end or disconnection, including a choice made while an
+automatic lookup is outstanding. Implicit selection follows only a newer live
+observation. Viewing saved evidence issues no native game commands.
+
+Four-width browser acceptance covers direct routes, selector choices, repeated
+polling, in-flight lookup, and absent eligible successors. Three independent source
+controls reproduce lost selection, stale successor admission and older successor
+admission. Native-view unit checks pass 72 cases with two environment skips.
+The installed service restarted with the corrected source; its fingerprint and
+all 21 served interface files match. The actual installed desktop stays on the
+selected saved trial and remains visible. Installed-source browser checks at
+1488 and 390 pixels pass with loaded final images, no script errors and no page
+overflow. Private evidence is retained under .mousecat/d1-session/. Existing publication
+status and source registrations are preserved.
+
+## [A28] | 2026-10-04 11:34 UTC / 04:34 PST | Project bulletin
+
+Status: implementation and independent repair verified; full readiness,
+installed delivery and publication remain in progress.
+
+The shared project bulletin retains source-linked ideas and propositions in a
+spatial workspace. Project islands, cards, explicit directed connections,
+pan/zoom/Fit, an overview and keyboard controls expose canonical local memory.
+Details and editing preserve initial conversation ownership and append correction
+anchors. The public `mousecat.bulletin` tool brings the namespace to 18 tools,
+with observer-permitted query and operator-interaction capture/amend.
+Source-owned graphical commands manage standing and pruning. Archive retains
+content; prune removes current and historical text and retains a provenance
+tombstone. Limits refuse writes without eviction and reserve the final revision
+for pruning. Runtime hosts supply propositions; execution remains caller-owned.
+
+Affected verification initially passed 93 Node cases. Independent review found
+and repaired normalized-link duplication, repeated-identity quarantine escape,
+retry provenance/identity drift and unavailable-surface management. Final focused
+checks pass 14 bulletin and 21 operator-server cases. Four-width browser
+acceptance (1680, 760, 390 and 320 pixels) exercises real writes, explicit links,
+source/revision conflicts, lost-response retries, fresh drafts, pruning,
+provenance, navigation and three themes. Browser receipts retain source pins;
+installed desktop evidence has its separate delivery boundary.
+
+Version: 2.2.0.0-alpha (npm 2.2.0-alpha). DR-068 owns the authorized project
+memory direction. Private ideas, source transcripts and local evidence remain
+in ignored state rather than public source fixtures.
+
+### A28 locally delivered; publication pending | 2026-10-04 12:01 UTC / 05:01 PST
+
+The installed desktop now presents the A28 bulletin over the shared persistent
+runtime. Native acceptance opened Bulletin, selected a captured idea, inspected
+its provenance, exercised zoom/Fit and closed details. Restart preservation
+retains 25 source-linked bulletin records, ten registered project surfaces,
+23 native views, seventeen interactions and 36 pending items. Existing
+configuration and source identities remain unchanged. Private native acceptance,
+preservation and actual-window captures are retained in .mousecat/a28-installed/.
+
+Full npm run pr:ready passed on its pinned candidate before the final bounded UI
+repairs: 386 main cases, 372 passing, zero failures and fourteen explicit
+environment skips, plus every companion, governance, documentation and hygiene
+stage. The dependency audit found zero vulnerabilities. The full-run source
+fingerprint was unchanged throughout that run; its receipt remains under
+.mousecat/a28-final-readiness/.
+
+Subsequent source review corrected two UI cache joins: peer amendments now
+refresh connection candidates and project counts while preserving draft/focus
+state. Project islands also use declared human project labels. Final scoped
+browser acceptance passes at 1680, 760, 390 and 320 pixels in three themes,
+covering real writes, lost-response retries, explicit links, source conflicts,
+pruning, provenance and those refresh boundaries. Five project-navigation cases
+pass. Final browser source pins and screenshots remain under
+.mousecat/bulletin-browser/; they establish the final UI delta independently of
+the earlier full-readiness run.
+
+A28 is locally complete and installed at 2.2.0.0-alpha (npm 2.2.0-alpha).
+Publication remains pending. This entry preserves the earlier implementation
+and inherited A27 receipts without promoting their publication status.
+
+### A28 ownership and camera integration | 2026-10-04 16:35 UTC / 09:35 PST
+
+An installed integration check found one repository split between two project
+references: its graph and 22 ideas used `project:sao`, while 15 native views
+used `project:survivor-awareness`. The supported `mousecat.bulletin` relocation
+now moves a complete linked set atomically to a registered surface, preserving
+original capture provenance and appending exact ownership and permit authority.
+Stale revisions, crossing links, unauthorized writes, pruned records and failed
+persistence refuse the correction. Original capture retries retain current
+ownership. Focused runtime/HTTP/SDK/restart checks pass 23 cases and nine
+restored-defect controls; independent review approved those pinned inputs.
+
+Actual SDK consolidation moved all 22 ideas once without changing their IDs,
+content, links, capture pins or earlier history. Browser and installed desktop
+checks now open the graph, scoped bulletin and saved simulations from one project.
+The service restart preserved 25 ideas, ten surfaces, 24 native views and 36
+pending items. All 23 installed assets match current source. Catalog and SDK
+checks pass 25 cases; documentation, governance and hygiene checks pass.
+
+Native video camera metadata now binds exact encoded segments rather than
+borrowing a later pose. Multiple same-time segments have distinct cache keys,
+and explicit missing poses remain unknown. The scoped camera receipt retains
+74 native-view cases (two OS skips), eight browser samples and 48 refusals;
+separate source/watcher/native-segment proofs retain their own input boundaries.
+Actual completed simulation video fully decoded 337 fragments without PTS gaps;
+60 unknown-pose fragments and partial wall occlusion remain visible limits.
+
+This integration extends the locally delivered A28 candidate. Public PR 14
+remains draft for the required large-diff and surface-span ratification.
+
+The operator clarified on 2026-10-04 that Mousecat remains one PR; the requested
+coherent split and era reconciliation concern SAO. A28 includes the subsequent
+F-075 detached-window geometry repair, verified against retained browser cases.
+The current installed service serves the repaired assets; refreshing the
+existing desktop preserves its process and reloads the visible shell. The
+single PR retains A27/A28 chronology and requires protected checks before merge.

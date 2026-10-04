@@ -1,10 +1,11 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, isAbsolute, join } from "node:path";
+import { DEVELOPMENT_GRAPH_SCHEMA, MAX_GRAPH_BYTES } from "./development-graph.mjs";
 
 const ID_RE = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u;
 const MAX_EXCERPT_BYTES = 65_536;
 const DEFAULT_MAX_DATA_BYTES = 2_097_152;
-const HARD_MAX_DATA_BYTES = 8_388_608;
+const HARD_MAX_DATA_BYTES = MAX_GRAPH_BYTES;
 const FORMATS = new Set(["json", "jsonl", "text"]);
 const FORBIDDEN_DESCRIPTOR_KEYS = new Set([
   "command",
@@ -21,7 +22,7 @@ const FORBIDDEN_DESCRIPTOR_KEYS = new Set([
 export const PROJECT_SURFACE_CONTRACT = Object.freeze({
   schema: "mousecat.project-surface.contract/1",
   tool: "mousecat.projects",
-  actions: Object.freeze(["list", "discover", "draft", "register", "describe", "threads", "data"]),
+  actions: Object.freeze(["list", "discover", "draft", "register", "describe", "threads", "data", "graph"]),
   surfaceSchema: "mousecat.project-surface/1",
   groupSchema: "mousecat.project-group/1",
   draftSchema: "mousecat.project-surface.draft/1",
@@ -195,8 +196,12 @@ export function validateProjectSurfaceDescriptor(raw = {}) {
     const path = relativePath(source?.path);
     const label = text(source?.label, 160);
     const format = identifier(source?.format);
+    const graphSchema = source?.schema;
+    if (graphSchema !== undefined && (graphSchema !== DEVELOPMENT_GRAPH_SCHEMA || format !== "json")) {
+      return error("project-surface-data-schema-invalid", { name });
+    }
     const maxBytes = source?.maxBytes === undefined
-      ? DEFAULT_MAX_DATA_BYTES
+      ? (graphSchema ? MAX_GRAPH_BYTES : DEFAULT_MAX_DATA_BYTES)
       : Number.isInteger(source?.maxBytes) && source.maxBytes > 0 && source.maxBytes <= HARD_MAX_DATA_BYTES
         ? source.maxBytes
         : null;
@@ -210,6 +215,7 @@ export function validateProjectSurfaceDescriptor(raw = {}) {
       format,
       ...(label ? { label } : {}),
       maxBytes,
+      ...(graphSchema ? { schema: graphSchema } : {}),
     });
   }
 
@@ -471,6 +477,7 @@ export function readProjectSurfacePage(surface) {
       name: source.name,
       path: source.path,
       format: source.format,
+      ...(source.schema ? { schema: source.schema } : {}),
       label: source.label || null,
       exists,
       isDirectory,

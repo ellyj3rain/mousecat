@@ -9,7 +9,7 @@ import { createNativeViews, parseNativeJson, validateNativeView } from "../src/c
 import { validateCognitionView } from "../src/core/cognition-view.mjs";
 import { createMousecatRuntime } from "../src/core/runtime.mjs";
 import { startOperatorServer } from "../src/operator/server.mjs";
-import { createNativeImageDeliveryCounter, nativeSessionFacts } from "../src/operator/public/native-view.js";
+import { createNativeImageDeliveryCounter, nativeSessionFacts, rememberNativeVideoCameras, picturedNativeVideoCamera } from "../src/operator/public/native-view.js";
 
 test("native image rate counts distinct accepted deliveries across primary and regional views once", () => {
   const counter = createNativeImageDeliveryCounter();
@@ -90,6 +90,83 @@ function manifest(sessionId, now = Date.now()) {
     panels: [{ id: "activity", label: "Activity" }],
   };
 }
+
+function segmentCameraView() {
+  const view = manifest(randomUUID()), streamId = randomUUID(), now = view.capturedAtUnixMs;
+  const site = { id: "west", label: "West", slot: 0, x: 200, y: 190, z: 0, left: 0, top: 0, width: 640, height: 480, zoom: 1, targetZoom: 1 };
+  const segments = Array.from({ length: 8 }, (_, index) => ({ sequence: index + 1,
+    file: `video-${streamId}-${String(index + 1).padStart(16, "0")}.m4s`, sha256: "a".repeat(64),
+    ptsStartMs: index * 100, durationMs: 100, capturedAtUnixMs: now - 900 + index * 100,
+    endCapturedAtUnixMs: now - 800 + index * 100, observerSequence: 7, worldHours: 2, endWorldHours: 2,
+    firstFrameSequence: index * 3 + 1, lastFrameSequence: index * 3 + 3, sites: [structuredClone(site)] }));
+  view.video = { schema: "mousecat.native-video/1", streamId, state: "running", mimeType: "video/mp4", codecs: "avc1.640028",
+    width: 640, height: 480, fps: 30, init: { file: `video-${streamId}-init.mp4`, sha256: "b".repeat(64) }, segments,
+    stats: { capturedFrames: 24, encodedFrames: 24, droppedFrames: 0 }, message: "Native captured fragments" };
+  const camera = { mode: "automatic", personIds: ["person-1"], summary: "Following assigned subject" };
+  view.feeds = [{ id: "site:west", siteId: "west", assignedSubjectId: "person-1", label: "Assignment label",
+    capturedAtUnixMs: now, image: view.image, camera, videoCameras: segments.map(segment => ({
+      camera: structuredClone(camera), capturedAtUnixMs: segment.endCapturedAtUnixMs, observerSequence: segment.observerSequence,
+      segmentSequence: segment.sequence, site: structuredClone(segment.sites[0]) })) }];
+  return view;
+}
+
+test("video camera wire binds every retained sample to its exact subject, fragment, epoch and geometry", () => {
+  const view = segmentCameraView(); validateNativeView(view);
+  for (const [name, mutate] of [
+    ["wrong person", v => { v.feeds[0].videoCameras[0].camera.personIds = ["person-2"]; }],
+    ["wrong epoch", v => { v.feeds[0].videoCameras[0].observerSequence += 1; }],
+    ["future clock", v => { v.feeds[0].videoCameras[0].capturedAtUnixMs += 10000; }],
+    ["wrong segment", v => { v.feeds[0].videoCameras[0].segmentSequence = 99; }],
+    ["wrong geometry", v => { v.feeds[0].videoCameras[0].site.x += 1; }],
+    ["wrong crop", v => { v.feeds[0].videoCameras[0].site.left += 1; }],
+    ["unknown sample", v => { v.video.segments[0].sites = []; }],
+    ["extra site field", v => { v.feeds[0].videoCameras[0].site.personId = "person-1"; }],
+    ["extra receipt field", v => { v.feeds[0].videoCameras[0].newerPose = true; }],
+    ["duplicate", v => { v.feeds[0].videoCameras[1] = structuredClone(v.feeds[0].videoCameras[0]); }],
+    ["unbounded", v => { v.feeds[0].videoCameras.push(structuredClone(v.feeds[0].videoCameras[0])); }],
+    ["missing assignment", v => { delete v.feeds[0].assignedSubjectId; }],
+  ]) { const invalid = structuredClone(view); mutate(invalid); assert.throws(() => validateNativeView(invalid), undefined, name); }
+  view.feeds[0].videoCameras[0].camera.personIds = []; validateNativeView(view);
+  delete view.feeds[0].videoCameras; delete view.feeds[0].assignedSubjectId;
+  view.feeds[0].videoCamera = { camera: view.feeds[0].camera, capturedAtUnixMs: view.video.segments[7].endCapturedAtUnixMs, observerSequence: 7 };
+  validateNativeView(view); // Previous singular producers remain valid.
+});
+
+test("pictured video camera covers all eight fragments and refuses newer or unverified sample substitution", () => {
+  const view = segmentCameraView(), value = { siteId: "west" };
+  rememberNativeVideoCameras(value, view.feeds[0], view.people);
+  for (const segment of view.video.segments) {
+    const frame = { alignment: "verified", sequence: segment.sequence, observerSequence: segment.observerSequence,
+      endCapturedAtUnixMs: segment.endCapturedAtUnixMs, site: segment.sites[0] };
+    assert.deepEqual(picturedNativeVideoCamera(value, frame)?.names, ["Avery"], "all_retained_pictured_segments_qualified");
+    for (const bad of [{ ...frame, alignment: "unknown" }, { ...frame, observerSequence: 8 },
+      { ...frame, sequence: 99 }, { ...frame, endCapturedAtUnixMs: frame.endCapturedAtUnixMs + 1 },
+      { ...frame, site: { ...frame.site, x: 204 } }, { ...frame, site: { ...frame.site, width: 639 } }])
+      assert.equal(picturedNativeVideoCamera(value, bad), null, "wrong_pictured_sample_withheld");
+  }
+  assert.equal(value.videoCameras.size, 8);
+  const collisions = structuredClone(view.feeds[0]);
+  for (const sample of collisions.videoCameras) sample.capturedAtUnixMs = 1000;
+  const collisionCard = { siteId: "west" }; rememberNativeVideoCameras(collisionCard, collisions, view.people);
+  for (const sample of collisions.videoCameras) assert.deepEqual(picturedNativeVideoCamera(collisionCard, {
+    alignment: "verified", sequence: sample.segmentSequence, observerSequence: 7, endCapturedAtUnixMs: 1000, site: sample.site,
+  })?.names, ["Avery"], "same_millisecond_fragments_remain_distinct");
+  assert.equal(collisionCard.videoCameras.size, 8);
+  const empty = { siteId: "west" }; rememberNativeVideoCameras(empty, { ...view.feeds[0], videoCameras: [], videoCamera: view.feeds[0].videoCameras[7] }, view.people);
+  assert.equal(empty.videoCameras.size, 0, "explicit_unknown_does_not_use_legacy_latest");
+  const transition = { siteId: "west" }, last = view.video.segments[7];
+  const legacy = { camera: view.feeds[0].camera, observerSequence: 7, capturedAtUnixMs: last.endCapturedAtUnixMs };
+  rememberNativeVideoCameras(transition, { videoCamera: legacy }, view.people);
+  const picturedLast = { alignment: "verified", sequence: last.sequence, observerSequence: 7,
+    endCapturedAtUnixMs: last.endCapturedAtUnixMs, site: last.sites[0] };
+  assert.deepEqual(picturedNativeVideoCamera(transition, picturedLast)?.names, ["Avery"]);
+  rememberNativeVideoCameras(transition, { videoCameras: [], videoCamera: legacy }, view.people);
+  assert.equal(picturedNativeVideoCamera(transition, picturedLast), null, "explicit_collection_disables_cached_legacy_identity");
+  const unknown = structuredClone(view.feeds[0]); unknown.videoCameras[0].camera.personIds = [];
+  rememberNativeVideoCameras(value, unknown, view.people);
+  assert.deepEqual(picturedNativeVideoCamera(value, { alignment: "verified", sequence: 1, observerSequence: 7,
+    endCapturedAtUnixMs: view.video.segments[0].endCapturedAtUnixMs, site: view.video.segments[0].sites[0] }).names, []);
+});
 
 function cognition(actorId = "person-1") {
   const predictions = probability => Object.fromEntries(["food", "water", "inspect", "continue"].map(action => [action, { probability, claim: `${action}: an actor-observed result follows.` }]));

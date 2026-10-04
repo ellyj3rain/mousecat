@@ -1,7 +1,7 @@
 | Document | Mousecat Architecture |
 |---|---|
-| Version | 2.0.0.0-alpha |
-| Timestamp | 2026-10-03 05:35 UTC / 22:35 PST |
+| Version | 2.2.0.0-alpha |
+| Timestamp | 2026-10-04 00:15 UTC / 17:15 PST |
 | Status | ACTIVE - system architecture. |
 
 # Mousecat Architecture
@@ -76,7 +76,100 @@ image identities once, with bounded recent deduplication and per-run reset.
 Presentation rerenders leave the count unchanged; this metric measures image
 delivery rather than engine frame rate.
 
+## Development continuity graphs
+
+The global `#graphs` route discovers declared graph sources across every
+registered project through `registeredGraphs` in project-model.js.
+`src/operator/public/graph-library.js` owns the searchable visual selector.
+Cards retain project and source identity and link to the existing canvas route.
+Visible cards read the validated graph endpoint with three bounded concurrent
+requests, draw a labelled bounded preview from the opening source view, and
+retire pending reads when navigation or source registration changes. Missing or
+invalid sources retain their status and exact route. Discovery uses no copied
+registry or inferred cross-project relationships.
+
+`src/core/development-graph.mjs` validates development.continuity-graph/1 and
+reads only named JSON sources registered on a project surface. The data-source
+schema marker opts a source into this projection. The graph projectRef must match
+the surface. Resolved source paths remain within the registered real root, input
+bytes are bounded before parsing, and a changing file refuses as an incomplete
+observation. The maximum is 16 MiB, 10,000 nodes and 30,000 edges.
+
+Optional bounded node metadata preserves verbatim recorded status, measured notes,
+owner/archive references, contract input/output/state/remaining lists, recorded
+time and source-pin applicability. These fields do not promote measured standing.
+
+Nodes retain opaque identities, kind, label, summary, tags, separate implementation,
+verification and publication standing, and versioned source references. Edges retain
+explicit endpoints, extensible relation names, evidence class, provenance and
+rationale. Source vectors pin the producer inputs; source-provided views select
+node kinds and relation types. Optional node mediaRefs carry image/video/audio
+metadata with safe project-relative references. Metadata is inert and supplies no
+browser navigation or automatic media fetches. Unknown fields, missing grounding,
+duplicate identities, dangling edges and unsafe media references refuse.
+
+The observer-permitted graph action on mousecat.projects and the loopback
+GET /api/project-graphs/{surfaceId}/{source} route return the same validated graph.
+Projects link marked sources into a full-workspace canvas owned by
+`src/operator/public/development-graph-view.js`. The model filters existing
+identities and places them in stable, colored regions by supplied kind. Every
+matching node and relationship shares one SVG space. Curved directed paths,
+selection emphasis, a minimap, pan, zoom, fit and neighborhood exploration expose
+continuity at different scales. Spatial placement asserts no new semantic edge.
+Source-provided views and search remain immediate; kind/relation filters and an
+optional record index provide further access. Details open over the canvas and
+retain implementation, verification, publication and provenance separately.
+Keyboard navigation and touch gestures share the same local camera. Camera and
+filters survive project navigation; unrelated snapshot changes preserve focus.
+Export retains the complete canonical graph. Invalid refreshes hide old content
+until a valid source returns. Native observation feeds retain their separate
+actor/clock/action graph contract and lifecycle.
+
+`test/development-graph.test.mjs` covers intake, file boundaries, capacity,
+projection and the shared MCP/browser read route. The isolated graphical proof is
+`npm run test:graph-browser`; it creates synthetic source files and ephemeral
+servers at desktop and mobile widths without attaching to the installed service.
+
+## Project bulletin
+
+`src/core/bulletin.mjs` owns the `mousecat.bulletin/1` record, validation,
+revision conflicts, capture idempotency, bounded retention and pruning.
+`src/core/runtime.mjs` joins it to work permits and source-owned operator command packs;
+`src/core/local-state.mjs` persists records and quarantine diagnostics in ignored local
+state. Existing state files migrate with an empty optional bulletin collection.
+Immutable capture origin and source accompany every record. Content corrections
+append source anchors. Revision-bound ownership corrections move a complete
+linked set to a registered target surface and append the exact prior/next
+ownership, caller source and actual permit authority. Explicit links resolve
+within the same project; a crossing link refuses the entire correction.
+
+The public `mousecat.bulletin` tool exposes query, capture, amend and relocate. Query needs
+an observer permit; writes need an operator-interaction permit. The graphical
+command boundary additionally owns disposition and prune. `GET /api/bulletin`
+projects bounded validated records by project, surface, standing and search.
+Pruning removes current and historical text while retaining identity, source
+anchors and content hashes. Archived records retain content. Stale revisions,
+quarantined identities and pruned identities refuse mutation.
+
+`src/operator/public/bulletin.js` and `src/operator/public/bulletin.css` render project islands,
+selectable cards and explicit directed connections, with pan, zoom, Fit,
+keyboard navigation and an overview. The detail/editor panel reads canonical
+records and submits source-owned commands. Project pages open scoped boards.
+Hosts own semantic capture; the runtime supplies no transcript scraper or work
+assignment. Limits are 2,000 records, 64 revisions, 24 links and 8 MiB; writes
+refuse at capacity without eviction, reserving the final revision for prune.
+
 ## Flow
+
+Installed delivery is checked separately from source readiness.
+`src/service/installed-identity.mjs` fingerprints runtime modules, configuration,
+package metadata and dependency-lock identity at startup. The service keeps this
+digest in its existing private process record and refuses inputs that change
+during startup. `scripts/installed-check.mjs` binds the Windows loopback listener
+to the recorded process, executable, runner, configuration, port and creation
+time, then compares current input fingerprints and every served public UI asset.
+The check reads installation state and returns digests and mismatch codes.
+Native-window observation and interaction establish what the open client loaded.
 
 Appearance is a client-owned preference. `src/operator/public/appearance.js`
 loads the saved scheme before styles render, validates the three supported values
@@ -123,6 +216,7 @@ Codex / Claude Code / Neo / another MCP host
 |---|---|
 | `mousecat.history` | Query durable source-linked records and exact revisions; index declared project documents; register proposed methods and reported results with provenance. |
 | `mousecat.projects` | Registers and inspects source-owned project surfaces and retained threads. |
+| `mousecat.bulletin` | Queries, captures, amends and relocates revisioned source-linked project ideas. |
 | `mousecat.workbench` | Inspects and operates project adapters under declared effect and permit contracts. |
 | `mousecat.widget` | Requests, awaits, answers, holds, and snapshots Mousecat-owned operator interactions. MCP transports expose ask and await; browser commands own answer and hold. |
 | `mousecat.skill` | Invokes built-in or registered operator-interaction skills and returns typed responses with source lineage and contextual continuation obligations. |
@@ -290,7 +384,13 @@ legacy work for navigation; they do not alter recorded authorial ownership or
 continuation capabilities. Project thread summaries use the public redaction path.
 
 
-Browser writes name only `respond`, `hold`, or `defer`. The server materializes those ids from `mousecat.host-command-pack/1`; the browser never sends raw Mousecat tool names. Decision, freeform, parameter, checklist, and ranking values stay typed through validation and submission. Runtime rejection returns a non-success action envelope and the client retains the last good snapshot.
+Browser writes use source-owned command ids from `mousecat.host-command-pack/1`.
+Decision commands name `respond`, `hold` or `defer`; bulletin commands name
+`bulletin-capture`, `bulletin-amend`, `bulletin-disposition` or `bulletin-prune`.
+The server materializes those commands; the browser sends no raw Mousecat tool
+names. Decision, freeform, parameter, checklist, ranking and bulletin values stay
+typed through validation and submission. Runtime rejection returns a non-success
+action envelope and the client retains the last good snapshot and local draft.
 
 ## Runtime State
 

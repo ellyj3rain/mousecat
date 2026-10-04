@@ -1,13 +1,13 @@
 | Document | Mousecat README |
 |---|---|
-| Version | 2.0.0.0-alpha |
-| Timestamp | 2026-10-03 05:35 UTC / 22:35 PST |
+| Version | 2.2.0.0-alpha |
+| Timestamp | 2026-10-04 12:01 UTC / 05:01 PST |
 | Status | ACTIVE - participant entry point. |
 
 # Mousecat
 
 Mousecat gives AI coding hosts and their operator one local workspace for questions,
-source evidence, decision history and live simulation feeds. Codex, Claude Code,
+project ideas, source evidence, decision history and live simulation feeds. Codex, Claude Code,
 Neo and other MCP clients can bring work into the same responsive surface and
 receive the operator's structured response. One loopback process serves the
 browser, Windows desktop and Streamable HTTP MCP endpoint. Optional project
@@ -49,6 +49,40 @@ the existing inspector. Unknown times and recorded positions remain labeled,
 and references follow explicit source receipts. Snapshot export includes the
 same canonical graph.
 
+The top-level **Graphs** button opens a searchable selector across registered
+projects. Each card previews actual graph nodes and connections and opens its
+canvas directly. The selector is also available at `/#graphs`.
+
+The top-level **Bulletin** button opens project memory at `/#bulletin`. Project
+islands contain source-linked idea cards and explicit connections. Pan, zoom,
+Fit, the overview and keyboard controls expose the same records as MCP queries.
+Select a card to inspect its proposition, original conversation anchor and
+revision history; capture or amend an idea, change its standing, or prune it
+through the graphical controls. Project pages open their scoped board directly.
+
+`mousecat.bulletin` supports observer-permitted `query` and
+operator-interaction-permitted `capture`, `amend` and `relocate`. Hosts supply propositions
+with author, host, session, message and time anchors. Corrections append their own
+anchors while preserving initial capture provenance. A revision-bound relocation
+moves a complete linked set to a registered project surface and records its
+prior and corrected ownership. Standing changes and pruning belong
+to the graphical operator. Archive retains content; prune retains a tombstone
+with identity, provenance and content hashes. Local memory survives service
+restarts. Limits are 2,000 records, 64 revisions, 24 explicit links per record and
+8 MiB; capacity refuses additional writes without eviction, and the final
+revision remains available for pruning. Sensitive text is redacted at intake.
+
+Projects can display a registered development continuity graph with source-owned
+nodes, typed relationships, measured implementation/verification/publication status
+and exact provenance. Search, source-provided views, kind/relation filters, keyboard
+selection and relationship navigation expose the same graph as its JSON export.
+The full-workspace canvas connects every matching record in one continuous space.
+Colored regions, curved directed paths, neighborhood emphasis and a minimap
+support exploration through pan, zoom, fit and touch or keyboard controls.
+Details open on demand over the graph. Source and
+media references remain descriptive metadata; graph data supplies no executable
+links. The platform accepts up to 10,000 nodes, 30,000 relationships and 16 MiB.
+
 ## Quick Start
 
 Install Node.js 20 or newer, clone this repository and install the pinned dependencies:
@@ -75,6 +109,13 @@ On Windows, install the [desktop client](apps/mousecat-desktop/README.md):
 ```powershell
 powershell -NoProfile -File scripts/install-desktop.ps1
 ```
+
+App development includes updating the installed runtime and checking the actual
+desktop. After activation, run `npm run installed:check` from the intended
+checkout: it verifies the service/desktop binding, persistent state store, runtime
+freshness and exact served interface files. Reload or reopen the installed client
+and exercise the changed surface to complete delivery. Preview and CI receipts
+retain their separate purposes.
 
 Open **Mousecat** from the Desktop or Start menu. It shares questions and history
 with the browser and starts the local service when needed. Unanswered work
@@ -160,6 +201,7 @@ The server exposes:
 |---|---|
 | `mousecat.history` | Search retained decisions, plans and methods; resolve exact revisions and backlinks; index explicitly registered project sources. |
 | `mousecat.projects` | Register and inspect source-owned project surfaces and their retained threads. |
+| `mousecat.bulletin` | Query, capture, amend and relocate source-linked project ideas with revisioned provenance. |
 | `mousecat.workbench` | Inspect and operate registered project adapters within their declared effect and permit boundaries. |
 | `mousecat.widget` | Request, await, answer, hold, or inspect typed operator interactions. MCP callers request and await; graphical operator commands own answer and hold writes. |
 | `mousecat.skill` | Invoke built-in or registered operator-interaction skills, normalize chronology and lineage, and return typed results for contextual recursion. |

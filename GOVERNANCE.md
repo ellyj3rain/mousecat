@@ -1,7 +1,7 @@
 | Document | Mousecat Governance |
 |---|---|
-| Version | 2.0.0.0-alpha |
-| Timestamp | 2026-10-03 05:35 UTC / 22:35 PST |
+| Version | 2.2.0.0-alpha |
+| Timestamp | 2026-10-04 00:15 UTC / 17:15 PST |
 | Status | ACTIVE - operating discipline. |
 
 # Mousecat Governance
@@ -14,7 +14,32 @@ explicit human request to modify Mousecat. A consumer's ordinary invocation is
 not a platform development instruction. Hosts supply project context and review
 material; Mousecat owns common navigation, rendering and response mechanisms.
 
+Visual development follows the product goal in CORE.md. Choose representations
+that make the subject's structure and relationships intelligible and support
+direct exploration. Adapter-thin ownership governs domain facts and writes;
+Mousecat owns sophisticated graphics, camera interaction and visual composition.
+Review rendered desktop and mobile surfaces against the user's reference and
+task: legibility, continuity, spatial orientation and usable interaction matter
+alongside overflow and functional checks. Record what was actually observed.
+
 Mousecat is governed by GZDS standards expressed as public, repository-local checks. It governs access to upstream tools by making permission facts visible before execution. Its purpose is to preserve capability while preventing ambient tool access, hidden credential use, and untracked operator decisions.
+
+## Installed delivery
+
+Authorized app implementation closes with delivery to the operator's installed
+Mousecat and observed behavior there. The implementer owns checkout activation,
+service and desktop alignment, preservation of existing state/configuration,
+client reload or relaunch, and installed verification. This responsibility
+persists across worktrees and handoffs. Publication and installed delivery each
+retain their evidence; a preview receipt establishes preview behavior.
+
+`npm run installed:check` is the local installed-runtime check. It refuses a
+different desktop/service checkout, a stopped or stale runtime, a changed state
+store and served assets that differ from the intended source. Live
+process/listener identity and startup content fingerprints establish freshness
+across preserved timestamps, configuration changes and dependency changes.
+Native client interaction establishes that the open window loaded the update. Normal
+CI runs source checks independently of the operator's installation.
 
 ## Source of Truth
 
@@ -24,7 +49,7 @@ Mousecat is governed by GZDS standards expressed as public, repository-local che
 | Operating rules | `GOVERNANCE.md`, `AGENTS.md` | Update when repository discipline changes. |
 | Runtime contract | `src/core/catalog.mjs`, `src/core/connectors.mjs`, `src/core/delegation.mjs`, `src/core/integration-contracts.mjs`, `src/core/integration-adapters.mjs`, `src/core/integration-runner.mjs`, `src/core/mcp-client.mjs`, `src/core/project-workbench.mjs`, `src/core/skill-invocation.mjs`, `src/core/runtime.mjs`, `src/mcp/server.mjs`, `src/operator/server.mjs`, `src/sdk/` | Source-owned tool names, skills, connector and cancellation semantics, provider manifests and execution boundaries, project-adapter and development-representation contracts, delegation custody, intake normalization, permits, adapter render packets, executable SDK bindings, host command packs, host-state bindings, operator command dispatch, and boundaries. |
 | Append-only history | `BATCH_LOG.md`, `DECISION_REGISTRY.md`, `FINDINGS.md` | Append entries only. Corrections supersede by new entry. |
-| Version | 2.0.0.0-alpha | Keep the Kohai-aware root odometer and npm package projection aligned. |
+| Version | 2.2.0.0-alpha | Keep the Kohai-aware root odometer and npm package projection aligned. |
 
 ## Version Discipline
 

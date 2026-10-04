@@ -193,6 +193,8 @@ function serializableState(state, config) {
     projectWorkbenches: [...(state.projectWorkbenches || new Map()).values()].map((workbench) => scrubSecrets(workbench)),
     projectRepresentations: [...(state.projectRepresentations || new Map()).values()].map((representation) => scrubSecrets(representation)),
     projectOperationReceipts: [...(state.projectOperationReceipts || new Map()).values()].map((receipt) => scrubSecrets(receipt)),
+    bulletin: [...(state.bulletin || new Map()).values()],
+    bulletinQuarantine: state.bulletinQuarantine || [],
   };
 }
 
@@ -241,6 +243,8 @@ function reviveState(record) {
     projectWorkbenches: mapFromRecords(record.projectWorkbenches, "workbenchId"),
     projectRepresentations: mapFromRecords(record.projectRepresentations, "representationId"),
     projectOperationReceipts: mapFromRecords(record.projectOperationReceipts, "receiptId"),
+    bulletin: Array.isArray(record.bulletin) ? record.bulletin : [],
+    bulletinQuarantine: Array.isArray(record.bulletinQuarantine) ? record.bulletinQuarantine : [],
   };
 }
 
