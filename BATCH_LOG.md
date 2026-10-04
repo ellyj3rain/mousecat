@@ -2583,3 +2583,33 @@ the earlier full-readiness run.
 A28 is locally complete and installed at 2.2.0.0-alpha (npm 2.2.0-alpha).
 Publication remains pending. This entry preserves the earlier implementation
 and inherited A27 receipts without promoting their publication status.
+
+### A28 ownership and camera integration | 2026-10-04 16:35 UTC / 09:35 PST
+
+An installed integration check found one repository split between two project
+references: its graph and 22 ideas used `project:sao`, while 15 native views
+used `project:survivor-awareness`. The supported `mousecat.bulletin` relocation
+now moves a complete linked set atomically to a registered surface, preserving
+original capture provenance and appending exact ownership and permit authority.
+Stale revisions, crossing links, unauthorized writes, pruned records and failed
+persistence refuse the correction. Original capture retries retain current
+ownership. Focused runtime/HTTP/SDK/restart checks pass 23 cases and nine
+restored-defect controls; independent review approved those pinned inputs.
+
+Actual SDK consolidation moved all 22 ideas once without changing their IDs,
+content, links, capture pins or earlier history. Browser and installed desktop
+checks now open the graph, scoped bulletin and saved simulations from one project.
+The service restart preserved 25 ideas, ten surfaces, 24 native views and 36
+pending items. All 23 installed assets match current source. Catalog and SDK
+checks pass 25 cases; documentation, governance and hygiene checks pass.
+
+Native video camera metadata now binds exact encoded segments rather than
+borrowing a later pose. Multiple same-time segments have distinct cache keys,
+and explicit missing poses remain unknown. The scoped camera receipt retains
+74 native-view cases (two OS skips), eight browser samples and 48 refusals;
+separate source/watcher/native-segment proofs retain their own input boundaries.
+Actual completed simulation video fully decoded 337 fragments without PTS gaps;
+60 unknown-pose fragments and partial wall occlusion remain visible limits.
+
+This integration extends the locally delivered A28 candidate. Public PR 14
+remains draft for the required large-diff and surface-span ratification.

@@ -2,14 +2,23 @@
 |---|---|
 | Version | 2.2.0.0-alpha |
 | Timestamp | 2026-10-04 12:01 UTC / 05:01 PST |
-| Status | ACTIVE - A28 bulletin locally complete and installed; publication pending. |
+| Status | ACTIVE - A28 installed ownership integration verified; publication pending. |
 
 # Session State
 
 ## Current state
 
-A28 project bulletin is locally complete, independently reviewed and delivered
-to the installed desktop. Its public query/capture/amend tool and graphical
+A28 project bulletin is implemented, independently reviewed and delivered
+to the installed desktop. An integration check subsequently found the SAO graph
+and 22 ideas assigned to `project:sao`, separate from the repository's native
+views under `project:survivor-awareness`. The supported atomic relocation action
+now retains original capture provenance and records ownership corrections; its
+23 checks and nine restored-defect controls pass. Independent review approved
+the source; actual SDK consolidation preserved all 22 IDs, capture pins and
+history prefixes. Browser and installed-desktop navigation now join the graph,
+22 ideas and 15 native views under `project:survivor-awareness`. The service
+restart retained 25 bulletin records, ten surfaces, 24 native views and 36 pending
+items. The installed assets match source. Its public tool and graphical
 commands share revisioned, source-linked local records. The spatial board has
 project islands, directed connections, details, editing, standing changes,
 pruning, pan/zoom/Fit, keyboard navigation and an overview. Initial conversation

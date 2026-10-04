@@ -66,6 +66,36 @@ export function createNativeImageDeliveryCounter() {
   };
 }
 
+export function rememberNativeVideoCameras(value, feed, people) {
+  // An explicit collection owns this snapshot, including an empty collection.
+  if (!feed) return;
+  value.segmentCameraReceipts = Object.hasOwn(feed, "videoCameras");
+  const samples = feed?.videoCameras ?? (feed?.videoCamera ? [feed.videoCamera] : []);
+  value.videoCameras ||= new Map();
+  for (const metadata of samples) {
+    const epoch = `${metadata.observerSequence}:${metadata.capturedAtUnixMs}`;
+    const key = metadata.segmentSequence === undefined ? epoch : `${metadata.segmentSequence}:${epoch}`;
+    value.videoCameras.set(key, {
+      camera: structuredClone(metadata.camera), site: metadata.site ? structuredClone(metadata.site) : null,
+      segmentSequence: metadata.segmentSequence,
+      names: metadata.camera.personIds.map(id => people?.find(person => person.id === id)?.label).filter(Boolean),
+    });
+  }
+  while (value.videoCameras.size > 8) value.videoCameras.delete(value.videoCameras.keys().next().value);
+}
+
+export function picturedNativeVideoCamera(value, frame) {
+  if (frame?.alignment !== "verified" || frame.site?.id !== value.siteId) return null;
+  const epoch = `${frame.observerSequence}:${frame.endCapturedAtUnixMs}`;
+  const metadata = value.videoCameras?.get(`${frame.sequence}:${epoch}`)
+    || (!value.segmentCameraReceipts ? value.videoCameras?.get(epoch) : null);
+  if (!metadata) return null;
+  if (metadata.site && (metadata.segmentSequence !== frame.sequence
+      || !["id", "label", "slot", "x", "y", "z", "left", "top", "width", "height", "zoom", "targetZoom"]
+        .every(key => metadata.site[key] === frame.site[key]))) return null;
+  return metadata;
+}
+
 // Presentation of source-owned person text. This never reconstructs a motive
 // from controller state or a domain-specific record hidden behind the adapter.
 export function nativePersonContext(person) {
@@ -390,17 +420,11 @@ export function installNativeView(root) {
     } else return;
     applyBrowse(media); freshness();
   }
-  function cameraEpoch(value) { return `${value.observerSequence}:${value.capturedAtUnixMs}`; }
   function rememberCamera(value, feed) {
-    if (!feed?.videoCamera) return;
-    value.videoCameras ||= new Map(); value.videoCameras.set(cameraEpoch(feed.videoCamera), {
-      camera: structuredClone(feed.videoCamera.camera), names: feed.videoCamera.camera.personIds.map(id => videoSnapshot?.view.people.find(person => person.id === id)?.label).filter(Boolean),
-    });
-    while (value.videoCameras.size > 8) value.videoCameras.delete(value.videoCameras.keys().next().value);
+    rememberNativeVideoCameras(value, feed, videoSnapshot?.view.people);
   }
   function videoCamera(value, frame) {
-    if (frame?.alignment !== "verified" || frame.site?.id !== value.siteId) return null;
-    return value.videoCameras?.get(`${frame.observerSequence}:${frame.endCapturedAtUnixMs}`) || null;
+    return picturedNativeVideoCamera(value, frame);
   }
   function clearObservation() {
     pendingObservation = null; observationMap?.destroy(); observationMap = null; observationPanel.hidden = true;

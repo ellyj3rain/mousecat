@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { lstat, open, realpath, link, unlink } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { validCognitionControls, validateCognitionView } from "./cognition-view.mjs";
 import { validateNativeVideo, validateVideoInit, validateVideoBytes } from "./native-video.mjs";
 import { validateObservationGraph } from "./observation-graph.mjs";
@@ -185,11 +186,12 @@ export function validateNativeView(view) {
     array(view.feeds, 8); unique(view.feeds.map(feed => feed.id));
     unique(view.feeds.filter(feed => Object.hasOwn(feed, "siteId")).map(feed => feed.siteId));
     for (const feed of view.feeds) {
-      object(feed, ["id", "label", "capturedAtUnixMs", "image", "camera"], ["overlay", "siteId", "viewport", "cameraControls", "videoCamera"]);
+      object(feed, ["id", "label", "capturedAtUnixMs", "image", "camera"], ["overlay", "siteId", "viewport", "cameraControls", "videoCamera", "assignedSubjectId", "videoCameras"]);
       string(feed.id, 128, true); string(feed.label, 160, true); integer(feed.capturedAtUnixMs);
       requireValue(feed.capturedAtUnixMs <= view.capturedAtUnixMs);
       validateImageDescriptor(feed.image); validateCamera(feed.camera, ids);
       if (Object.hasOwn(feed, "siteId")) requireValue(typeof feed.siteId === "string" && SITE_ID.test(feed.siteId));
+      if (Object.hasOwn(feed, "assignedSubjectId")) { string(feed.assignedSubjectId, 128, true); requireValue(Boolean(feed.siteId)); }
       if (Object.hasOwn(feed, "viewport")) { requireValue(Object.hasOwn(feed, "siteId")); validateViewport(feed.viewport); }
       if (Object.hasOwn(feed, "cameraControls")) { requireValue(Object.hasOwn(feed, "siteId")); validateCameraControls(feed.cameraControls); }
       if (Object.hasOwn(feed, "videoCamera")) {
@@ -199,6 +201,21 @@ export function validateNativeView(view) {
         requireValue(Boolean(feed.siteId && view.video?.segments.some(segment =>
           segment.observerSequence === metadata.observerSequence && segment.endCapturedAtUnixMs === metadata.capturedAtUnixMs
           && segment.sites.some(site => site.id === feed.siteId))), "native-video-camera-unacknowledged");
+      }
+      if (Object.hasOwn(feed, "videoCameras")) {
+        requireValue(Boolean(feed.siteId && feed.assignedSubjectId), "native-video-camera-assignment-missing");
+        array(feed.videoCameras, 8); unique(feed.videoCameras.map(metadata => metadata.segmentSequence));
+        for (const metadata of feed.videoCameras) {
+          object(metadata, ["camera", "capturedAtUnixMs", "observerSequence", "segmentSequence", "site"]);
+          validateCamera(metadata.camera, ids); integer(metadata.capturedAtUnixMs); integer(metadata.observerSequence); integer(metadata.segmentSequence, 1);
+          requireValue(metadata.camera.personIds.length === 0 || (metadata.camera.personIds.length === 1
+            && metadata.camera.personIds[0] === feed.assignedSubjectId), "native-video-camera-person-differs");
+          const segment = view.video?.segments.find(value => value.sequence === metadata.segmentSequence);
+          requireValue(Boolean(segment && segment.observerSequence === metadata.observerSequence
+            && segment.endCapturedAtUnixMs === metadata.capturedAtUnixMs
+            && segment.sites.some(site => site.id === feed.siteId && isDeepStrictEqual(site, metadata.site))),
+          "native-video-camera-sample-differs");
+        }
       }
       if (Object.hasOwn(feed, "overlay")) {
         validateOverlay(feed.overlay, ids); requireValue(feed.overlay.capturedAtUnixMs <= feed.capturedAtUnixMs);

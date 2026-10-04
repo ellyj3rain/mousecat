@@ -845,6 +845,35 @@ test("native terminal display preserves failure, observed time and source-owned 
   assert.deepEqual(errors, []);
 });
 
+test("browser uses each retained camera receipt and refuses pictured geometry substitutions", {
+  skip: process.env.MOUSECAT_BROWSER_TEST !== "1" ? "run with MOUSECAT_BROWSER_TEST=1 for isolated browser acceptance" : false,
+}, async t => {
+  const app = await startOperatorServer({ port: 0 }); t.after(() => app.close());
+  const browser = await chromium.launch(process.platform === "win32" ? { channel: "msedge" } : {}); t.after(() => browser.close());
+  const page = await browser.newPage(); await page.goto(app.url);
+  const results = await page.evaluate(async () => {
+    const { rememberNativeVideoCameras, picturedNativeVideoCamera } = await import('/native-view.js');
+    const site = { id: 'west', label: 'West', slot: 0, x: 100, y: 100, z: 0, left: 0, top: 0, width: 160, height: 180, zoom: 1, targetZoom: 1 };
+    const camera = { mode: 'automatic', personIds: ['one'], summary: 'Following assigned subject' };
+    const feed = { videoCameras: Array.from({ length: 8 }, (_, index) => ({ camera, site,
+      segmentSequence: index+1, observerSequence: 2, capturedAtUnixMs: 1000+index })) };
+    const card = { siteId: 'west' }; rememberNativeVideoCameras(card, feed, [{ id: 'one', label: 'Avery' }]);
+    const labels = [], refusals = [];
+    for (const sample of feed.videoCameras) {
+      const frame = { alignment: 'verified', site, sequence: sample.segmentSequence,
+        observerSequence: sample.observerSequence, endCapturedAtUnixMs: sample.capturedAtUnixMs };
+      labels.push(picturedNativeVideoCamera(card, frame)?.names.join(', '));
+      for (const bad of [{ ...frame, alignment: 'unknown' }, { ...frame, sequence: 99 }, { ...frame, observerSequence: 3 },
+        { ...frame, endCapturedAtUnixMs: 2000 }, { ...frame, site: { ...site, x: 101 } }, { ...frame, site: { ...site, width: 159 } }])
+        refusals.push(picturedNativeVideoCamera(card, bad) === null);
+    }
+    const empty = { siteId: 'west' }; rememberNativeVideoCameras(empty, { videoCameras: [], videoCamera: feed.videoCameras[7] }, [{ id: 'one', label: 'Avery' }]);
+    return { labels, refusals, empty: empty.videoCameras.size };
+  });
+  assert.deepEqual(results.labels, Array(8).fill('Avery')); assert.ok(results.refusals.every(Boolean));
+  assert.equal(results.refusals.length, 48); assert.equal(results.empty, 0);
+});
+
 test("production video authority shares Window canvases, qualifies subject epochs and preserves terminal navigation at four widths", {
   skip: process.env.MOUSECAT_BROWSER_TEST !== "1" ? "run with MOUSECAT_BROWSER_TEST=1 for isolated browser acceptance"
     : !process.env.MOUSECAT_NATIVE_VIDEO_FIXTURE ? "set MOUSECAT_NATIVE_VIDEO_FIXTURE to an isolated native init/fragments proof" : false,
@@ -872,6 +901,7 @@ test("production video authority shares Window canvases, qualifies subject epoch
       const segment = video.segments[index]; segment.file = `video-${streamId}-${String(segment.sequence).padStart(16, "0")}.m4s`;
       segment.capturedAtUnixMs += shift; segment.endCapturedAtUnixMs += shift;
       segment.sites = segment.sites.length ? structuredClone(sites) : [];
+      segment.crops = sites.map(({ id, slot, left, top, width, height }) => ({ id, slot, left, top, width, height }));
       await writeFile(join(producer, segment.file), await readFile(join(fixture, raw.segments[index].file)));
     }
     const allSegments = [...video.segments], first = allSegments[0], last = allSegments.at(-1), mixed = allSegments.find(segment => !segment.sites.length);
@@ -965,7 +995,15 @@ test("production video authority shares Window canvases, qualifies subject epoch
       });
       await observe(east); await observe(tile);
       view.video.segments = allSegments;
-      for (const feed of view.feeds) { feed.videoCamera.capturedAtUnixMs = last.endCapturedAtUnixMs; feed.videoCamera.observerSequence = last.observerSequence; }
+      for (const feed of view.feeds) {
+        feed.videoCamera.capturedAtUnixMs = last.endCapturedAtUnixMs; feed.videoCamera.observerSequence = last.observerSequence;
+        feed.assignedSubjectId = feed.videoCamera.camera.personIds[0];
+        feed.videoCameras = allSegments.filter(segment => segment.sites.some(site => site.id === feed.siteId)).map(segment => ({
+          camera: structuredClone(feed.videoCamera.camera), capturedAtUnixMs: segment.endCapturedAtUnixMs,
+          observerSequence: segment.observerSequence, segmentSequence: segment.sequence,
+          site: structuredClone(segment.sites.find(site => site.id === feed.siteId)),
+        }));
+      }
       await save();
       await page.waitForFunction(sequence => window.epochCaptions.some(value => value.sequence === String(sequence) && value.subject === "Assigned · pose unknown"), mixed.sequence);
       await child.waitForFunction(sequence => window.epochCaptions.some(value => value.sequence === String(sequence) && value.subject === "Assigned · pose unknown"), mixed.sequence);
@@ -1078,7 +1116,7 @@ test("production video authority shares Window canvases, qualifies subject epoch
         return next;
       };
       view.video = await movingStream(sites.map(({ id, slot, left, top, width, height }) => ({ id, slot, left, top, width, height }))); view.state = "running";
-      for (const feed of view.feeds) delete feed.videoCamera;
+      for (const feed of view.feeds) { delete feed.videoCamera; feed.videoCameras = []; }
       await save();
       await page.waitForFunction(() => { const subjects = [...document.querySelectorAll('.native-feed-card .native-feed-subject')]; return subjects.length === 2 && subjects.every(subject => subject.textContent === "Assigned · pose unknown"); });
       assert.equal(await east.locator("canvas").isVisible(), true, "first crop-only fragment did not paint through the public authority");
@@ -1140,7 +1178,7 @@ test("production video authority shares Window canvases, qualifies subject epoch
       await graphPanel.evaluate(element => { element.open = true; element.dispatchEvent(new Event("toggle")); });
       assert.equal(await page.locator(".native-observation").count(), 0, "disposed graph disclosure recreated pending data");
       assert.equal((await readdir(commands)).length, 0, "graph lifecycle issued a source command");
-    } finally { release(); await page.unrouteAll(); await context.close(); }
+    } finally { release(); await page.unrouteAll({ behavior: "wait" }); await context.close(); }
   }
   assert.deepEqual(errors, []);
 });

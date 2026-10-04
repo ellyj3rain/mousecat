@@ -340,11 +340,11 @@ const SKILL_SESSION_SCHEMA = Object.freeze({
 export const MOUSECAT_TOOLS = Object.freeze([
   {
     name: "mousecat.bulletin",
-    description: "Capture and query mapped project ideas with source anchors. Ideas retain revisions until the graphical operator changes their disposition. Raw transcripts are rejected.",
+    description: "Capture and query mapped project ideas with source anchors, or correct registered ownership with a revision-bound provenance event. Ideas retain revisions until the graphical operator changes their disposition. Raw transcripts are rejected.",
     inputSchema: {
       type: "object", additionalProperties: false,
       properties: {
-        action: { type: "string", enum: ["query", "capture", "amend"] },
+        action: { type: "string", enum: ["query", "capture", "amend", "relocate"] },
         permit: { type: "object", properties: { profileId: { type: "string" } } },
         projectRef: { type: "string", maxLength: 512 }, surfaceId: { type: "string", maxLength: 128 },
         status: { type: "string", enum: ["open", "parked", "addressed", "archived", "pruned"] }, query: { type: "string", maxLength: 256 },
@@ -352,6 +352,11 @@ export const MOUSECAT_TOOLS = Object.freeze([
         record: { type: "object", description: "ideaId, projectRef, optional surfaceId, title, proposition, source {author,host,sessionId,messageId,at}, horizon short/mid, optional reviewAt, sensitive and explicit same-project links {ideaId,relation extends/relates/depends-on}." },
         patch: { type: "object", description: "Changed title, proposition, horizon, reviewAt, links or sensitive; identity remains fixed." },
         source: { type: "object", description: "Correction anchor: author, host, sessionId, messageId and ISO at." },
+        targetProjectRef: { type: "string", maxLength: 512 }, targetSurfaceId: { type: "string", maxLength: 128 },
+        records: { type: "array", minItems: 1, maxItems: 2000, description: "Atomic ownership correction set; include every linked record that would otherwise cross project boundaries.",
+          items: { type: "object", additionalProperties: false, required: ["ideaId", "projectRef", "expectedRevision"], properties: {
+            ideaId: { type: "string", maxLength: 128 }, projectRef: { type: "string", maxLength: 512 }, expectedRevision: { type: "integer", minimum: 1 },
+          } } },
       },
     },
   },
@@ -1083,7 +1088,7 @@ export const WORK_PERMIT_PROFILES = Object.freeze([
   {
     id: "operator-interaction",
     label: "Operator Interaction",
-    grants: ["mousecat.bulletin:query", "mousecat.bulletin:capture", "mousecat.bulletin:amend", "mousecat.history", "mousecat.widget", "mousecat.skill", "mousecat.registry", "mousecat.workbench:open", "mousecat.workbench:operate", "mousecat.delegation:rejoin", "mousecat.ask", "mousecat.queue", "mousecat.session", "mousecat.projects"],
+    grants: ["mousecat.bulletin:query", "mousecat.bulletin:capture", "mousecat.bulletin:amend", "mousecat.bulletin:relocate", "mousecat.history", "mousecat.widget", "mousecat.skill", "mousecat.registry", "mousecat.workbench:open", "mousecat.workbench:operate", "mousecat.delegation:rejoin", "mousecat.ask", "mousecat.queue", "mousecat.session", "mousecat.projects"],
     canInvokeUpstreams: false,
     requiresOperatorPresence: true,
   },
@@ -1106,7 +1111,7 @@ export const WORK_PERMIT_PROFILES = Object.freeze([
 ]);
 
 export const TOOL_BOUNDARIES = Object.freeze([
-  { tool: "mousecat.bulletin", defaultPermit: "action-specific", actionPermits: { query: "observer", capture: "operator-interaction", amend: "operator-interaction" }, sideEffects: ["local-mapped-idea-record", "revision-receipt"], upstreamAccess: "none" },
+  { tool: "mousecat.bulletin", defaultPermit: "action-specific", actionPermits: { query: "observer", capture: "operator-interaction", amend: "operator-interaction", relocate: "operator-interaction" }, sideEffects: ["local-mapped-idea-record", "revision-receipt"], upstreamAccess: "none" },
   {
     tool: "mousecat.history", defaultPermit: "action-specific",
     actionPermits: { query: "observer", index: "operator-interaction", register: "operator-interaction" },

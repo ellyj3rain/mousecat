@@ -61,9 +61,11 @@ revision history; capture or amend an idea, change its standing, or prune it
 through the graphical controls. Project pages open their scoped board directly.
 
 `mousecat.bulletin` supports observer-permitted `query` and
-operator-interaction-permitted `capture` and `amend`. Hosts supply propositions
+operator-interaction-permitted `capture`, `amend` and `relocate`. Hosts supply propositions
 with author, host, session, message and time anchors. Corrections append their own
-anchors while preserving initial ownership. Standing changes and pruning belong
+anchors while preserving initial capture provenance. A revision-bound relocation
+moves a complete linked set to a registered project surface and records its
+prior and corrected ownership. Standing changes and pruning belong
 to the graphical operator. Archive retains content; prune retains a tombstone
 with identity, provenance and content hashes. Local memory survives service
 restarts. Limits are 2,000 records, 64 revisions, 24 explicit links per record and
@@ -199,7 +201,7 @@ The server exposes:
 |---|---|
 | `mousecat.history` | Search retained decisions, plans and methods; resolve exact revisions and backlinks; index explicitly registered project sources. |
 | `mousecat.projects` | Register and inspect source-owned project surfaces and their retained threads. |
-| `mousecat.bulletin` | Query, capture and amend source-linked project ideas with revisioned provenance. |
+| `mousecat.bulletin` | Query, capture, amend and relocate source-linked project ideas with revisioned provenance. |
 | `mousecat.workbench` | Inspect and operate registered project adapters within their declared effect and permit boundaries. |
 | `mousecat.widget` | Request, await, answer, hold, or inspect typed operator interactions. MCP callers request and await; graphical operator commands own answer and hold writes. |
 | `mousecat.skill` | Invoke built-in or registered operator-interaction skills, normalize chronology and lineage, and return typed results for contextual recursion. |

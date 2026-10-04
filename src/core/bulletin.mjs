@@ -43,25 +43,43 @@ export function publicBulletinRecord(record) {
     result.title = result.status === "pruned" ? "Pruned idea" : REDACTED;
     result.proposition = result.status === "pruned" ? null : REDACTED;
     result.links = [];
-    result.history = result.history.map(entry => ({ revision: entry.revision, action: entry.action, at: entry.at, source: entry.source, contentHash: entry.contentHash }));
+    result.history = result.history.map(entry => ({ revision: entry.revision, action: entry.action, at: entry.at, source: entry.source, contentHash: entry.contentHash,
+      ...(entry.ownership ? { ownership: entry.ownership } : {}) }));
     delete result.captureHash;
   }
   return result;
 }
 function sealed(record) { const { integrity: _integrity, ...content } = record; return { ...content, integrity: hash(content) }; }
+function ownership(record) { return { projectRef: record.projectRef, surfaceId: record.surfaceId }; }
+function validOwnership(value) {
+  return exact(value, ["projectRef", "surfaceId"]) && typeof value.projectRef === "string" && text(value.projectRef, 512) === value.projectRef
+    && (value.surfaceId === null || typeof value.surfaceId === "string") && text(value.surfaceId, 128, true) === value.surfaceId;
+}
 function validHistory(record) {
+  let owner = record.origin;
+  if (owner !== undefined && !validOwnership(owner)) return false;
   return Array.isArray(record.history) && record.history.length <= BULLETIN_LIMITS.revisions && record.history.length === record.revision
     && record.history[0]?.action === "capture" && record.history.at(-1)?.status === record.status
     && record.history.every((entry, index) => {
-      if (!exact(entry, ["revision", "action", "at", "source", "contentHash", "title", "proposition", "status"])) return false;
+      if (!exact(entry, ["revision", "action", "at", "source", "contentHash", "title", "proposition", "status", "ownership"])) return false;
+      if (entry.action === "relocate") {
+        const change = entry.ownership, previous = record.history[index - 1];
+        if (!owner || !previous || !exact(change, ["from", "to", "expectedRevision", "authority"])
+          || !validOwnership(change.from) || !validOwnership(change.to) || hash(change.from) !== hash(owner)
+          || hash(change.from) === hash(change.to) || change.expectedRevision !== index
+          || !exact(change.authority, ["kind", "profileId", "grant"]) || change.authority.kind !== "work-permit"
+          || typeof change.authority.profileId !== "string" || text(change.authority.profileId, 128) !== change.authority.profileId || change.authority.grant !== "mousecat.bulletin:relocate"
+          || entry.status !== previous.status || entry.contentHash !== previous.contentHash) return false;
+        owner = change.to;
+      } else if (entry.ownership !== undefined) return false;
       const anchor = source(entry.source);
       return entry.revision === index + 1 && anchor && hash(anchor) === hash(entry.source) && iso(entry.at)
         && /^[a-f0-9]{64}$/u.test(entry.contentHash) && STATES.includes(entry.status)
-        && ["capture", "amend", "disposition", "prune"].includes(entry.action)
+        && ["capture", "amend", "disposition", "prune", "relocate"].includes(entry.action)
         && (!(record.sensitive || record.status === "pruned") || (entry.title === undefined && entry.proposition === undefined))
         && (entry.title === undefined || text(entry.title, 240) === entry.title)
         && (entry.proposition === undefined || text(entry.proposition, 6000) === entry.proposition);
-    });
+    }) && (owner === undefined || (record.history.some(entry => entry.action === "relocate") && hash(owner) === hash(ownership(record))));
 }
 export function restoreBulletinRecords(records) {
   const valid = new Map(), quarantined = [], seen = new Set(); let retainedBytes = 2;
@@ -73,7 +91,7 @@ export function restoreBulletinRecords(records) {
       const { integrity, ...content } = record;
       const normalized = normalize(Object.fromEntries(["ideaId", "projectRef", "surfaceId", "title", "proposition", "source", "horizon", "reviewAt", "links", "sensitive"].map(key => [key, record[key]])));
       const bytes = Buffer.byteLength(JSON.stringify(record), "utf8") + 1;
-      if (!exact(record, ["ideaId", "projectRef", "surfaceId", "title", "proposition", "source", "horizon", "reviewAt", "links", "sensitive", "revision", "status", "createdAt", "updatedAt", "captureHash", "history", "integrity"])
+      if (!exact(record, ["ideaId", "projectRef", "surfaceId", "title", "proposition", "source", "horizon", "reviewAt", "links", "sensitive", "revision", "status", "createdAt", "updatedAt", "captureHash", "history", "integrity", "origin"])
         || !STATES.includes(record.status) || !Number.isInteger(record.revision) || record.revision < 1 || !validHistory(record)
         || !iso(record.createdAt) || !iso(record.updatedAt) || !normalized || Object.entries(normalized).some(([key, value]) => hash(value) !== hash(record[key]))
         || !/^[a-f0-9]{64}$/u.test(record.captureHash) || hash(content) !== integrity || duplicate || valid.size >= BULLETIN_LIMITS.records
@@ -137,7 +155,7 @@ export function createBulletinController({ state, persist, permitAllows, now = (
     const status = action === "prune" ? "pruned" : action === "disposition" ? args.status : record?.status || "open";
     const contentHash = hash({ title: candidate.title, proposition: candidate.proposition, links: candidate.links });
     const entry = { revision, action, at, source: action === "capture" ? candidate.source : source(args.source), contentHash, title: candidate.title, proposition: candidate.proposition, status };
-    const next = { ...candidate, revision, status, createdAt: record?.createdAt || at, updatedAt: at, captureHash: record?.captureHash || hash(candidate), history: [...(record?.history || []), entry] };
+    const next = { ...candidate, ...(record?.origin ? { origin: copy(record.origin) } : {}), revision, status, createdAt: record?.createdAt || at, updatedAt: at, captureHash: record?.captureHash || hash(candidate), history: [...(record?.history || []), entry] };
     if (next.sensitive || status === "pruned") {
       next.title = status === "pruned" ? "Pruned idea" : REDACTED;
       next.proposition = status === "pruned" ? "[pruned]" : REDACTED;
@@ -152,12 +170,57 @@ export function createBulletinController({ state, persist, permitAllows, now = (
     if (!persist()) { if (record) state.bulletin.set(record.ideaId, record); else state.bulletin.delete(next.ideaId); return failure("bulletin-persistence-failed"); }
     return { schema: BULLETIN_SCHEMA, ok: true, record: publicBulletinRecord(state.bulletin.get(next.ideaId)) };
   }
+  function relocate(args, permit) {
+    if (!exact(args, ["action", "permit", "records", "targetProjectRef", "targetSurfaceId", "source"])
+      || !Array.isArray(args.records) || !args.records.length || args.records.length > BULLETIN_LIMITS.records) return failure("bulletin-relocation-invalid");
+    const to = { projectRef: text(args.targetProjectRef, 512), surfaceId: text(args.targetSurfaceId, 128) };
+    if (!validOwnership(to) || state.projectSurfaces.get(to.surfaceId)?.projectRef !== to.projectRef) return failure("bulletin-surface-unavailable");
+    const anchor = source(args.source);
+    if (!anchor) return failure("bulletin-source-invalid");
+    const originals = new Map();
+    for (const row of args.records) {
+      if (!exact(row, ["ideaId", "projectRef", "expectedRevision"]) || !text(row.ideaId, 128)
+        || !text(row.projectRef, 512) || !Number.isInteger(row.expectedRevision) || row.expectedRevision < 1
+        || originals.has(row.ideaId)) return failure("bulletin-relocation-invalid");
+      const record = state.bulletin.get(row.ideaId);
+      if (!record || record.projectRef !== row.projectRef) return failure("bulletin-record-unavailable");
+      if (record.revision !== row.expectedRevision) return failure("bulletin-revision-conflict");
+      if (record.status === "pruned") return failure("bulletin-record-pruned");
+      if (record.history.length >= BULLETIN_LIMITS.revisions - 1) return failure("bulletin-revision-capacity-reached");
+      if (hash(ownership(record)) === hash(to)) return failure("bulletin-ownership-unchanged");
+      originals.set(record.ideaId, record);
+    }
+    // Both incoming and outgoing links must retain their existing same-project scope.
+    // Requiring the complete affected set avoids temporary cross-project links on disk.
+    const projectedProject = record => originals.has(record.ideaId) ? to.projectRef : record.projectRef;
+    for (const record of state.bulletin.values()) for (const link of record.links) {
+      if (!originals.has(record.ideaId) && !originals.has(link.ideaId)) continue;
+      const target = state.bulletin.get(link.ideaId);
+      if (!target || projectedProject(record) !== projectedProject(target)) return failure("bulletin-relocation-links-cross-project");
+    }
+    const at = now(), authority = { kind: "work-permit", profileId: permit.profile.id, grant: "mousecat.bulletin:relocate" };
+    for (const record of originals.values()) {
+      const entry = { revision: record.revision + 1, action: "relocate", at, source: copy(anchor),
+        contentHash: record.history.at(-1).contentHash, status: record.status,
+        ownership: { from: ownership(record), to: copy(to), expectedRevision: record.revision, authority: copy(authority) },
+        ...(!(record.sensitive || record.status === "pruned") ? { title: record.title, proposition: record.proposition } : {}) };
+      state.bulletin.set(record.ideaId, sealed({ ...record, ...to, origin: copy(record.origin || ownership(record)),
+        revision: entry.revision, updatedAt: at, history: [...record.history, entry] }));
+    }
+    const rollback = () => { for (const [id, record] of originals) state.bulletin.set(id, record); };
+    if (Buffer.byteLength(JSON.stringify([...state.bulletin.values()]), "utf8") > BULLETIN_LIMITS.bytes) {
+      rollback(); return failure("bulletin-storage-capacity-reached");
+    }
+    if (!persist()) { rollback(); return failure("bulletin-persistence-failed"); }
+    return { schema: BULLETIN_SCHEMA, ok: true, records: [...originals.keys()].map(id => publicBulletinRecord(state.bulletin.get(id))) };
+  }
   return {
     query,
     tool(args = {}) {
       const action = args.action || "query";
-      if (!permitAllows(args.permit, "mousecat.bulletin", action).allowed) return failure("bulletin-permit-required");
-      return action === "query" ? query(args) : mutate(action, args);
+      const permit = permitAllows(args.permit, "mousecat.bulletin", action);
+      if (!permit.allowed) return failure("bulletin-permit-required");
+      return action === "query" ? query(args) : action === "relocate" ? relocate(args, permit) : mutate(action, args);
     },
     operator(args) {
       const original = args.action === "capture" ? state.bulletin.get(text(args.record?.ideaId, 128)) : null;

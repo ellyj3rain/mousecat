@@ -137,10 +137,13 @@ revision conflicts, capture idempotency, bounded retention and pruning.
 `src/core/runtime.mjs` joins it to work permits and source-owned operator command packs;
 `src/core/local-state.mjs` persists records and quarantine diagnostics in ignored local
 state. Existing state files migrate with an empty optional bulletin collection.
-Immutable project/source ownership accompanies every record. Corrections append
-source anchors; explicit links resolve within the same project.
+Immutable capture origin and source accompany every record. Content corrections
+append source anchors. Revision-bound ownership corrections move a complete
+linked set to a registered target surface and append the exact prior/next
+ownership, caller source and actual permit authority. Explicit links resolve
+within the same project; a crossing link refuses the entire correction.
 
-The public `mousecat.bulletin` tool exposes query, capture and amend. Query needs
+The public `mousecat.bulletin` tool exposes query, capture, amend and relocate. Query needs
 an observer permit; writes need an operator-interaction permit. The graphical
 command boundary additionally owns disposition and prune. `GET /api/bulletin`
 projects bounded validated records by project, surface, standing and search.
@@ -213,7 +216,7 @@ Codex / Claude Code / Neo / another MCP host
 |---|---|
 | `mousecat.history` | Query durable source-linked records and exact revisions; index declared project documents; register proposed methods and reported results with provenance. |
 | `mousecat.projects` | Registers and inspects source-owned project surfaces and retained threads. |
-| `mousecat.bulletin` | Queries, captures and amends revisioned source-linked project ideas. |
+| `mousecat.bulletin` | Queries, captures, amends and relocates revisioned source-linked project ideas. |
 | `mousecat.workbench` | Inspects and operates project adapters under declared effect and permit contracts. |
 | `mousecat.widget` | Requests, awaits, answers, holds, and snapshots Mousecat-owned operator interactions. MCP transports expose ask and await; browser commands own answer and hold. |
 | `mousecat.skill` | Invokes built-in or registered operator-interaction skills and returns typed responses with source lineage and contextual continuation obligations. |
