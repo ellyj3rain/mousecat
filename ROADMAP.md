@@ -1,29 +1,33 @@
 | Document | Mousecat Roadmap |
 |---|---|
-| Version | 2.0.0.0-alpha |
-| Timestamp | 2026-10-03 05:35 UTC / 22:35 PST |
+| Version | 2.2.0.0-alpha |
+| Timestamp | 2026-10-04 12:01 UTC / 05:01 PST |
 | Status | ACTIVE - project roadmap. |
 
 # Mousecat Roadmap
 
 ## Current Milestone
 
-A21 improves project review, evidence clickthroughs, question outlines and mobile
-review awareness. The public demo now exercises a complete synthetic review
-journey. Dependency notices, public fixtures and source hygiene form a checked
-release boundary. A separate sanitized history is prepared; the existing GitHub
-repository remains private while retained historical references are addressed.
+A28 delivers source-linked project ideas through the public bulletin tool and
+the installed spatial board. Capture, revision, standing, archive and prune share
+one persistent runtime with the operator's existing questions and source
+registrations. Final desktop/mobile and native-desktop evidence establish local
+delivery. A28 publication remains pending; inherited A27 graph delivery retains
+its separate local and publication evidence.
 
 ## Next Milestone
 
-Complete public-history publication without exposing retained private records.
-Exercise the existing read/draft Project Workbench runtime with live target-project
-acceptance and source invalidation before introducing stage or source writes.
+Publish the verified A28 candidate through the normal branch and pull-request
+path, preserving applicable evidence and private local memory. Continue live
+target-project acceptance of the existing read/draft Project Workbench runtime
+and source invalidation before introducing stage or source writes.
 
 ## Forward Work
 
 | Track | Purpose |
 |---|---|
+| Project and repository bulletin | A28 is locally complete and installed; publication is pending. Source-linked, revisioned short- and mid-term idea memory retains corrections and explicit pruning through a spatial board. Hosts capture propositions during work and own subsequent action. FIFO and operator control govern the assistant's work loop. |
+| Automatic repository graphs and reorganization | Generate useful, source-grounded graphs and support repository reorganization from repository structure and records, starting with GZDS conventions shared by the operator's projects. Aim for accuracy; mechanical or incomplete results remain usable when uncertainty, provenance and correction are visible. DR-067 records this future direction. |
 | Host summon lifecycle | Install, start, discover, and health-check one persistent loopback Mousecat service from supported harness adapters. |
 | Project workbench | Bind conversational intent to project-native adapters, multi-scale representations, drafts, validation, source receipts, and checkpoints. |
 | Upstream connectors | Expand external MCP connector support beyond stdio and keep tool discovery dynamic. |

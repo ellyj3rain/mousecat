@@ -38,3 +38,24 @@ export function questionRoute(project, interaction) {
   if (interaction) params.set("interaction", interaction);
   return "#questions" + (params.size ? "?" + params : "");
 }
+
+export function projectGraphRoute(project, surfaceId, source) {
+  return "#projects?" + new URLSearchParams({ project, graph: surfaceId + ":" + source });
+}
+
+// Graph discovery follows declared project sources, independently of project grouping.
+export function registeredGraphs(snapshot = {}) {
+  const result = new Map();
+  for (const project of projectModel(snapshot).projects.values()) for (const source of project.sources) {
+    for (const item of source.page?.dataSources || []) {
+      if (item.schema !== "development.continuity-graph/1") continue;
+      const id = JSON.stringify([project.ref, source.surface.surfaceId, item.name]);
+      result.set(id, { id, projectRef: project.ref, projectLabel: project.label,
+        surfaceId: source.surface.surfaceId, source: item.name, label: item.label || item.name,
+        exists: item.exists === true, bytes: item.bytes || 0,
+        href: projectGraphRoute(project.ref, source.surface.surfaceId, item.name) });
+    }
+  }
+  return [...result.values()].sort((a, b) => a.projectLabel.localeCompare(b.projectLabel)
+    || a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
+}

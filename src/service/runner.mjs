@@ -5,9 +5,7 @@ import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { loadConfig } from "../core/config.mjs";
-import { createMousecatRuntime } from "../core/runtime.mjs";
-import { startOperatorServer } from "../operator/server.mjs";
+import { runtimeInputFingerprint } from "./installed-identity.mjs";
 
 const SERVICE_ID = "mousecat-operator";
 const recordPath = resolve(homedir(), ".mousecat", "user-service.json");
@@ -23,9 +21,18 @@ function options(argv) {
 }
 
 const serviceOptions = options(process.argv.slice(2));
+const repositoryRoot = fileURLToPath(new URL("../../", import.meta.url));
+const inputFingerprint = await runtimeInputFingerprint(repositoryRoot, resolve(serviceOptions.configPath || "mousecat.config.json"));
+const [{ loadConfig }, { createMousecatRuntime }, { startOperatorServer }] = await Promise.all([
+  import("../core/config.mjs"), import("../core/runtime.mjs"), import("../operator/server.mjs"),
+]);
 const config = await loadConfig(serviceOptions.configPath);
 const runtime = createMousecatRuntime({ config });
 const app = await startOperatorServer({ runtime, port: serviceOptions.port, nativeViews: config.nativeViews });
+if (JSON.stringify(inputFingerprint) !== JSON.stringify(await runtimeInputFingerprint(repositoryRoot, resolve(serviceOptions.configPath || "mousecat.config.json")))) {
+  await app.close();
+  throw new Error("Mousecat runtime inputs changed during startup; restart from a stable checkout.");
+}
 mkdirSync(dirname(recordPath), { recursive: true });
 writeFileSync(recordPath, `${JSON.stringify({
   schema: "mousecat.user-service-record/1",
@@ -37,6 +44,7 @@ writeFileSync(recordPath, `${JSON.stringify({
   persistence: { enabled: config.state?.enabled === true, path: resolve(config.state?.path || ".mousecat/state.json") },
   port: app.port,
   startedAt: new Date().toISOString(),
+  inputFingerprint,
 })}\n`, "utf8");
 
 let closing = false;

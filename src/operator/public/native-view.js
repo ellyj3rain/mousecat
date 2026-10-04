@@ -66,6 +66,25 @@ export function createNativeImageDeliveryCounter() {
   };
 }
 
+// Presentation of source-owned person text. This never reconstructs a motive
+// from controller state or a domain-specific record hidden behind the adapter.
+export function nativePersonContext(person) {
+  const lines = String(person?.summary || "").split(/\r?\n/u).map(value => value.trim()).filter(Boolean);
+  const fields = lines.map(text => {
+    const match = /^([^:]{1,60}):\s*(.+)$/u.exec(text);
+    return match ? { label: match[1], value: match[2] } : null;
+  }).filter(Boolean);
+  for (const section of person?.sections || []) {
+    if (section.status && section.status !== "available") continue;
+    for (const row of section.rows || []) if (row.value) fields.push(row);
+  }
+  for (const labels of [["recorded reason", "current reason", "reason"], ["current activity", "activity", "current action", "action"]]) {
+    const field = fields.find(row => labels.includes(String(row.label).toLocaleLowerCase()));
+    if (field) return `${field.label}: ${field.value}`;
+  }
+  return lines.slice(0, 2).join(" · ") || "No current reason or activity reported.";
+}
+
 export function installNativeView(root) {
   if (!document.querySelector('link[data-native-observation-style]')) {
     const style = document.createElement("link"); style.rel = "stylesheet"; style.href = "/native-observation-map.css";
@@ -109,7 +128,7 @@ export function installNativeView(root) {
   }
   const savedFraming = readPreference("framing", "fill"); framing.value = ["fill", "fit"].includes(savedFraming) ? savedFraming : "fill";
   const sizeControl = node("label", undefined, observatoryTools, "native-panel-size");
-  node("span", "Panel size", sizeControl);
+  node("span", "Minimum panel size", sizeControl);
   const panelSize = node("input", undefined, sizeControl); panelSize.type = "range"; panelSize.id = "native-observatory-panel-size"; panelSize.min = "280"; panelSize.max = "640"; panelSize.step = "40";
   const preferredSize = Number(readPreference("panel-size", 320));
   panelSize.value = Number.isInteger(preferredSize) && preferredSize >= 280 && preferredSize <= 640 && preferredSize % 40 === 0 ? preferredSize : 320;
@@ -172,6 +191,7 @@ export function installNativeView(root) {
   const primaryCaption = node("div", undefined, primaryPanel, "native-panel-caption");
   const primaryMeta = node("div", undefined, primaryCaption, "native-panel-meta");
   const primaryLabel = node("strong", "Current camera", primaryMeta), primaryAge = node("span", "No frame", primaryMeta);
+  const primaryContext = createPersonContext(primaryPanel);
   function panelTools(caption) {
     const tools = node("div", undefined, caption, "native-panel-tools");
     const windowButton = node("button", "Window", tools); windowButton.type = "button";
@@ -282,7 +302,17 @@ export function installNativeView(root) {
   inspectorToggle.addEventListener("click", () => setInspectorVisible(!inspectorVisible));
   inspectorClose.addEventListener("click", () => setInspectorVisible(false));
   setInspectorVisible(inspectorVisible);
+  function inspectPerson(id) {
+    if (!current?.view.people.some(person => person.id === id)) return;
+    selected = id; explicitPerson = true; filter.value = "";
+    selectPeople(); renderPerson(); renderCognition(); setInspectorVisible(true);
+    void send("select", { personId: id });
+    personTitle.tabIndex = -1; personTitle.focus({ preventScroll: true });
+    inspector.scrollIntoView({ block: "nearest" });
+    window.focus();
+  }
   let active = false, requestedId = null, sessionId = null, current = null, selected = null, explicitPerson = false;
+  let explicitSession = false;
   let timer, controller, generation = 0, imageKey = "", personSignature = "", peopleSignature = "";
   let waiting = null, posting = false, lastResult = null, rateStarted = performance.now();
   const imageDeliveries = createNativeImageDeliveryCounter();
@@ -583,7 +613,7 @@ export function installNativeView(root) {
     settingsStatus.dataset.state = request.status;
   }
 
-  function route(id) { location.hash = "#native-view?" + new URLSearchParams({ session: id }); }
+  function route(id) { explicitSession = true; location.hash = "#native-view?" + new URLSearchParams({ session: id }); }
   sessions.addEventListener("change", () => route(sessions.value));
 
   function resetRun() {
@@ -635,6 +665,7 @@ export function installNativeView(root) {
   }
 
   async function findSuccessor(signal) {
+    const currentCapturedAt = current?.view.capturedAtUnixMs || 0;
     const views = await refreshRegistry(signal, true);
     const candidates = await Promise.all(views.filter(value => value.id !== sessionId).map(async value => {
       try {
@@ -646,7 +677,8 @@ export function installNativeView(root) {
         return null;
       }
     }));
-    return candidates.filter(value => value && value.snapshot.view.state !== "ended" && value.snapshot.connection !== "disconnected")
+    return candidates.filter(value => value && value.snapshot.view.state !== "ended" && value.snapshot.connection === "live"
+      && value.snapshot.view.capturedAtUnixMs > currentCapturedAt)
       .sort((left, right) => right.snapshot.view.capturedAtUnixMs - left.snapshot.view.capturedAtUnixMs)[0] || null;
   }
   function selectPeople() {
@@ -747,7 +779,48 @@ export function installNativeView(root) {
       value.age.textContent = browseState(value.media).local ? "Saved · Browse" : value.imageError && !value.videoFrame ? [age, "Image unavailable"].filter(Boolean).join(" · ") : age;
       value.age.hidden = !value.age.textContent;
       value.age.title = value.videoFrame ? `${new Date(value.videoFrame.capturedAtUnixMs).toISOString()} – ${new Date(value.videoFrame.endCapturedAtUnixMs).toISOString()}` : capturedAt ? new Date(capturedAt).toISOString() : "";
+      renderPersonContext(value.personContext, value.contextPersonIds || []);
     }
+    renderPersonContext(primaryContext, primaryVideoFrame ? [] : primaryPngView?.camera?.personIds || []);
+  }
+
+  function createPersonContext(card) {
+    const section = node("section", undefined, card, "native-feed-context");
+    const heading = node("div", undefined, section, "native-feed-context-heading");
+    const title = node("strong", "Reported context", heading);
+    const age = node("span", "", heading, "native-feed-context-age");
+    age.title = "Person information and video are separate source samples; this is not a frame-synchronized explanation.";
+    const content = node("div", undefined, section, "native-feed-context-people");
+    return { section, title, age, content, signature: "", assignment: false };
+  }
+
+  function renderPersonContext(context, personIds) {
+    context.title.textContent = context.assignment ? "Assigned person · latest report" : "Reported context";
+    const inspection = current?.view.inspection, captured = inspection?.capturedAtUnixMs;
+    const elapsed = Number.isFinite(captured) ? Math.max(0, Date.now() - captured) / 1000 : null;
+    const archived = current?.view.state === "ended";
+    const timing = elapsed === null ? "sample time unknown" : archived ? "saved sample"
+      : `${elapsed < 60 ? `${elapsed.toFixed(1)}s` : `${Math.floor(elapsed / 60)}m`} old`;
+    const stale = !archived && (elapsed === null || elapsed >= 3 || current?.connection === "disconnected" || Boolean(feedError));
+    context.age.textContent = `${timing}${stale ? " · stale" : ""} · separate sample`;
+    context.age.dataset.state = stale ? "stale" : archived ? "saved" : "current";
+    if (Number.isFinite(captured)) context.age.title = `Person report: ${new Date(captured).toISOString()}. Video uses a separate sample clock.`;
+    const ids = [...new Set(personIds)].slice(0, 2);
+    const people = ids.map(id => current?.view.people.find(person => person.id === id));
+    const signature = JSON.stringify([context.assignment, ids.map((id, index) => [id, people[index]?.label, nativePersonContext(people[index])])]);
+    if (context.signature === signature) return;
+    context.signature = signature; context.content.replaceChildren();
+    if (!ids.length) node("p", context.assignment ? "No person assignment in the latest camera report." : "No confirmed person assignment for this frame.", context.content, "native-feed-context-empty");
+    ids.forEach((id, index) => {
+      const person = people[index], row = node("div", undefined, context.content, "native-feed-person");
+      row.dataset.personId = id;
+      if (!person) { node("p", "Assigned person is absent from the current report.", row, "native-feed-context-empty"); return; }
+      const text = node("p", nativePersonContext(person), row, "native-feed-reason");
+      text.title = `${person.label} · ${text.textContent}`;
+      const inspect = node("button", `Inspect ${person.label}`, row, "native-feed-inspect"); inspect.type = "button";
+      inspect.setAttribute("aria-label", `Inspect person: ${person.label}`);
+      inspect.addEventListener("click", () => inspectPerson(id));
+    });
   }
 
   function renderPrimaryFrame() {
@@ -783,6 +856,14 @@ export function installNativeView(root) {
       ? (!feed.camera.personIds.length ? feed.camera.summary : sameSubject || !names.length ? "" : `Following ${names.join(", ")}`)
       : `Manual camera${names.length && !sameSubject ? ` · ${names.join(", ")}` : ""}`;
     value.subject.hidden = !value.subject.textContent;
+    // The latest source explicitly assigns this camera to a person, even when
+    // its independent video clock cannot qualify the exact displayed pose.
+    // Label that current assignment; do not assert frame-synchronized motives.
+    value.personContext.assignment = Boolean(value.videoFrame);
+    value.contextPersonIds = (value.videoFrame
+      ? value.nextFeed?.videoCamera?.camera || value.nextFeed?.camera
+      : feed?.camera)?.personIds || [];
+    renderPersonContext(value.personContext, value.contextPersonIds);
     const browse = browseState(value.media);
     value.regionalZoom.hidden = !feed?.viewport && !browseOnly();
     if (browseOnly()) value.regionalZoom.textContent = `${Math.round(browse.zoom * 100)}% saved`;
@@ -836,6 +917,7 @@ export function installNativeView(root) {
         const caption = node("div", undefined, card, "native-panel-caption");
         const meta = node("div", undefined, caption, "native-panel-meta");
         const label = node("strong", "", meta), subject = node("span", "", meta, "native-feed-subject"), age = node("span", "", meta, "native-feed-age");
+        const personContext = createPersonContext(card);
         const { info, windowButton, follow, hide, options } = panelTools(caption);
         const cameraTools = node("div", undefined, options, "native-controls native-camera-controls");
         const cameraButtons = [follow]; follow.dataset.cameraAction = "auto";
@@ -856,7 +938,7 @@ export function installNativeView(root) {
         const fit = node("button", "⌾", directions, "button secondary-button"); fit.type = "button"; fit.dataset.direction = "center";
         fit.setAttribute("aria-label", "Fit saved view"); fit.title = "Reset saved image pan and zoom"; fit.hidden = true;
         fit.addEventListener("click", () => { resetBrowse(value.media); renderFeedFrame(value); freshness(); });
-        value = { card, media, image, canvas, overlay, label, subject, age, info, windowButton, follow, hide, fit, screenKey,
+        value = { card, media, image, canvas, overlay, label, subject, age, personContext, info, windowButton, follow, hide, fit, screenKey,
           cameraTools, cameraButtons, regionalOut, regionalIn, regionalZoom,
           key: "" }; feedCards.set(id, value);
         info.addEventListener("click", () => toggleScreenInfo(value.screenKey));
@@ -1322,7 +1404,7 @@ export function installNativeView(root) {
       const views = await refreshRegistry(signal);
       if (!sessionId) {
         if (expected !== generation) return;
-        const chosen = views.some(value => value.id === requestedId) ? requestedId : views[0]?.id;
+        const chosen = explicitSession ? requestedId : views[0]?.id;
         if (chosen && chosen !== requestedId) autoSelect(chosen);
         else sessionId = chosen;
         sessions.value = sessionId || "";
@@ -1363,8 +1445,10 @@ export function installNativeView(root) {
       else if (elapsed >= 2000) { deliveryRate.textContent = imageDeliveries.sample(elapsed).toFixed(1) + " images/s"; rateStarted = performance.now(); }
       refreshFeedWindows();
       if (next.view.state === "ended" || next.connection === "disconnected") {
-        const successor = await findSuccessor(signal);
-        if (successor) { autoSelect(successor.id); delay = 0; }
+        // A chosen saved or disconnected session stays available for inspection.
+        const successor = explicitSession ? null : await findSuccessor(signal);
+        if (!active || expected !== generation) return;
+        if (successor && !explicitSession) { autoSelect(successor.id); delay = 0; }
         else delay = 1000;
       }
     } catch (error) {
@@ -1397,7 +1481,7 @@ export function installNativeView(root) {
   return {
     open(id) {
       if (active && (requestedId === id || (!id && feedWindows.size))) return;
-      close(true); active = true; requestedId = id; sessionId = null; resetRun();
+      close(true); active = true; requestedId = id; explicitSession = Boolean(id); sessionId = null; resetRun();
       observationPanel.addEventListener("toggle", renderObservation);
       settingsDirty = false; cognitionRequest = null; settingsStatus.textContent = ""; settingsDraft.textContent = "";
       registeredViews = []; registryCheckedAt = 0;

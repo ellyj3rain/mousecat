@@ -1,12 +1,21 @@
 | Document | Mousecat Core |
 |---|---|
-| Version | 2.0.0.0-alpha |
-| Timestamp | 2026-10-03 05:35 UTC / 22:35 PST |
+| Version | 2.2.0.0-alpha |
+| Timestamp | 2026-10-04 00:15 UTC / 17:15 PST |
 | Status | ACTIVE - project identity. |
 
 # Mousecat Core
 
 Mousecat is a host-facing MCP normalization plane, nonlinear operator surface, native project world, and source-available bridge. It lets models in different harnesses request shared operator interactions, receive structured responses, mediate upstream capabilities, and work against a project's real model through source-bound development representations without bundling private implementations.
+
+Mousecat's product goal is a visual paradise for humans and agents: a rich,
+interactive environment where people can see structure, follow continuity,
+explore possibilities and work directly with their subjects. Spatial graphs,
+maps, imagery, motion, timelines and contextual detail are first-class means of
+understanding. Each representation suits its subject and the person's task;
+human interpretation and machine access share stable identities, explicit
+relationships and source evidence. Mousecat owns the quality of this visual
+experience as a platform responsibility.
 
 ## Identity
 
@@ -44,6 +53,7 @@ Mousecat is for operators and builders using AI coding hosts such as JetBrains, 
 | Integration layer | Projects provider-neutral API or CLI manifests and executes recognized capabilities through permit-gated `mousecat.invoke`, pinned executables, and host-managed authentication. |
 | Project workbench contract | Defines project adapters, bounded workbench sessions, domain-owned operations, layered development representations, exactness classes, drafts, and source receipts. The current runtime validates, registers and operates read/draft representations with source-vector receipts; stage-write and source-write remain closed. |
 | Local state | Optionally persists recursive session dockets, queues, bounded route plans, public events, and credential references under ignored `.mousecat/` state. |
+| Project bulletin | Retains project/repository propositions with immutable conversation anchors, revision history, explicit connections, graphical standing changes and pruning in the shared spatial workspace. |
 | Router | Resolves upstream plans for Neo, GitHub, Codex, Claude, browser, Z-Library, JetBrains, Cursor, and custom tools. |
 | Policy layer | Keeps invocation, credentials, redaction, provenance, and audit facts explicit. |
 

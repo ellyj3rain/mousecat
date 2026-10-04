@@ -1,10 +1,13 @@
-import { projectModel, projectRoute, questionRoute, pendingQuestionCount } from "/project-model.js";
+import { createDevelopmentGraphView } from "/development-graph-view.js";
+import { projectModel, projectRoute, projectGraphRoute, questionRoute, pendingQuestionCount } from "/project-model.js";
 import { renderDescription } from "/operator-model.js";
 
 export function installProjects(nav, reader) {
   let signature = "";
   let currentKey = "";
   const views = new Map();
+  const graphStates = new Map();
+  let graphControllers = [];
   function node(tag, text, parent, className) {
     const element = document.createElement(tag);
     if (text !== undefined) element.textContent = text;
@@ -44,16 +47,43 @@ export function installProjects(nav, reader) {
   return function render(snapshot, selection = {}) {
     const model = projectModel(snapshot);
     const key = selection.project ? `project:${selection.project}` : selection.group ? `group:${selection.group}` : "overview";
+    const project = model.projects.get(selection.project);
+    const graphSource = project?.sources.flatMap(source => (source.page?.dataSources || [])
+      .filter(item => item.schema === "development.continuity-graph/1")
+      .map(item => ({ source, item, key: source.surface.surfaceId + ":" + item.name })))
+      .find(item => item.key === selection.graph);
     // Capture only meaningful content: polling timestamps must not rebuild focused controls.
-    const content = JSON.stringify([key, snapshot.nativeViews, model.groups, [...model.projects].map(([ref, p]) => [ref, p.sources.map(s => [s.surface, s.page?.governingDocuments, s.page?.dataSources, s.threads]), [...p.threads]])]);
-    if (signature === content) return;
+    // The graph owns refresh; unrelated work and changing byte counts cannot retire its camera or focused controls.
+    const content = graphSource ? JSON.stringify([key, selection.graph, project.label, graphSource.source.surface,
+      graphSource.item.name, graphSource.item.path, graphSource.item.schema, graphSource.item.exists])
+      : JSON.stringify([key, selection.graph, snapshot.nativeViews, model.groups, [...model.projects].map(([ref, p]) => [ref, p.sources.map(s => [s.surface, s.page?.governingDocuments, s.page?.dataSources, s.threads]), [...p.threads]])]);
+    const bulletinCount = snapshot.bulletin?.records?.filter(record => record.projectRef === project?.ref && ["open", "parked"].includes(record.status)).length || 0;
+    const bulletinText = `${bulletinCount} open or parked ideas · explore the board →`;
+    if (signature === content) {
+      const count = !graphSource && reader.querySelector('[data-bulletin-count]');
+      if (count) count.textContent = bulletinText;
+      return;
+    }
     signature = content;
     if (currentKey) views.set(currentKey, { scroll: reader.scrollTop, open: [...reader.querySelectorAll("details[open]")].map(d => d.dataset.openKey) });
     const focusedKey = document.activeElement?.closest("details")?.dataset.openKey;
     const readerHadFocus = reader.contains(document.activeElement);
     const navFocus = nav.contains(document.activeElement) ? document.activeElement.getAttribute("href") : null;
     currentKey = key;
+    for (const controller of graphControllers) controller.destroy();
+    graphControllers = [];
     nav.replaceChildren(); reader.replaceChildren();
+    reader.closest(".projects-workspace")?.classList.toggle("graph-workspace", Boolean(graphSource));
+    if (graphSource) {
+      if (!graphStates.has(graphSource.key)) graphStates.set(graphSource.key, {});
+      graphControllers.push(createDevelopmentGraphView(reader, {
+        surfaceId: graphSource.source.surface.surfaceId, source: graphSource.item.name,
+        state: graphStates.get(graphSource.key), projectLabel: project.label, backHref: projectRoute(project.ref),
+      }));
+      reader.scrollTop = 0;
+      if (readerHadFocus || navFocus) reader.querySelector(".development-graph-identity h3")?.focus({ preventScroll: true });
+      return;
+    }
     const all = link(nav, "All projects", "#projects", "project-nav-button");
     all.setAttribute("aria-current", key === "overview" ? "page" : "false");
     const grouped = new Set();
@@ -71,10 +101,19 @@ export function installProjects(nav, reader) {
       a.setAttribute("aria-current", selection.project === project.ref ? "page" : "false");
     }
     const heading = node("h3", "", reader); heading.tabIndex = -1;
-    const project = model.projects.get(selection.project);
     const group = model.groups.find(g => g.groupId === selection.group);
     if (project) {
       heading.textContent = project.label;
+      const bulletin = link(reader, undefined, "#bulletin?" + new URLSearchParams({ project: project.ref }), "project-entry");
+      node("strong", "Idea bulletin", bulletin);
+      node("span", bulletinText, bulletin).dataset.bulletinCount = "true";
+      for (const source of project.sources) for (const item of source.page?.dataSources || []) {
+        if (item.schema === "development.continuity-graph/1") {
+          const entry = link(reader, undefined, projectGraphRoute(project.ref, source.surface.surfaceId, item.name), "project-entry");
+          node("strong", item.label || item.name, entry);
+          node("span", "Explore the continuity graph →", entry);
+        }
+      }
       for (const view of snapshot.nativeViews || []) if (view.projectRef === project.ref) {
         link(reader, view.label, "#native-view?" + new URLSearchParams({ session: view.id }), "project-work-title");
       }
@@ -109,6 +148,11 @@ export function installProjects(nav, reader) {
         if (data.length) {
           for (const item of data) {
             const detail = section(sources, source.surface.surfaceId + ":data:" + item.name, item.label || item.name, item.exists ? item.format : "missing");
+            if (item.schema === "development.continuity-graph/1") {
+              const graphKey = source.surface.surfaceId + ":" + item.name;
+              detail.dataset.graphRef = graphKey;
+              link(detail, "Open graph canvas", projectGraphRoute(project.ref, source.surface.surfaceId, item.name));
+            }
             node("p", item.path, detail);
             node("p", `Source: ${source.surface.surfaceId}`, detail, "project-section-meta");
             node("p", item.isDirectory ? `${item.files ?? "Unknown number of"} files` : `${item.bytes || 0} bytes`, detail);
@@ -133,7 +177,9 @@ export function installProjects(nav, reader) {
       node("p", "This project is no longer registered. Its direct question and history links remain available.", reader);
     }
     const saved = views.get(key);
-    for (const details of reader.querySelectorAll("details")) details.open = Boolean(saved?.open.includes(details.dataset.openKey));
+    const selectedGraph = [...reader.querySelectorAll("details[data-graph-ref]")].find(item => item.dataset.graphRef === selection.graph);
+    for (const details of reader.querySelectorAll("details")) details.open = Boolean(saved?.open.includes(details.dataset.openKey))
+      || Boolean(selectedGraph && (details === selectedGraph || details.dataset.openKey === "data"));
     reader.scrollTop = saved?.scroll || 0;
     if (readerHadFocus) {
       const target = [...reader.querySelectorAll("details")].find(d => d.dataset.openKey === focusedKey)?.querySelector("summary") || heading;

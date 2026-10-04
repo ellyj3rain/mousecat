@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="/operator.css">
     <link rel="stylesheet" href="/native-view.css">
     <link rel="stylesheet" href="/history.css">
+    <link rel="stylesheet" href="/development-graph.css">
+    <link rel="stylesheet" href="/bulletin.css">
     <link rel="stylesheet" href="/appearance.css">
     <script defer src="/vendor/lucide.js"></script>
     <script type="module" src="/operator.js"></script>
@@ -28,6 +30,8 @@
             <i data-lucide="folder-kanban"></i>
           </button>
           <button id="questions-toggle" class="button secondary-button" type="button" aria-pressed="false">Questions</button>
+          <button id="graphs-toggle" class="button secondary-button" type="button" aria-pressed="false">Graphs</button>
+          <button id="bulletin-toggle" class="button secondary-button" type="button" aria-pressed="false">Bulletin</button>
           <button id="native-view-toggle" class="button secondary-button" type="button" aria-pressed="false">Simulation</button>
           <button id="history-toggle" class="button secondary-button" type="button">History</button>
           <button id="settings-toggle" class="button icon-button" type="button" aria-label="Settings" title="Settings" aria-haspopup="dialog"><i data-lucide="settings" aria-hidden="true"></i></button>
@@ -105,6 +109,8 @@
         </div>
       </section>
       <section id="native-view-state" class="native-workspace" aria-label="Simulation observation" hidden></section>
+      <section id="graphs-state" class="graph-library-workspace" aria-label="Graph selector" hidden></section>
+      <section id="bulletin-state" class="bulletin-workspace-root" aria-label="Project idea bulletin" hidden></section>
     </main>
 
     <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-heading">

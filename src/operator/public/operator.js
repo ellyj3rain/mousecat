@@ -12,6 +12,8 @@ import { installHistory } from "/history.js";
 import { installProjects } from "/project-view.js";
 import { installNativeView } from "/native-view.js";
 import { projectModel, inQuestionScope, projectRoute, questionRoute } from "/project-model.js";
+import { installGraphLibrary } from "/graph-library.js";
+import { installBulletin } from "/bulletin.js";
 
 const REDACTED = "[sensitive-redacted]";
 
@@ -43,6 +45,8 @@ const elements = {
   decisionScroll: document.querySelector("#decision-scroll"),
   decisionWall: document.querySelector("#decision-wall"),
   projectsToggle: document.querySelector("#projects-toggle"),
+  graphsToggle: document.querySelector("#graphs-toggle"),
+  graphsState: document.querySelector("#graphs-state"),
   questionsToggle: document.querySelector("#questions-toggle"),
   questionBreadcrumb: document.querySelector("#question-breadcrumb"),
   scopeEmpty: document.querySelector("#scope-empty"),
@@ -84,6 +88,8 @@ let questionScope = {};
 let lastWorkspaceHash = null;
 let revealScopeOnRender = false;
 const renderProjectView = installProjects(elements.projectNav, elements.projectDetail);
+const graphLibrary = installGraphLibrary(elements.graphsState);
+const bulletin = installBulletin(document.querySelector("#bulletin-state"));
 const nativeView = installNativeView(document.querySelector("#native-view-state"));
 const nativeViewToggle = document.querySelector("#native-view-toggle");
 let wallSignature = null;
@@ -1660,10 +1666,14 @@ function renderContext(snapshot, activeSkillRef) {
 }
 
 function setView(view) {
-  activeView = ["projects", "native"].includes(view) ? view : "decisions";
+  activeView = ["projects", "graphs", "native", "bulletin"].includes(view) ? view : "decisions";
+  document.querySelector("#bulletin-toggle").setAttribute("aria-pressed", String(activeView === "bulletin"));
+  document.querySelector("#bulletin-state").hidden = activeView !== "bulletin";
   nativeViewToggle.setAttribute("aria-pressed", String(activeView === "native"));
   document.querySelector("#native-view-state").hidden = activeView !== "native";
-  elements.projectsToggle.setAttribute("aria-pressed", String(activeView === "projects"));
+  elements.projectsToggle.setAttribute("aria-pressed", String(activeView === "projects" && !projectSelection.graph));
+  elements.graphsToggle.setAttribute("aria-pressed", String(activeView === "graphs" || (activeView === "projects" && Boolean(projectSelection.graph))));
+  elements.graphsState.hidden = activeView !== "graphs";
   elements.questionsToggle.setAttribute("aria-pressed", String(activeView === "decisions"));
   elements.projectsState.hidden = activeView !== "projects";
   const waiting = pendingInteractions(currentSnapshot).length > 0;
@@ -1680,16 +1690,22 @@ function readWorkspaceRoute() {
   lastWorkspaceHash = location.hash;
   const [page, query] = location.hash.slice(1).split("?");
   const params = new URLSearchParams(query || "");
+  const graphFromSelector = activeView === "graphs" && page === "projects" && Boolean(params.get("graph"));
   if (page === "native-view") {
     setView("native");
     nativeView.open(params.get("session"));
   } else {
     nativeView.close();
-  if (page === "questions" || page === "review") {
+  if (page === "graphs") {
+    setView("graphs");
+  } else if (page === "bulletin") {
+    setView("bulletin");
+    bulletin.open(params.get("project"));
+  } else if (page === "questions" || page === "review") {
     questionScope = { project: params.get("project"), interaction: params.get("interaction") };
     setView("decisions");
   } else {
-    projectSelection = { project: params.get("project"), group: params.get("group") };
+    projectSelection = { project: params.get("project"), group: params.get("group"), graph: params.get("graph") };
     setView("projects");
   }
   }
@@ -1705,6 +1721,7 @@ function readWorkspaceRoute() {
     elements.questionBreadcrumb.append(" / ", project, " / ", work);
   }
   if (currentSnapshot) render(currentSnapshot);
+  if (graphFromSelector) elements.projectDetail.querySelector(".development-graph-identity h3")?.focus({ preventScroll: true });
 }
 
 function render(snapshot, { preserveManagedFocus = false } = {}) {
@@ -1724,6 +1741,8 @@ function render(snapshot, { preserveManagedFocus = false } = {}) {
   renderContext(snapshot, activeSkillRef);
   renderProjects(snapshot);
   setView(activeView);
+  graphLibrary.update(snapshot, activeView === "graphs");
+  bulletin.update(snapshot, activeView === "bulletin");
   if (revealScopeOnRender && activeView === "decisions") {
     const first = [...elements.decisionWall.querySelectorAll(".decision-card")].find(card => !card.hidden);
     if (first) revealDecision(first.dataset.itemKey);
@@ -1921,6 +1940,8 @@ elements.projectsToggle.addEventListener("click", () => {
   location.hash = projectSelection.project ? projectRoute(projectSelection.project) : projectSelection.group ? "#projects?" + new URLSearchParams({ group: projectSelection.group }) : "#projects";
 });
 elements.questionsToggle.addEventListener("click", () => { location.hash = questionRoute(questionScope.project, questionScope.interaction); });
+elements.graphsToggle.addEventListener("click", () => { location.hash = "#graphs"; });
+document.querySelector("#bulletin-toggle").addEventListener("click", () => { location.hash = "#bulletin"; });
 nativeViewToggle.addEventListener("click", () => {
   nativeView.close();
   if (location.hash === "#native-view") readWorkspaceRoute();

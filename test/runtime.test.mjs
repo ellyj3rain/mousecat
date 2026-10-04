@@ -1408,7 +1408,7 @@ test("MCP handler lists tools and calls mousecat.status", async () => {
     params: { name: "mousecat.status", arguments: {} },
   }, runtime);
 
-  assert.equal(listed.result.tools.length, 17);
+  assert.equal(listed.result.tools.length, 18);
   assert.equal(
     listed.result.tools.some((tool) => tool.name === "mousecat.workbench"),
     true,
