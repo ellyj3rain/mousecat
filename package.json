@@ -81,7 +81,7 @@
     "PUBLIC_RELEASE.md"
   ],
   "dependencies": {
-    "lucide": "^1.24.0"
+    "lucide": "^1.50.0"
   },
   "devDependencies": {
     "playwright": "1.63.0"
