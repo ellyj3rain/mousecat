@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { findBlockingPullRequests, pullRequestContext } from "./check-pr-chronology.mjs";
+import { findBlockingPullRequests, pullRequestContext, independentMaintenanceFiles, overlappingMaintenanceBlockers } from "./check-pr-chronology.mjs";
 
 const current = { currentNumber: 10, baseRefName: "main" };
 
@@ -39,6 +39,30 @@ test("pull request context reads event number, base, and repository", () => {
       pull_request: { number: 12, draft: true, base: { ref: "main" } },
       repository: { full_name: "ellyj3rain/mousecat" },
     }),
-    { currentNumber: 12, baseRefName: "main", repository: "ellyj3rain/mousecat", isDraft: true },
+    { currentNumber: 12, currentTitle: "", baseRefName: "main", repository: "ellyj3rain/mousecat", isDraft: true },
   );
+});
+
+test("owned record maintenance permits disjoint predecessor files", () => {
+  assert.equal(independentMaintenanceFiles("[REPO] Assessment", ["GOVERNANCE.md", "BATCH_LOG.md"]), true);
+  assert.deepEqual(overlappingMaintenanceBlockers(["GOVERNANCE.md"], [{ number: 15, files: ["package-lock.json"] }]), []);
+});
+
+test("runtime changes and an ordinary product title retain the product queue", () => {
+  assert.equal(independentMaintenanceFiles("[REPO] Assessment", ["GOVERNANCE.md", "src/core/runtime.mjs"]), false);
+  assert.equal(independentMaintenanceFiles("[A42] Product", ["GOVERNANCE.md"]), false);
+  assert.equal(independentMaintenanceFiles("[REPO] Empty", []), false);
+});
+
+test("an overlapping predecessor and missing file coverage continue to block", () => {
+  assert.deepEqual(overlappingMaintenanceBlockers(["GOVERNANCE.md"], [
+    { number: 15, files: ["GOVERNANCE.md"] }, { number: 16 }
+  ]).map((pr) => pr.number), [15, 16]);
+});
+
+test("owning chronology repair and its focused controls stay in the maintenance owner", () => {
+  assert.equal(independentMaintenanceFiles("[REPO] Assessment", [
+    ".github/scripts/check-pr-chronology.mjs", ".github/scripts/check-pr-chronology.test.mjs", "GOVERNANCE.md"
+  ]), true);
+  assert.equal(independentMaintenanceFiles("[REPO] Unrelated policy", [".github/scripts/check-pr-shape.mjs"]), false);
 });

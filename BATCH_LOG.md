@@ -2620,3 +2620,9 @@ F-075 detached-window geometry repair, verified against retained browser cases.
 The current installed service serves the repaired assets; refreshing the
 existing desktop preserves its process and reloads the visible shell. The
 single PR retains A27/A28 chronology and requires protected checks before merge.
+
+## [REPO] 2026-10-09 23:55 UTC - Aggregate development assessment correction
+
+Neo maintains current capability and README assessment from ordinary operator feedback, repairs and retained results. This maintenance corrects active playtest/acceptance copy within the existing project; published product chronology and versions remain unchanged. Checks cover the owned text diff, applicable syntax, current source links and tracked Word twins. The operator plays the aggregate build; completed mechanics have no standing one-to-one acceptance queue.
+
+The actual correction PR exposed a blanket chronology refusal behind independent dependency PRs. The existing chronology owner now uses complete current/predecessor file sets for bounded record maintenance; product FIFO and overlapping/missing coverage refusals remain. Eleven focused controls pass.

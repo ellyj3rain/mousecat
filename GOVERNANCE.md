@@ -26,10 +26,10 @@ Mousecat is governed by GZDS standards expressed as public, repository-local che
 
 ## Installed delivery
 
-Authorized app implementation closes with delivery to the operator's installed
-Mousecat and observed behavior there. The implementer owns checkout activation,
+Authorized app implementation includes delivery to the operator's installed
+Mousecat. The implementer owns checkout activation,
 service and desktop alignment, preservation of existing state/configuration,
-client reload or relaunch, and installed verification. This responsibility
+client reload or relaunch, and checks of affected installation contracts. This responsibility
 persists across worktrees and handoffs. Publication and installed delivery each
 retain their evidence; a preview receipt establishes preview behavior.
 
@@ -38,8 +38,8 @@ different desktop/service checkout, a stopped or stale runtime, a changed state
 store and served assets that differ from the intended source. Live
 process/listener identity and startup content fingerprints establish freshness
 across preserved timestamps, configuration changes and dependency changes.
-Native client interaction establishes that the open window loaded the update. Normal
-CI runs source checks independently of the operator's installation.
+Aggregate assessment uses actual interaction and operator feedback alongside
+applicable source and installation checks.
 
 ## Source of Truth
 
@@ -118,7 +118,7 @@ Mousecat is AI-native, not artisanal. Branches must satisfy `npm run pr:ready` b
 
 AI-assisted changes must leave the repository auditable: source truth, docs, ledgers, package metadata, and runtime catalogs must agree before a pull request is considered ready.
 
-Pull requests are classified before review. Chronology blocks ready PRs behind older non-draft PRs on the same base. Shape classification blocks generated or local output, routes oversized or wide-surface changes to operator ratification, and requires governance-shaped changes to carry append-only ledger companions.
+Pull requests are classified before review. Chronology keeps product work in FIFO on its base. Independent `[REPO]` record maintenance proceeds only when complete actual PR file coverage proves no overlap with its older predecessors. Runtime changes, overlapping files and unavailable coverage retain the chronological block. The owning chronology classifier and its focused controls share that bounded maintenance scope. Shape classification blocks generated or local output, routes oversized or wide-surface changes to operator ratification, and requires governance-shaped changes to carry append-only ledger companions.
 
 The PR documentation runner is a clean-room, repository-local check. It verifies the canonical doc-pack is present, substantive source changes carry `BATCH_LOG.md`, append-only ledgers were appended rather than rewritten, documented repository paths resolve, and PR or commit titles carry a batch prefix. It evaluates paths and diffs, not contributor identity.
 

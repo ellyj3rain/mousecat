@@ -281,10 +281,9 @@ uses a synthetic public fixture by default; source-derived exports remain local.
 
 ## Next work
 
-Continue live target-project workbench acceptance and retained review availability
-from this source. Operator
-judgments remain independent from synthetic fixture answers and mechanical test
-success; package publication remains a separate action.
+Continue target-project workbench implementation and retained review availability.
+Neo maintains aggregate assessment from operator feedback, observed interaction
+and affected-contract checks. Package publication follows its existing authority.
 
 ## Canonical context
 
