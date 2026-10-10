@@ -9,6 +9,7 @@ export function pullRequestContext(event) {
   if (!pr) return null;
   return {
     currentNumber: Number(pr.number),
+    currentTitle: String(pr.title || ""),
     baseRefName: pr.base && pr.base.ref ? pr.base.ref : null,
     repository: event.repository && event.repository.full_name ? event.repository.full_name : null,
     isDraft: Boolean(pr.draft ?? pr.isDraft),
@@ -33,6 +34,16 @@ export function findBlockingPullRequests({ currentNumber, baseRefName, openPullR
     .filter((pr) => pr.baseRefName === baseRefName)
     .filter((pr) => !pr.isDraft)
     .sort((a, b) => a.number - b.number);
+}
+
+export function independentMaintenanceFiles(title, files) {
+  return /^\[REPO\]\s/i.test(title) && files.length > 0 && files.every((file) =>
+    /\.(?:md|docx)$/i.test(file) || /^\.github\/scripts\/check-pr-chronology(?:\.test)?\.mjs$/.test(file));
+}
+
+export function overlappingMaintenanceBlockers(currentFiles, blockers) {
+  const paths = new Set(currentFiles);
+  return blockers.filter((blocker) => !Array.isArray(blocker.files) || blocker.files.some((file) => paths.has(file)));
 }
 
 function readEvent(path) {
@@ -87,6 +98,18 @@ export async function listOpenPullRequests({ apiUrl = DEFAULT_API_URL, repositor
   return pulls;
 }
 
+async function pullRequestFiles({ apiUrl, repository, token, number, fetchImpl = fetch }) {
+  let url = `${apiUrl.replace(/\/$/, "")}/repos/${repository}/pulls/${number}/files?per_page=100`;
+  const files = [];
+  while (url) {
+    const page = await githubJson(url, token, fetchImpl);
+    files.push(...page.data.map((file) => file.filename));
+    url = page.next;
+  }
+  if (files.length >= 3000) throw new Error("complete PR file coverage unavailable; chronological dependency retained");
+  return files;
+}
+
 function formatBlockers(blockers) {
   return blockers
     .map((pr) => `#${pr.number} ${pr.title}${pr.url ? ` (${pr.url})` : ""}`)
@@ -116,11 +139,22 @@ export async function run(env = process.env) {
     token,
     baseRefName: context.baseRefName,
   });
-  const blockers = findBlockingPullRequests({
+  let blockers = findBlockingPullRequests({
     currentNumber: context.currentNumber,
     baseRefName: context.baseRefName,
     openPullRequests,
   });
+
+  if (blockers.length && /^\[REPO\]\s/i.test(context.currentTitle)) {
+    const input = { apiUrl: env.GITHUB_API_URL || DEFAULT_API_URL, repository: context.repository, token };
+    const currentFiles = await pullRequestFiles({ ...input, number: context.currentNumber });
+    if (independentMaintenanceFiles(context.currentTitle, currentFiles)) {
+      const withFiles = await Promise.all(blockers.map(async (blocker) => ({ ...blocker,
+        files: await pullRequestFiles({ ...input, number: blocker.number }) })));
+      blockers = overlappingMaintenanceBlockers(currentFiles, withFiles);
+      process.stdout.write(`PR chronology gate: independent record maintenance; ${withFiles.length - blockers.length} unrelated older PRs retained in their own queue\n`);
+    }
+  }
 
   if (blockers.length) {
     process.stderr.write(

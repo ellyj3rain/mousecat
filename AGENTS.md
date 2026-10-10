@@ -19,33 +19,20 @@ Mousecat is a source-available MCP normalization plane. It gives AI coding hosts
 
 ## Verification
 
-Before claiming the repo is ready (or submitting a PR), run:
-
-```powershell
-npm run pr:ready
-```
-
-This runs the complete AI-native readiness surface: tests, GitHub classifier tests, runtime smokes, adapter render-packet and operator-host smokes, GZDS-style governance floor, governance ceiling, docs currency, the PR documentation runner, and strict hygiene.
-
-Graphical changes also require browser interaction and layout checks at desktop and mobile viewports after the final diff is assembled.
+Select sufficient checks for changed inputs and affected contracts, reusing
+applicable evidence. `npm run pr:ready` is the protected pull-request readiness
+surface: tests, runtime smokes, governance, documentation and source hygiene.
+The PR documentation runner checks current documentation and append-only
+companions. Remote required checks remain the publication constraint.
 
 ## Delivery means the installed app
 
-An authorized Mousecat app change includes updating the installation the operator
-uses and verifying the result there. Complete that delivery before reporting the
-change finished. Use the existing configuration and persistent state, update both
-the service registration and desktop checkout binding, and retain saved work and
-source registrations. Reuse an open client or reopen the installed executable
-when its update requires it; leave one working app instance.
-
-Run `npm run installed:check` from the intended checkout after activation. It
-must verify the desktop/service binding, persistent workspace, fresh runtime and
-exact served UI bytes. Then inspect and exercise the changed surface in the
-actual installed desktop; record that evidence separately from browser fixtures.
-A preview, passing repository checks or an open PR does not establish installed
-delivery. Routine activation and verification are already part of the authorized
-app work and do not need another approval. Honor an explicit source-only or
-preview-only request, and report a real delivery blocker when one exists.
+Deliver authorized app changes to the operator's existing installation,
+preserving configuration, persistent workspace and source registrations. Keep
+service registration and desktop checkout binding aligned. `npm run
+installed:check` checks that binding, runtime identity and served source when
+those contracts change. Assess the aggregate app using actual interaction,
+operator feedback and focused checks of the changed behavior.
 
 For a local checkout, install and verify hooks once:
 
