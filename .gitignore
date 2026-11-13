@@ -1,0 +1,36 @@
+﻿# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+*~
+.vscode/
+.idea/
+
+# build / deps (re-platform, DR-006)
+node_modules/
+dist/
+dist-electron/
+release/
+*.tsbuildinfo
+.vite/
+
+# Private operational source bindings and qualification receipts
+.local/
+
+# Private operator state, connector configuration and generated research evidence
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.db
+.marshmallow-commons/
+runtime/
+traces/
+artifacts/local/
+mc.config.local.json
+
+# Private Neo project work records
+.neo/data/
+.neo/runtime/

@@ -1,0 +1,1244 @@
+/* ============================================================================
+   RESET + GLOBAL
+   ============================================================================ */
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  background:var(--bg-primary,#101013);
+  color:var(--text-primary,#E5E5E5);
+  font-family:var(--font-body);
+  font-size:13.5px;line-height:1.5;
+  font-weight:var(--body-weight,400);letter-spacing:var(--body-tracking,0em);
+  -webkit-font-smoothing:var(--type-smoothing,antialiased);text-rendering:optimizeLegibility;
+  overflow:hidden;
+}
+button,input,select{font:inherit;color:inherit;}
+button{cursor:pointer;}
+
+/* Per-theme type tuning reaches the two non-body families through their usage points.
+   Headings (Playfair) and raw values (JetBrains Mono) are selected by the font-family
+   they already declare, so the tuning rides along WITHOUT changing any family. This keeps
+   one consistent typographic system while letting each theme nudge weight + tracking.
+   Headings take both weight + tracking; mono takes tracking universally (helps legibility
+   on glowy / CRT coats) but weight only on the value-emphasis cells that were already 600,
+   so the existing mono weight hierarchy (e.g. the lighter 500 .row .val) is preserved. */
+.wordmark .mark,.set-group h4,.drawer-head .t,.modal-head .t,.hero-name,.empty-note .big{
+  font-weight:var(--heading-weight,600);letter-spacing:var(--heading-tracking,.2px);
+}
+.source-badge,.stat .v,.foot-row .v,.row .sub,.row .val,.kv .v,.tile-kind,.hero-path,
+.tl-label,.tl-date,.tl-gap .gap-lbl,.fresh,.section-head .f,.icon-btn .badge,.ba,.notif-tab .ct{
+  letter-spacing:var(--mono-tracking,0em);
+}
+.source-badge,.stat .v,.foot-row .v,.kv .v{ font-weight:var(--mono-weight,600); }
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb,var(--border-strong));border-radius:8px;border:2px solid transparent;background-clip:content-box;}
+::-webkit-scrollbar-thumb:hover{background:var(--scrollbar-thumb-hover,var(--border-focused));background-clip:content-box;}
+::-webkit-scrollbar-track{background:transparent;}
+html{scrollbar-color:var(--scrollbar-thumb,var(--border-strong)) transparent;}
+
+/* ============================================================================
+   THEME SYSTEM — ORIGINAL SCHEME NAMES, NO DEFAULT SCHEME PRE-SELECTED
+   Axes set as data-* on <html>:
+     data-theme-mode   = dark | light | oled         (luminance polarity)
+     data-theme-scheme = (unset) | mercury | terracotta | cerulean | easter
+                          | kele | nightvision | infrared      (color identity)
+     data-theme-profile= soft | sharp | bubble | geometric   (shape + motion)
+     data-effect-bg    = none | fireflies | scanlines         (background SFX, opt-in)
+     data-effect-tiles = none | glow | matte | pearlescent
+                          | glitter | sparkles                 (tile/surface SFX, opt-in)
+   Effects are chosen PER REGION (background vs tiles) and persisted separately
+   (gzs-effect-bg / gzs-effect-tiles); each region defaults to none.
+   On first run NO scheme is set; the surface uses the neutral, scheme-agnostic
+   base below. The user picks a scheme in Settings; the choice is persisted.
+   The scheme reaches the WHOLE shell (header/nav/rings/strip/buttons/links/
+   scrollbars + a subtle --bg-primary tint), while --bg-surface is held clearly
+   apart from --bg-primary in every scheme x mode so cards never blend in.
+   ============================================================================ */
+
+:root{
+  --font-body:'Estratto Variable','Estratto','SF Pro Text',-apple-system,system-ui,'Segoe UI',sans-serif;
+  --font-heading:'Playfair Display',Georgia,'Times New Roman',serif;
+  --font-mono:'JetBrains Mono','Cascadia Code','SF Mono',ui-monospace,Consolas,monospace;
+
+  /* PER-THEME TYPE TUNING — the typographic SYSTEM never changes (Playfair headings,
+     Estratto/system body, JetBrains Mono for raw values). These knobs only tune weight,
+     tracking and optical contrast so the SAME type stays legible and tonally right on
+     each theme's colors. Themes re-point these (never the font families). Defaults below
+     suit the neutral/dark base; bright or very-dark coats nudge them for contrast. */
+  --body-weight:400;          /* base body weight */
+  --body-tracking:0em;        /* body letter-spacing */
+  --heading-weight:600;       /* Playfair display weight */
+  --heading-tracking:.2px;    /* heading letter-spacing */
+  --mono-weight:600;          /* JetBrains Mono value weight */
+  --mono-tracking:0em;        /* mono letter-spacing — widened slightly on glowy coats */
+  --type-smoothing:antialiased; /* -webkit-font-smoothing; 'auto' for very light coats */
+}
+
+/* ---- BASE: dark mode (also the :root default) ---- */
+:root,
+html[data-theme-mode="dark"]{
+  --bg-primary:#121212;
+  --bg-secondary:#242424;
+  --bg-tertiary:rgba(255,255,255,0.04);
+  --bg-surface:#1A1A1A;
+  --bg-raised:#222222;
+
+  --text-primary:#E5E5E5;
+  --text-secondary:#A3A3A3;
+  --text-muted:#787878;
+  --text-faint:#5A5A5A;
+  --text-inverse:#121212;
+
+  --border-subtle:#1E1E1E;
+  --border-default:#2A2A2A;
+  --border-strong:#383838;
+  --border-focused:#60A5FA;
+
+  --state-passed:#22C55E;  /* ok / green */
+  --state-warning:#F97316;  /* attention / orange */
+  --state-failed:#EF4444;  /* risk / red */
+  --state-skipped:#9CA3AF;  /* neutral / gray */
+  --state-info:#60A5FA;
+
+  --severity-critical:#EF4444;
+  --severity-high:#F97316;
+  --severity-medium:#EAB308;
+  --severity-low:#22C55E;
+
+  --action-primary:#E5E5E5;
+  --action-secondary:#2A2A2A;
+  --action-danger:#EF4444;
+  --action-cta:#60A5FA;
+  --action-cta-muted:rgba(96,165,250,0.15);
+
+  --accent:#E5E5E5;
+  --accent2:#60A5FA;
+  --accent3:#9CA3AF;
+  --ring:#60A5FA;
+
+  /* deterministic-gradient palette (neutral base, no scheme picked) */
+  --grad-a:#8A8A8A; --grad-b:#B5B5B5; --grad-c:#6E6E6E;
+
+  --shadow-1:0 1px 2px rgba(0,0,0,0.28);
+  --shadow-2:0 2px 10px rgba(0,0,0,0.34);
+  --shadow-3:0 14px 44px rgba(0,0,0,0.52);
+
+  --radius:6px; --radius-lg:10px;
+  --lift:-1px; --hover-scale:1.03;
+  --speed:200ms; --ease:cubic-bezier(.4,0,.2,1);
+  --focus-ring-w:2px;
+  --scan:0;            /* scanline overlay opacity, raised by nightvision/infrared */
+}
+
+/* ---- LIGHT mode (re-points the same names) ---- */
+html[data-theme-mode="light"]{
+  --bg-primary:#F8F7F5;
+  --bg-secondary:#EFEDEA;
+  --bg-tertiary:rgba(20,20,20,0.04);
+  --bg-surface:#FDFCFA;
+  --bg-raised:#FFFFFF;
+
+  --text-primary:#1A1A1A;
+  --text-secondary:#525252;
+  --text-muted:#7A7A7A;
+  --text-faint:#A3A3A3;
+  --text-inverse:#FDFCFA;
+
+  --border-subtle:#EEEAE4;
+  --border-default:#E5E5E5;
+  --border-strong:#D4D0CA;
+  --border-focused:#3B82F6;
+
+  --state-passed:#16A34A;
+  --state-warning:#EA580C;
+  --state-failed:#DC2626;
+  --state-skipped:#9CA3AF;
+  --state-info:#3B82F6;
+
+  --severity-critical:#DC2626;
+  --severity-high:#EA580C;
+  --severity-medium:#CA8A04;
+  --severity-low:#16A34A;
+
+  --action-cta:#3B82F6;
+  --accent:#1A1A1A; --accent2:#3B82F6; --accent3:#7A7A7A; --ring:#3B82F6;
+  --grad-a:#9A9A9A; --grad-b:#C4C4C4; --grad-c:#7E7E7E;
+
+  --shadow-1:0 1px 2px rgba(80,70,60,0.07);
+  --shadow-2:0 2px 10px rgba(80,70,60,0.10);
+  --shadow-3:0 14px 40px rgba(80,70,60,0.18);
+}
+
+/* ---- OLED mode (= dark, TRUE-BLACK surfaces) ----
+   Deliberately darker than Dark mode (which keeps its #121212/#1A1A1A near-black look):
+   --bg-primary is pure black and the surfaces are pushed down to #070707 / #0A0A0A so
+   OLED reads as visibly deeper black on an OLED panel. Card-vs-background separation is
+   preserved by keeping --bg-surface (#070707) and --bg-raised (#0A0A0A) a clear step above
+   pure black, and by lifting the border tones a touch so card edges stay visible on black. */
+html[data-theme-mode="oled"]{
+  --bg-primary:#000000;
+  --bg-secondary:#0E0E0E;
+  --bg-tertiary:rgba(255,255,255,0.05);
+  --bg-surface:#070707;
+  --bg-raised:#0A0A0A;
+  --border-subtle:#141414;
+  --border-default:#262626;
+  --border-strong:#363636;
+  --shadow-2:0 2px 12px rgba(0,0,0,0.7);
+  --shadow-3:0 16px 46px rgba(0,0,0,0.82);
+}
+
+/* ============================================================================
+   SCHEME LIBRARY — ORIGINAL NAMES, re-point accent + surface-tint + grad only.
+   ============================================================================ */
+
+/* mercury (purple -> blue) */
+html[data-theme-scheme="mercury"]{
+  --accent:#8B5CF6; --accent2:#3B82F6; --accent3:#D946A8; --ring:#8B5CF6; --border-focused:#8B5CF6;
+  --grad-a:#D946A8; --grad-b:#8B5CF6; --grad-c:#3B82F6;
+}
+html[data-theme-scheme="mercury"][data-theme-mode="dark"]{
+  --bg-primary:#14101F; --bg-secondary:#251F3A; --bg-surface:#1E1830; --bg-raised:#2C2447;
+  --text-primary:#EFEAFB; --text-secondary:#B4AAD2; --text-muted:#8B82A6; --text-faint:#5A5276;
+  --border-subtle:#241E3A; --border-default:#362E54; --border-strong:#4D4270;
+  --accent:#B79BFF; --accent2:#6FA0FF; --accent3:#F072CC; --ring:#B79BFF; --border-focused:#B79BFF;
+  --grad-a:#F072CC; --grad-b:#B79BFF; --grad-c:#6FA0FF;
+}
+html[data-theme-scheme="mercury"][data-theme-mode="light"]{
+  --bg-primary:#F4F1FE; --bg-secondary:#E8E2FA; --bg-surface:#FCFBFF; --bg-raised:#FFFFFF;
+  --text-primary:#1B1530; --text-secondary:#4C4468; --text-muted:#756A92; --text-faint:#A99FC6;
+  --border-subtle:#EBE6FA; --border-default:#DDD5F3; --border-strong:#C5BBE6;
+  --accent:#7A4FE0; --accent2:#2F6FE6; --accent3:#CA4FAE; --ring:#7A4FE0; --border-focused:#7A4FE0;
+  --grad-a:#CA4FAE; --grad-b:#7A4FE0; --grad-c:#2F6FE6;
+}
+html[data-theme-scheme="mercury"][data-theme-mode="oled"]{
+  --bg-primary:#000000; --bg-secondary:#140F22; --bg-surface:#100B1F; --bg-raised:#1F1838;
+  --text-primary:#EFEAFB; --text-secondary:#B4AAD2; --text-muted:#857C9A; --text-faint:#544C6C;
+  --border-subtle:#171026; --border-default:#271F40; --border-strong:#3B3160;
+  --accent:#B79BFF; --accent2:#6FA0FF; --accent3:#F072CC; --ring:#B79BFF; --border-focused:#B79BFF;
+  --grad-a:#F072CC; --grad-b:#B79BFF; --grad-c:#6FA0FF;
+}
+
+/* terracotta (warm earthy: rust / mauve / dusty teal) */
+html[data-theme-scheme="terracotta"]{
+  --accent:#D5824E; --accent2:#B07C9A; --accent3:#5C9CB4; --ring:#D5824E; --border-focused:#D5824E;
+  --grad-a:#D5824E; --grad-b:#B07C9A; --grad-c:#5C9CB4;
+}
+html[data-theme-scheme="terracotta"][data-theme-mode="dark"]{
+  --bg-primary:#211619; --bg-secondary:#312328; --bg-surface:#291D22; --bg-raised:#392932;
+  --text-primary:#F4EAE3; --text-secondary:#CBACA4; --text-muted:#9E867E; --text-faint:#6B5751;
+  --border-subtle:#312429; --border-default:#46343C; --border-strong:#5C4650;
+  --accent:#E2925C; --accent2:#C68FAC; --accent3:#74BAD0; --ring:#E2925C; --border-focused:#E2925C;
+  --grad-a:#E2925C; --grad-b:#C68FAC; --grad-c:#74BAD0;
+}
+html[data-theme-scheme="terracotta"][data-theme-mode="light"]{
+  --bg-primary:#F5EBE5; --bg-secondary:#EBD9CF; --bg-surface:#FCF5F1; --bg-raised:#FFFFFF;
+  --text-primary:#2B1A16; --text-secondary:#614A44; --text-muted:#82675F; --text-faint:#B59A91;
+  --border-subtle:#EDDDD5; --border-default:#E2CBC1; --border-strong:#CFB2A6;
+  --accent:#C06A3A; --accent2:#9B5F7E; --accent3:#3F87A0; --ring:#C06A3A; --border-focused:#C06A3A;
+  --grad-a:#C06A3A; --grad-b:#9B5F7E; --grad-c:#3F87A0;
+}
+html[data-theme-scheme="terracotta"][data-theme-mode="oled"]{
+  --bg-primary:#000000; --bg-secondary:#19110F; --bg-surface:#150C0E; --bg-raised:#241419;
+  --text-primary:#F4EAE3; --text-secondary:#CBACA4; --text-muted:#937D77; --text-faint:#5E4E49;
+  --border-subtle:#1E1316; --border-default:#36222A; --border-strong:#4E3038;
+  --accent:#E2925C; --accent2:#C68FAC; --accent3:#74BAD0; --ring:#E2925C; --border-focused:#E2925C;
+  --grad-a:#E2925C; --grad-b:#C68FAC; --grad-c:#74BAD0;
+}
+
+/* cerulean (lively vivid blue) */
+html[data-theme-scheme="cerulean"]{
+  --accent:#0A6FD6; --accent2:#1E8BE8; --accent3:#4FBEF8; --ring:#1E8BE8; --border-focused:#1E8BE8;
+  --grad-a:#0A6FD6; --grad-b:#1E8BE8; --grad-c:#4FBEF8;
+}
+html[data-theme-scheme="cerulean"][data-theme-mode="light"]{
+  --bg-primary:#EFF6FE; --bg-secondary:#DCEBFB; --bg-surface:#F8FCFF; --bg-raised:#FFFFFF;
+  --text-primary:#08233D; --text-secondary:#33557A; --text-muted:#547598; --text-faint:#94B2D2;
+  --border-subtle:#DCE9F8; --border-default:#C6DCF3; --border-strong:#A7C8EC;
+  --accent:#0B66C8; --accent2:#1183EE; --accent3:#2FA6F5; --ring:#1183EE; --border-focused:#1183EE;
+  --grad-a:#0B66C8; --grad-b:#1183EE; --grad-c:#2FA6F5; --state-info:#1183EE;
+}
+html[data-theme-scheme="cerulean"][data-theme-mode="dark"]{
+  --bg-primary:#06131F; --bg-secondary:#0E2438; --bg-surface:#0B1E33; --bg-raised:#163A56;
+  --text-primary:#DEEEFD; --text-secondary:#9ABEE0; --text-muted:#638AB0; --text-faint:#456682;
+  --border-subtle:#0F2740; --border-default:#1E3E60; --border-strong:#2E5982;
+  --accent:#46A9F4; --accent2:#5CBAFB; --accent3:#8FD6FF; --ring:#5CBAFB; --border-focused:#5CBAFB;
+  --grad-a:#2C8FE6; --grad-b:#4CACF6; --grad-c:#8FD6FF;
+}
+html[data-theme-scheme="cerulean"][data-theme-mode="oled"]{
+  --bg-primary:#000000; --bg-secondary:#071625; --bg-surface:#05101C; --bg-raised:#0C2034;
+  --text-primary:#DEEEFD; --text-secondary:#9ABEE0; --text-muted:#638AB0; --text-faint:#42607C;
+  --border-subtle:#0B1B2C; --border-default:#193758; --border-strong:#2A5078;
+  --accent:#46A9F4; --accent2:#5CBAFB; --accent3:#8FD6FF; --ring:#5CBAFB; --border-focused:#5CBAFB;
+  --grad-a:#2C8FE6; --grad-b:#4CACF6; --grad-c:#8FD6FF;
+}
+
+/* easter (soft pastel: powder-blue / blush-pink / mint) */
+html[data-theme-scheme="easter"]{
+  --accent:#AAB6F0; --accent2:#F0B0D8; --accent3:#A7DEE2; --ring:#F0B0D8; --border-focused:#AAB6F0;
+  --grad-a:#D2D9F8; --grad-b:#F8CCE6; --grad-c:#CDF0F2;
+}
+html[data-theme-scheme="easter"][data-theme-mode="light"]{
+  --bg-primary:#FDF6FB; --bg-secondary:#F9EDF6; --bg-surface:#FFFCFE; --bg-raised:#FFFFFF;
+  --text-primary:#3A2A47; --text-secondary:#60506E; --text-muted:#7D6C94; --text-faint:#B6A8C9;
+  --border-subtle:#F6EBF3; --border-default:#EEDEEC; --border-strong:#DEC9DD;
+  --accent:#7486E8; --accent2:#E07ABF; --accent3:#5BBEC6; --ring:#E07ABF; --border-focused:#7486E8;
+}
+html[data-theme-scheme="easter"][data-theme-mode="dark"]{
+  --bg-primary:#241A33; --bg-secondary:#352749; --bg-surface:#2E2240; --bg-raised:#403057;
+  --text-primary:#F5EAFB; --text-secondary:#CDBBDC; --text-muted:#9E89AE; --text-faint:#6E5C80;
+  --border-subtle:#32264A; --border-default:#463566; --border-strong:#5C4880;
+  --accent:#C3CCFA; --accent2:#FAC8E8; --accent3:#BFEEF2; --ring:#FAC8E8; --border-focused:#C3CCFA;
+  --grad-a:#D7DDFB; --grad-b:#FBD2EC; --grad-c:#D2F3F6;
+}
+html[data-theme-scheme="easter"][data-theme-mode="oled"]{
+  --bg-primary:#000000; --bg-secondary:#1B1326; --bg-surface:#1C1428; --bg-raised:#2E2142;
+  --text-primary:#F6E9FB; --text-secondary:#C7B2D6; --text-muted:#937EA4; --text-faint:#5E4E70;
+  --border-subtle:#221730; --border-default:#3A2952; --border-strong:#503A6E;
+  --accent:#C7CFFB; --accent2:#FBCDEA; --accent3:#C6F0F4; --ring:#FBCDEA; --border-focused:#C7CFFB;
+  --grad-a:#D7DDFB; --grad-b:#FBD2EC; --grad-c:#D2F3F6;
+}
+
+/* kele (aggressive thermal: oxblood red + caramel) */
+html[data-theme-scheme="kele"]{
+  --accent:#DC2E2A; --accent2:#EC4A3E; --accent3:#E2A348; --ring:#EC4A3E; --border-focused:#EC4A3E;
+  --grad-a:#DC2E2A; --grad-b:#EC4A3E; --grad-c:#E2A348;
+  --state-failed:#EC4A3E; --severity-critical:#EC4A3E;
+}
+html[data-theme-scheme="kele"][data-theme-mode="dark"]{
+  --bg-primary:#1A0C09; --bg-secondary:#2C140F; --bg-surface:#241310; --bg-raised:#3A1C16;
+  --text-primary:#F8E0D2; --text-secondary:#D2A294; --text-muted:#A47C70; --text-faint:#6E4C42;
+  --border-subtle:#311711; --border-default:#4E2820; --border-strong:#6A372A;
+  --accent:#F0463B; --accent2:#F45C4C; --accent3:#EAAC52; --ring:#F45C4C; --border-focused:#F45C4C;
+  --grad-a:#F0463B; --grad-b:#F45C4C; --grad-c:#EAAC52;
+}
+html[data-theme-scheme="kele"][data-theme-mode="light"]{
+  --bg-primary:#FBEDE7; --bg-secondary:#F4DAD0; --bg-surface:#FFF6F3; --bg-raised:#FFFFFF;
+  --text-primary:#3C1610; --text-secondary:#70413A; --text-muted:#94635C; --text-faint:#C0968C;
+  --border-subtle:#F3DBD3; --border-default:#EAC6BB; --border-strong:#DCA99C;
+  --accent:#C82A26; --accent2:#D83A30; --accent3:#BE7A28; --ring:#D83A30; --border-focused:#D83A30;
+  --grad-a:#C82A26; --grad-b:#D83A30; --grad-c:#BE7A28;
+  --state-failed:#D83A30; --severity-critical:#D83A30;
+}
+html[data-theme-scheme="kele"][data-theme-mode="oled"]{
+  --bg-primary:#000000; --bg-secondary:#1B0A07; --bg-surface:#190B08; --bg-raised:#2C120B;
+  --text-primary:#F8E0D2; --text-secondary:#D2A294; --text-muted:#A07A6E; --text-faint:#5E443C;
+  --border-subtle:#200D08; --border-default:#3A1C13; --border-strong:#54301F;
+  --accent:#F0463B; --accent2:#F45C4C; --accent3:#EAAC52; --ring:#F45C4C; --border-focused:#F45C4C;
+  --grad-a:#F0463B; --grad-b:#F45C4C; --grad-c:#EAAC52;
+}
+
+/* nightvision (green phosphor terminal) — OLED-native, graceful dark fallback */
+html[data-theme-scheme="nightvision"]{
+  --accent:#4CE84C; --accent2:#2FD636; --accent3:#8FE49A; --ring:#4CE84C; --border-focused:#2FD636;
+  --grad-a:#4CE84C; --grad-b:#2FD636; --grad-c:#8FE49A;
+  --bg-primary:#000000; --bg-secondary:#08160A; --bg-surface:#061106; --bg-raised:#0C1B0C;
+  --text-primary:#A6E2A6; --text-secondary:#69B669; --text-muted:#539353; --text-faint:#335A33;
+  --border-subtle:#0D220D; --border-default:#133C13; --border-strong:#1F551F;
+  --state-passed:#4CE84C; --state-info:#4CE84C; --state-skipped:#64AE64;
+  --scan:1; /* @kind other */
+}
+html[data-theme-scheme="nightvision"][data-theme-mode="oled"]{
+  --bg-primary:#000000; --bg-secondary:#081408; --bg-surface:#050E05; --bg-raised:#0B180B;
+  --border-subtle:#0C1F0C; --border-default:#123512; --border-strong:#1F541F;
+}
+html[data-theme-scheme="nightvision"][data-theme-mode="dark"]{
+  --bg-primary:#050B05; --bg-secondary:#0E1C0E; --bg-surface:#0B160B; --bg-raised:#142614;
+  --border-subtle:#112311; --border-default:#1A401A; --border-strong:#265E26;
+}
+
+/* infrared (red thermal-camera spectrum) — OLED-native, graceful dark fallback */
+html[data-theme-scheme="infrared"]{
+  --accent:#FF2D1F; --accent2:#FF5A2A; --accent3:#FF9A3A; --ring:#FF2D1F; --border-focused:#FF2D1F;
+  --grad-a:#FF1024; --grad-b:#FF4A12; --grad-c:#FF8A22;
+  --bg-primary:#000000; --bg-secondary:#1C0805; --bg-surface:#180705; --bg-raised:#2A0B07;
+  --text-primary:#FFD0BD; --text-secondary:#E49078; --text-muted:#B4715D; --text-faint:#76453A;
+  --border-subtle:#200905; --border-default:#4A180D; --border-strong:#6A2410;
+  --severity-critical:#FF1024; --severity-high:#FF4A12; --severity-medium:#FF9E1F; --severity-low:#D2C636;
+  --state-failed:#FF1024; --state-warning:#FF4A12; --state-passed:#D2C636;
+  --scan:1; /* @kind other */
+}
+html[data-theme-scheme="infrared"][data-theme-mode="oled"]{
+  --bg-primary:#000000; --bg-secondary:#1A0705; --bg-surface:#160604; --bg-raised:#280A07;
+  --border-subtle:#1E0805; --border-default:#46160C; --border-strong:#65220F;
+}
+html[data-theme-scheme="infrared"][data-theme-mode="dark"]{
+  --bg-primary:#0B0302; --bg-secondary:#290B07; --bg-surface:#220A06; --bg-raised:#350E09;
+  --border-subtle:#290B07; --border-default:#561C0F; --border-strong:#742814;
+}
+
+/* smore (warm marshmallow / campfire — graham tan, chocolate, toasted-golden) — DEFAULT */
+html[data-theme-scheme="smore"]{
+  --accent:#7A4A2B; --accent2:#EBAE54; --accent3:#D49A5E; --ring:#EBAE54; --border-focused:#EBAE54;
+  --grad-a:#F4E3C0; --grad-b:#EBAE54; --grad-c:#6E3F22;
+}
+html[data-theme-scheme="smore"][data-theme-mode="light"]{
+  --bg-primary:#F6E8CE; --bg-secondary:#EDD3AE; --bg-surface:#FDF5E4; --bg-raised:#FFFDF7;
+  --text-primary:#2C1808; --text-secondary:#5E3E22; --text-muted:#8A6440; --text-faint:#B59670;
+  --border-subtle:#EEDABE; --border-default:#E3C79E; --border-strong:#D0AC78;
+  --accent:#6E3F22; --accent2:#C67E26; --accent3:#A8682B; --ring:#C67E26; --border-focused:#C67E26;
+  --grad-a:#E8B86A; --grad-b:#C67E26; --grad-c:#6E3F22;
+}
+html[data-theme-scheme="smore"][data-theme-mode="dark"]{
+  --bg-primary:#1E1308; --bg-secondary:#30200F; --bg-surface:#281A0D; --bg-raised:#3C2912;
+  --text-primary:#F9ECCF; --text-secondary:#D6B98E; --text-muted:#A6885F; --text-faint:#72583D;
+  --border-subtle:#311F0F; --border-default:#49301A; --border-strong:#62421F;
+  --accent:#F7EACB; --accent2:#EFB75F; --accent3:#D89E5C; --ring:#EFB75F; --border-focused:#EFB75F;
+  --grad-a:#F4E3C0; --grad-b:#EFB75F; --grad-c:#6E3F22;
+}
+html[data-theme-scheme="smore"][data-theme-mode="oled"]{
+  --bg-primary:#000000; --bg-secondary:#19100A; --bg-surface:#17100A; --bg-raised:#291B11;
+  --text-primary:#F9ECCF; --text-secondary:#D6B98E; --text-muted:#A0845F; --text-faint:#624D3C;
+  --border-subtle:#1C1209; --border-default:#3A2616; --border-strong:#553820;
+  --accent:#F7EACB; --accent2:#F2BB62; --accent3:#D89E5C; --ring:#F2BB62; --border-focused:#F2BB62;
+  --grad-a:#F4E3C0; --grad-b:#F2BB62; --grad-c:#6E3F22;
+}
+
+/* noir (TRUE black & white — the OTL "B&W" coat: pure neutral grayscale, brushed
+   SILVER (no bronze), no color cast. R=G=B everywhere on the coat; the only color left
+   is the health/state reading, which stays colored on purpose (loss-risk-first +
+   color-never-the-only-signal). Authored across all three lightings: DARK = near-black
+   neutral, LIGHT = high-key white-on-near-black-ink, OLED = true black + smoked glass. */
+html[data-theme-scheme="noir"]{
+  --accent:#D8D8D8; --accent2:#A6A6A6; --accent3:#6E6E6E; --ring:#D8D8D8; --border-focused:#D8D8D8;
+  --grad-a:#E8E8E8; --grad-b:#A6A6A6; --grad-c:#2A2A2A;
+}
+/* DARK — pure-neutral near-black ramp (lifted clear of true black so it reads as the
+   dark, non-OLED variant), white -> gray ink, brushed-silver accent. */
+html[data-theme-scheme="noir"][data-theme-mode="dark"]{
+  --bg-primary:#181818; --bg-secondary:#242424; --bg-surface:#202020; --bg-raised:#2C2C2C;
+  --text-primary:#F4F4F4; --text-secondary:#BABABA; --text-muted:#8C8C8C; --text-faint:#606060;
+  --border-subtle:#262626; --border-default:#343434; --border-strong:#484848;
+}
+/* LIGHT — high-key B&W: near-white neutral grounds, near-black ink, a graphite accent
+   so the silver lead reads against white (the inverse of the dark coat). */
+html[data-theme-scheme="noir"][data-theme-mode="light"]{
+  --bg-primary:#F4F4F4; --bg-secondary:#E8E8E8; --bg-surface:#FCFCFC; --bg-raised:#FFFFFF;
+  --text-primary:#0C0C0C; --text-secondary:#3A3A3A; --text-muted:#5C5C5C; --text-faint:#9A9A9A;
+  --border-subtle:#EAEAEA; --border-default:#DCDCDC; --border-strong:#C4C4C4;
+  --accent:#2A2A2A; --accent2:#5A5A5A; --accent3:#7A7A7A; --ring:#2A2A2A; --border-focused:#2A2A2A;
+  --grad-a:#7A7A7A; --grad-b:#4A4A4A; --grad-c:#1E1E1E;
+}
+/* OLED — TRUE BLACK (#000) with a neutral white-film smoked glass (the glass treatment
+   below); pure white -> gray ink, brushed-silver accent. No tint, no bronze. */
+html[data-theme-scheme="noir"][data-theme-mode="oled"]{
+  --bg-primary:#000000;                 /* true black ground (OLED) */
+  --bg-secondary:#0E0E0E;
+  --bg-surface:#161616;                 /* SOLID panels (OTL-B&W style): cards, the settings + drill drawers, and modals lift off the black and OCCLUDE what is behind - no translucent bleed-through */
+  --bg-raised:#222222;
+  --text-primary:#FFFFFF; --text-secondary:#C8C8C8; --text-muted:#909090; --text-faint:#5E5E5E;
+  --border-subtle:#1E1E1E; --border-default:#2E2E2E; --border-strong:#404040;
+  --accent:#E2E2E2; --accent2:#A6A6A6; --accent3:#8A8A8A; --ring:#E2E2E2; --border-focused:#E2E2E2;
+  --grad-a:#E8E8E8; --grad-b:#A6A6A6; --grad-c:#2A2A2A;
+}
+
+/* NOIR / OLED — EDITORIAL B&W: EGG-WHITE tiles floating on an all-black frame (pure-black
+   header + deep-black canvas). Each card surface RE-DECLARES --bg-surface to egg-white and
+   flips the text + accent tokens to dark INK; custom properties cascade, so every descendant
+   of the card reads black-on-egg-white. The black canvas + light canvas-text stay (from the
+   scheme block above); the header is forced pure black below. */
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .tile,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .section,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .portrait-hero{
+  --bg-surface:#F2EDDF; --bg-raised:#FBF7EC; --bg-tertiary:rgba(20,18,12,0.05);
+  --text-primary:#1A1712; --text-secondary:#48443B; --text-muted:#6E6960; --text-faint:#8C8678;
+  --border-subtle:#E6DFCE; --border-default:#D6CDB8; --border-strong:#BEB49C;
+  --accent:#262320; --accent2:#48443B; --accent3:#6E6960; --ring:#262320; --border-focused:#262320;
+  --grad-a:#DAD2BE; --grad-b:#C4BAA0; --grad-c:#8A8270;
+  color:var(--text-primary); /* set the card's base ink so INHERITED text (e.g. .tile-name, which declares no color of its own) reads dark - redeclaring the var alone doesn't change already-inherited color */
+}
+/* pure-black header (the "black at the top") - sits over the black canvas, separated by a
+   hairline; keeps the light chrome text from the scheme block (white-on-black masthead). */
+html[data-theme-scheme="noir"][data-theme-mode="oled"] header.chrome{
+  background:#000000; border-bottom-color:#262626;
+}
+
+/* ============================================================================
+   PER-THEME TYPOGRAPHY TUNING — SAME system everywhere (Playfair / Estratto /
+   JetBrains Mono); these rules only re-point the tuning knobs declared in :root so
+   the type stays legible and tonally fitting on each coat. No font-family is ever
+   swapped here. Tuning is keyed by MODE (luminance polarity drives most of the
+   contrast need) and refined for the two CRT-style schemes.
+   ============================================================================ */
+
+/* LIGHT mode — on a bright background, antialiased body text reads too thin and the
+   Playfair headlines lose presence. Nudge body + heading weight up a touch and let the
+   browser's normal smoothing apply (antialiasing on light bg over-thins glyphs). */
+html[data-theme-mode="light"]{
+  --body-weight:430;
+  --heading-weight:640;
+  --heading-tracking:.1px;
+  --type-smoothing:auto;
+}
+
+/* OLED mode — light text on pure black blooms slightly; a hair more weight and a touch of
+   tracking keeps headlines and mono values crisp instead of smeared. */
+html[data-theme-mode="oled"]{
+  --body-weight:410;
+  --heading-weight:600;
+  --mono-tracking:.012em;
+}
+
+/* DARK mode keeps the :root defaults (already tuned for the near-black base). */
+
+/* NIGHTVISION — green phosphor terminal: the mono + headline type should read like a CRT
+   readout. Widen mono tracking and add weight so the green glyphs stay sharp on black;
+   give the body a hint more weight for the same reason. */
+html[data-theme-scheme="nightvision"]{
+  --body-weight:430;
+  --heading-weight:600;
+  --heading-tracking:.4px;
+  --mono-weight:600;
+  --mono-tracking:.04em;
+}
+
+/* INFRARED — hot red thermal readout on near-black: same CRT discipline as nightvision,
+   slightly less aggressive tracking so the warm type stays readable. */
+html[data-theme-scheme="infrared"]{
+  --body-weight:420;
+  --heading-weight:600;
+  --heading-tracking:.3px;
+  --mono-tracking:.03em;
+}
+
+/* TERRACOTTA + KELE + SMORE — warm editorial coats: give the Playfair headlines a touch
+   more tracking so the serif reads with warmth (does not touch weight/family). The light
+   variants still inherit the light-mode weight bump above via the mode rule. */
+html[data-theme-scheme="terracotta"],
+html[data-theme-scheme="kele"],
+html[data-theme-scheme="smore"]{
+  --heading-tracking:.3px;
+}
+
+/* EASTER — soft pastel: the headlines sit on gentle low-contrast tints, so on the dark/oled
+   coats give Playfair a hair more weight to hold presence without feeling heavy. */
+html[data-theme-scheme="easter"][data-theme-mode="dark"],
+html[data-theme-scheme="easter"][data-theme-mode="oled"]{
+  --heading-weight:620;
+}
+
+/* ============================================================================
+   SCHEME SHELL — cross-cutting reach. Whenever ANY scheme is active, derive the
+   shell tints from the scheme's own accents (already re-pointed above) so the
+   header, nav, attention strip, scrollbars, links and the page background all
+   carry the scheme — not just the cards. Neutral first-run (no scheme) is
+   untouched: these rules only match html[data-theme-scheme].
+   --bg-surface is held clear of --bg-primary in every scheme above, so the
+   contrast guard for cards holds regardless of how far the tint reaches.
+   ============================================================================ */
+html[data-theme-scheme]{
+  --scrollbar-thumb:color-mix(in srgb,var(--accent2) 34%,var(--border-strong));
+  --scrollbar-thumb-hover:color-mix(in srgb,var(--accent2) 60%,var(--border-strong));
+  --shell-tint:color-mix(in srgb,var(--accent2) 14%,transparent);
+  --shell-tint-strong:color-mix(in srgb,var(--accent2) 22%,transparent);
+}
+/* header chrome + attention strip pick up a faint scheme wash along their edge */
+html[data-theme-scheme] header.chrome{
+  background:linear-gradient(var(--shell-tint),var(--shell-tint)),var(--bg-surface);
+  border-bottom-color:color-mix(in srgb,var(--accent2) 26%,var(--border-default));
+}
+html[data-theme-scheme] .wordmark .mark{color:var(--text-primary);}
+/* the Fleet / This-machine active segment glows in the scheme accent */
+html[data-theme-scheme] .nav-seg button[aria-current="true"]{
+  background:color-mix(in srgb,var(--accent2) 18%,var(--bg-raised));
+  color:var(--text-primary);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--accent2) 30%,transparent),var(--shadow-1);
+}
+/* search gets a scheme focus ring */
+html[data-theme-scheme] .searchbox:focus-within{
+  border-color:var(--border-focused);
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--ring) 26%,transparent);
+}
+/* overall-status pill + source badge edges lean scheme-ward without losing health color */
+html[data-theme-scheme] .icon-btn:hover{
+  background:color-mix(in srgb,var(--accent2) 12%,var(--bg-tertiary));
+}
+/* the attention strip keeps its health hue but sits on a scheme-tinted surface */
+html[data-theme-scheme] .attn-strip{
+  background:linear-gradient(var(--shell-tint),var(--shell-tint)),color-mix(in srgb,var(--state-failed) 9%,var(--bg-surface));
+}
+html[data-theme-scheme] .attn-strip.amber-only{
+  background:linear-gradient(var(--shell-tint),var(--shell-tint)),color-mix(in srgb,var(--state-warning) 9%,var(--bg-surface));
+}
+/* crumb / inline links read in the scheme accent */
+html[data-theme-scheme] .crumb .link,
+html[data-theme-scheme] .raw-toggle{color:var(--accent2);}
+/* primary buttons already use --accent; ensure good text contrast on bright schemes */
+html[data-theme-scheme] .btn.primary{color:var(--text-inverse);}
+
+/* ============================================================================
+   NOIR / OLED — STARK GLASS + METAL (tightly scoped to one scheme x one mode).
+   Every rule below is gated on html[data-theme-scheme="noir"][data-theme-mode="oled"]
+   so no other scheme or mode is touched. The background stays pure black (#000000,
+   set on --bg-primary above); the card surfaces are a low-alpha light FILM over that
+   black (set on --bg-surface/--bg-raised above) so they read as smoked glass. These
+   rules add the three things tokens can't: a real frosted-glass blur, a brighter
+   top-edge LIGHT-CATCH hairline (light catching a glass pane), and a faint static
+   sheen — plus the brushed-silver metallic accent gradient. Edges stay sharp + minimal
+   so it stays STARK. The film already clears the WCAG bar for text on the card.
+   ============================================================================ */
+/* Frosted glass: blur whatever sits behind each card-like surface so the translucent
+   film reads as smoked glass, not just a faint tint. position:relative anchors the
+   light-catch + sheen pseudo-elements added below. */
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .tile,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .section,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .portrait-hero,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .modal-card,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .action-card{
+  /* NOTE: .drawer is deliberately NOT here. It is already position:absolute;right:0,
+     and forcing position:relative dropped it into normal flow at the LEFT. The glass
+     pseudo-elements below don't target .drawer, so it needs no positioning help. */
+  position:relative;
+  background-clip:padding-box;
+}
+/* TOP-EDGE LIGHT-CATCH — a bright hairline along the very top of each glass pane, fading
+   down a few px, like light grazing the leading edge of glass. Silver-cool, very thin.
+   Drawn as a ::before so it overlays the surface's own background without replacing it.
+   z-index 2 keeps it above the seeded .grad (z0) but the content (.tile-inner z1) still
+   reads because the highlight is a 1px line + faint falloff, not a fill. */
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .tile::before,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .section::before,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .portrait-hero::before,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .modal-card::before,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .action-card::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:34%;
+  pointer-events:none;z-index:2;border-radius:inherit;
+  background:linear-gradient(180deg,
+    rgba(245,245,245,0.16) 0,
+    rgba(245,245,245,0.05) 1px,
+    rgba(255,255,255,0.012) 18%,
+    transparent 100%);
+}
+/* FAINT SHEEN — a single static diagonal glaze across the pane (a soft brushed-silver
+   wipe of light), low alpha so it whispers metal/glass without harming legibility. Drawn
+   as ::after at z-index 2, mix-blend screen so it only lightens. Static by default. */
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .tile::after,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .section::after,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .portrait-hero::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:2;border-radius:inherit;
+  background:linear-gradient(125deg,
+    transparent 0%,
+    rgba(235,235,235,0.05) 38%,
+    rgba(255,255,255,0.02) 50%,
+    rgba(210,210,210,0.045) 62%,
+    transparent 100%);
+  mix-blend-mode:screen;opacity:.9;
+}
+/* keep the content above the light-catch + sheen overlays */
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .tile-inner,
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .section>*{ position:relative;z-index:3; }
+/* a hair brighter border on hover so the glass edge catches when you reach for a card */
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .tile:hover{
+  border-color:rgba(235,235,235,0.42);
+}
+/* METALLIC ACCENT GRADIENT — re-skin the wordmark mark + primary CTA fill with a brushed
+   silver sheen so the accents read as metal, not flat color. Scoped to noir/oled only;
+   uses the metallic --accent (silver) and --accent2 (a deeper silver) re-pointed above. */
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .btn.primary{
+  background:linear-gradient(135deg,#EDEDED 0%,#CECECE 30%,#9A9A9A 50%,#D2D2D2 82%,#A6A6A6 100%);
+  color:#0A0A0A;border-color:rgba(235,235,235,0.5);
+}
+/* METALLIC TYPE — the wordmark accent text ("Commons") gets a true brushed-silver metallic
+   look via a gradient clipped to the glyphs (a bright silver lead flowing into a deeper
+   silver), so the accent reads as brushed metal rather than flat grey. The accent COLOUR
+   lives only on the type here: this is the one metallic-text surface. Scoped tightly to
+   noir/oled so no other scheme or mode is touched, and so the flat .dot{color:var(--accent2)}
+   base rule stands everywhere else. Silver ~#EDEDED lead -> ~#A6A6A6 deep. */
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .wordmark .mark .dot{
+  background:linear-gradient(118deg,#EDEDED 0%,#D8D8D8 22%,#AEAEAE 48%,#D2D2D2 78%,#A6A6A6 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+}
+/* the seeded per-tile glow halo stays a neutral brushed-silver on the glass (the coat is
+   true B&W now, so this keeps the always-on risk halo on the metallic silver lead) */
+html[data-theme-scheme="noir"][data-theme-mode="oled"] .tile.risk .grad-glow{
+  background:radial-gradient(circle,rgba(235,235,235,0.55),transparent 70%);
+}
+/* Reduced-motion: the glass is already static (no animations declared above), so nothing
+   to disable. This explicit guard documents the intent and pins the sheen static even if
+   a future edit animates ::after — it stays a still glaze under reduced-motion. */
+@media (prefers-reduced-motion: reduce){
+  html[data-theme-scheme="noir"][data-theme-mode="oled"] .tile::after,
+  html[data-theme-scheme="noir"][data-theme-mode="oled"] .section::after,
+  html[data-theme-scheme="noir"][data-theme-mode="oled"] .portrait-hero::after{ animation:none !important; }
+}
+
+/* ============================================================================
+   PROFILES (shape + motion language) — color contract unchanged
+   ============================================================================ */
+html[data-theme-profile="soft"]{ --radius:6px; --radius-lg:10px; --lift:-1px; --hover-scale:1.03; --speed:200ms; --ease:cubic-bezier(.4,0,.2,1); --focus-ring-w:2px; }
+html[data-theme-profile="sharp"]{ --radius:2px; --radius-lg:4px; --lift:0px; --hover-scale:1.01; --speed:100ms; --ease:ease; --focus-ring-w:1px; }
+html[data-theme-profile="bubble"]{ --radius:12px; --radius-lg:16px; --lift:-1.5px; --hover-scale:1.05; --speed:180ms; --ease:cubic-bezier(.34,1.4,.64,1); --focus-ring-w:3px; }
+
+/* GEOMETRIC — angular statement: zero radius, heavy borders, hard offset shadow,
+   snappy linear timing. Cards additionally take a hexagonal chamfered clip-path
+   (see .tile rule below). Color contract unchanged. */
+html[data-theme-profile="geometric"]{
+  --radius:0px; --radius-lg:0px; --lift:-2px; --hover-scale:1.0; --speed:60ms; --ease:linear; --focus-ring-w:2px;
+  --shadow-1:2px 2px 0 0 color-mix(in srgb,var(--border-strong) 70%,transparent);
+  --shadow-2:3px 3px 0 0 color-mix(in srgb,var(--accent2) 32%,var(--border-strong));
+  --shadow-3:6px 6px 0 0 rgba(0,0,0,0.34);
+}
+html[data-theme-profile="geometric"] .tile,
+html[data-theme-profile="geometric"] .section,
+html[data-theme-profile="geometric"] .portrait-hero,
+html[data-theme-profile="geometric"] .swatch,
+html[data-theme-profile="geometric"] .chip,
+html[data-theme-profile="geometric"] .btn,
+html[data-theme-profile="geometric"] .icon-btn,
+html[data-theme-profile="geometric"] .nav-seg,
+html[data-theme-profile="geometric"] .searchbox,
+html[data-theme-profile="geometric"] .modal-card,
+html[data-theme-profile="geometric"] .action-card{ border-width:2px; }
+/* hexagonal chamfer: cut ~14px from each corner so tiles read as angular panels */
+html[data-theme-profile="geometric"] .tile{
+  clip-path:polygon(14px 0,calc(100% - 14px) 0,100% 14px,100% calc(100% - 14px),calc(100% - 14px) 100%,14px 100%,0 calc(100% - 14px),0 14px);
+}
+html[data-theme-profile="geometric"] .tile:hover{ box-shadow:var(--shadow-2); }
+
+/* ============================================================================
+   MOTION + EFFECTS
+   ============================================================================ */
+@keyframes mc-breathe{0%,100%{opacity:var(--glow-lo,.5);}50%{opacity:var(--glow-hi,1);}}
+@keyframes mc-pulse{0%{box-shadow:0 0 0 0 var(--ring);}70%{box-shadow:0 0 12px 4px transparent;}100%{box-shadow:0 0 0 0 transparent;}}
+@keyframes mc-rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@keyframes mc-slide{from{transform:translateX(28px);opacity:.4;}to{transform:translateX(0);opacity:1;}}
+@keyframes mc-shimmer{0%{background-position:-380px 0;}100%{background-position:380px 0;}}
+@keyframes mc-spin{to{transform:rotate(360deg);}}
+
+.skel{
+  background:linear-gradient(90deg,var(--bg-surface) 0%,var(--bg-raised) 42%,var(--bg-surface) 82%);
+  background-size:760px 100%;animation:mc-shimmer 1.5s infinite linear;border-radius:var(--radius);
+}
+
+/* scanline overlay (nightvision + infrared schemes set --scan:1; the scanlines
+   EFFECT also raises it via the effect rules below). CRT authenticity. */
+#scan-overlay{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:300;
+  opacity:var(--scan);
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 3px);
+  mix-blend-mode:screen;
+}
+
+/* focus rings — always visible on keyboard focus */
+:focus-visible{outline:none;box-shadow:0 0 0 var(--focus-ring-w) var(--bg-primary),0 0 0 calc(var(--focus-ring-w) + 2px) var(--ring);border-radius:var(--radius);}
+
+/* ============================================================================
+   EFFECTS BY REGION — OPTIONAL, OPT-IN SFX chosen PER GUI REGION.
+   Two independent targets, each persisted + applied on <html> separately:
+     data-effect-bg    = none | fireflies | scanlines        (background-appropriate)
+     data-effect-tiles = none | glow | matte | pearlescent
+                          | glitter | sparkles                (surface/tile-appropriate)
+   Every effect sits BEHIND/UNDER content, runs at low opacity, and never reduces
+   text or card legibility. Animated effects are dropped under prefers-reduced-motion;
+   the static ones (matte, scanlines, glitter specks) may remain. The tile glow halo is
+   governed here so 'glow' is opt-in, not always-on.
+     --tile-glow-strength : opacity of the blurred tile halo + grad sheen
+   Default for BOTH regions is none → a restrained, near-flat surface.
+   ============================================================================ */
+:root{ --tile-glow-strength:0; }
+
+/* ---- TILE region ---- */
+
+/* GLOW — the original colored tile halo, now opt-in via the tiles region */
+html[data-effect-tiles="glow"]{ --tile-glow-strength:1; }
+
+/* The glow halo (.grad-glow) is added by JS with an inline mc-breathe animation,
+   whose keyframes drive opacity. To make glow truly OPT-IN, halt that animation
+   and force the halo hidden UNLESS the glow tile-effect is active. When glow IS active,
+   the JS inline animation runs and breathes between --glow-lo/--glow-hi as before
+   (its per-element duration is preserved because this rule does not re-declare it).
+   Risk tiles keep a faint static halo as an always-on attention signal. */
+html:not([data-effect-tiles="glow"]) .tile .grad-glow,
+html:not([data-effect-tiles="glow"]) .portrait-hero .grad-glow{ animation:none !important; opacity:0 !important; }
+html:not([data-effect-tiles="glow"]) .tile.risk .grad-glow{ opacity:.16 !important; animation:none !important; }
+
+/* MATTE — paper-flat: kill shadows + halos + grad sheen; surfaces feel printed */
+html[data-effect-tiles="matte"]{
+  --shadow-1:none; --shadow-2:none; --shadow-3:none; --tile-glow-strength:0;
+}
+html[data-effect-tiles="matte"] .tile .grad{opacity:.10;}
+html[data-effect-tiles="matte"] .tile:hover{box-shadow:none;}
+
+/* shared overlay scaffold for the surface-bound tile effects (pearlescent / glitter /
+   sparkles). Painted as a child div on each surface, under the content (z-index 0;
+   .tile-inner / .section content sits at z-index 1). pointer-events off always. */
+html[data-effect-tiles="pearlescent"] .tile,
+html[data-effect-tiles="glitter"] .tile,
+html[data-effect-tiles="sparkles"] .tile,
+html[data-effect-tiles="pearlescent"] .section,
+html[data-effect-tiles="glitter"] .section,
+html[data-effect-tiles="sparkles"] .section,
+html[data-effect-tiles="pearlescent"] .portrait-hero,
+html[data-effect-tiles="glitter"] .portrait-hero,
+html[data-effect-tiles="sparkles"] .portrait-hero{ position:relative; }
+.fx-skin{position:absolute;inset:0;z-index:0;pointer-events:none;border-radius:inherit;overflow:hidden;}
+
+/* PEARLESCENT — a very subtle iridescent conic sheen that drifts hue slowly */
+@keyframes mc-pearl{0%{transform:translate3d(-6%,-6%,0) rotate(0deg);}100%{transform:translate3d(6%,6%,0) rotate(360deg);}}
+.fx-skin.pearl{
+  background:conic-gradient(from 0deg,
+    color-mix(in srgb,var(--accent) 22%,transparent),
+    color-mix(in srgb,var(--accent2) 22%,transparent),
+    color-mix(in srgb,var(--accent3) 22%,transparent),
+    color-mix(in srgb,var(--accent) 22%,transparent));
+  opacity:.10;mix-blend-mode:screen;filter:blur(8px);
+  width:160%;height:160%;left:-30%;top:-30%;
+  animation:mc-pearl 14s linear infinite;
+}
+
+/* GLITTER — tiny static sparkle specks scattered over the surface, low density */
+.fx-skin.glitter{
+  opacity:.5;mix-blend-mode:screen;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 28%, color-mix(in srgb,var(--accent2) 90%,white) 40%, transparent 60%),
+    radial-gradient(1.2px 1.2px at 78% 16%, color-mix(in srgb,var(--accent) 88%,white) 40%, transparent 60%),
+    radial-gradient(1.5px 1.5px at 38% 72%, color-mix(in srgb,var(--accent3) 85%,white) 40%, transparent 60%),
+    radial-gradient(1.1px 1.1px at 64% 58%, color-mix(in srgb,var(--accent2) 80%,white) 40%, transparent 60%),
+    radial-gradient(1.3px 1.3px at 90% 82%, color-mix(in srgb,var(--accent) 85%,white) 40%, transparent 60%),
+    radial-gradient(1.0px 1.0px at 24% 90%, color-mix(in srgb,var(--accent3) 80%,white) 40%, transparent 60%);
+}
+
+/* SPARKLES — occasional twinkles that fade in and out on accents */
+@keyframes mc-twinkle{0%,100%{opacity:0;transform:scale(.6);}50%{opacity:.85;transform:scale(1);}}
+.fx-skin.sparkles{opacity:1;mix-blend-mode:screen;}
+.fx-skin.sparkles i{
+  position:absolute;width:3px;height:3px;border-radius:50%;
+  background:radial-gradient(circle,color-mix(in srgb,var(--accent2) 95%,white),transparent 70%);
+  box-shadow:0 0 4px 1px color-mix(in srgb,var(--accent2) 60%,transparent);
+  animation:mc-twinkle 3.2s ease-in-out infinite;
+}
+
+/* ---- BACKGROUND region ---- */
+/* FIREFLIES — full-bg canvas of slow glowing particles, behind ALL content. The canvas
+   is driven by JS (startFireflies); it only paints while data-effect-bg="fireflies". */
+#fx-fireflies{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.85;}
+/* SCANLINES background effect reuses #scan-overlay by raising --scan when not already set
+   by an OLED scheme (nightvision/infrared keep their own --scan:1 regardless). */
+html[data-effect-bg="scanlines"]{ --scan:1; }
+
+@media (prefers-reduced-motion: reduce){
+  /* drop looping animations; KEEP value-change transitions */
+  .breathe,.tile.pulse,[data-loop]{animation:none !important;}
+  /* animated effects stop; static finishes (matte, scanlines, glitter specks) stay */
+  .fx-skin.pearl{animation:none !important;}
+  .fx-skin.sparkles i{animation:none !important;opacity:.5 !important;transform:none !important;}
+  #fx-fireflies{display:none;}
+  /* scanlines: keep the static lines (they don't animate), but the scheme scanline
+     overlay used to be hidden entirely under reduced-motion; it is static, so retain. */
+  #scan-overlay{opacity:calc(var(--scan) * .7);}
+}
+
+/* ============================================================================
+   LAYOUT CHROME
+   ============================================================================ */
+#app{display:flex;flex-direction:column;height:100vh;background:var(--bg-primary);}
+
+header.chrome{
+  flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;height:54px;
+  background:var(--bg-surface);border-bottom:1px solid var(--border-default);z-index:30;
+}
+.wordmark{display:flex;align-items:center;gap:9px;flex:none;cursor:pointer;}
+.wordmark .logo{height:28px;width:auto;flex:none;display:block;user-select:none;-webkit-user-drag:none;}
+.wordmark .mark{font-family:var(--font-heading);font-weight:var(--heading-weight,600);font-size:17px;letter-spacing:var(--heading-tracking,.2px);white-space:nowrap;}
+.wordmark .mark .dot{color:var(--accent2);}
+
+.pill{
+  display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500;
+  padding:5px 10px;border-radius:999px;border:1px solid var(--border-default);
+  background:var(--bg-tertiary);white-space:nowrap;cursor:pointer;
+}
+.pill .glyph{font-size:11px;line-height:1;}
+
+.nav-seg{display:flex;background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:var(--radius);padding:2px;flex:none;}
+.nav-seg button{
+  border:none;background:transparent;color:var(--text-secondary);
+  font-size:12px;padding:6px 12px;border-radius:calc(var(--radius) - 1px);
+  transition:background var(--speed) var(--ease),color var(--speed) var(--ease);white-space:nowrap;
+}
+.nav-seg button[aria-current="true"]{background:var(--bg-raised);color:var(--text-primary);box-shadow:var(--shadow-1);}
+
+.searchbox{
+  display:flex;align-items:center;gap:7px;width:100%;max-width:360px;padding:7px 11px;
+  background:var(--bg-tertiary);border:1px solid var(--border-default);border-radius:var(--radius);
+}
+.searchbox input{flex:1;min-width:0;border:none;outline:none;background:transparent;font-size:13px;}
+.searchbox .ic{color:var(--text-faint);font-size:13px;}
+
+.right-cluster{display:flex;align-items:center;gap:9px;flex:none;}
+.source-badge{
+  display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;letter-spacing:.5px;
+  padding:4px 8px;border-radius:var(--radius);text-transform:uppercase;font-family:var(--font-mono);
+}
+.source-badge.live{color:var(--state-passed);background:color-mix(in srgb,var(--state-passed) 16%,transparent);border:1px solid color-mix(in srgb,var(--state-passed) 40%,transparent);}
+.source-badge.sample{color:var(--state-warning);background:color-mix(in srgb,var(--state-warning) 16%,transparent);border:1px solid color-mix(in srgb,var(--state-warning) 40%,transparent);}
+
+.conn{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);white-space:nowrap;}
+.conn .led{width:8px;height:8px;border-radius:50%;flex:none;}
+.conn.live .led{background:var(--state-passed);box-shadow:0 0 7px 0 var(--state-passed);}
+.conn.reconnecting .led{background:var(--state-warning);animation:mc-pulse 1.4s ease-out infinite;}
+.conn.offline .led{background:var(--state-skipped);}
+
+.icon-btn{
+  width:34px;height:34px;border-radius:var(--radius);border:1px solid var(--border-default);
+  background:var(--bg-tertiary);color:var(--text-secondary);
+  display:flex;align-items:center;justify-content:center;font-size:15px;position:relative;
+  transition:border-color var(--speed) var(--ease),color var(--speed) var(--ease);
+}
+.icon-btn:hover{border-color:var(--border-focused);color:var(--text-primary);}
+.icon-btn .badge{
+  position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;
+  background:var(--state-failed);color:#fff;font-size:10px;font-weight:700;font-family:var(--font-mono);
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* attention strip */
+.attn-strip{
+  flex:none;display:flex;align-items:center;gap:10px;padding:8px 16px;overflow-x:auto;
+  background:color-mix(in srgb,var(--state-failed) 9%,var(--bg-surface));
+  border-bottom:1px solid var(--border-default);
+}
+.attn-strip .led{width:8px;height:8px;border-radius:50%;flex:none;background:var(--state-failed);box-shadow:0 0 8px 0 var(--state-failed);}
+.attn-strip.amber-only{background:color-mix(in srgb,var(--state-warning) 9%,var(--bg-surface));}
+.attn-strip.amber-only .led{background:var(--state-warning);box-shadow:0 0 8px 0 var(--state-warning);}
+.attn-label{font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);flex:none;white-space:nowrap;}
+.attn-items{display:flex;gap:8px;}
+.attn-chip{
+  display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;white-space:nowrap;
+  background:var(--bg-tertiary);border:1px solid var(--border-default);font-size:12px;
+  transition:border-color var(--speed) var(--ease);
+}
+.attn-chip:hover{border-color:var(--border-focused);}
+.attn-chip strong{font-weight:600;}
+.attn-chip .sub{color:var(--text-secondary);}
+
+main{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;position:relative;}
+
+/* board toolbar */
+.board-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 18px 4px;}
+.board-bar .count strong{color:var(--text-primary);font-weight:600;}
+.board-bar .count{font-size:11.5px;color:var(--text-muted);}
+.divider{width:1px;height:14px;background:var(--border-default);}
+.cap{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-faint);}
+.chip{
+  font-size:11.5px;padding:5px 10px;border-radius:var(--radius);border:1px solid var(--border-default);
+  background:var(--bg-tertiary);color:var(--text-secondary);
+  transition:border-color var(--speed) var(--ease),color var(--speed) var(--ease),background var(--speed) var(--ease);
+}
+.chip:hover{border-color:var(--border-focused);color:var(--text-primary);}
+.chip[aria-pressed="true"]{background:var(--action-cta-muted);border-color:var(--border-focused);color:var(--text-primary);}
+.fresh{margin-left:auto;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);}
+
+/* fleet board grid */
+#board{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));
+  gap:14px;padding:12px 18px 70px;align-items:start;grid-auto-flow:dense;
+}
+
+/* tile */
+.tile{
+  position:relative;border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;
+  background:var(--bg-surface);border:1px solid var(--border-default);box-shadow:var(--shadow-1);
+  transition:transform var(--speed) var(--ease),border-color var(--speed) var(--ease),box-shadow var(--speed) var(--ease);
+  outline:none;
+}
+.tile:hover{transform:translateY(var(--lift));border-color:var(--border-focused);box-shadow:var(--shadow-2);}
+.tile.size-wide{grid-column:span 2;}
+.tile.size-tall{grid-row:span 2;}
+.tile.size-large{grid-column:span 2;grid-row:span 2;}
+.tile.pinned{border-color:color-mix(in srgb,var(--accent2) 55%,var(--border-default));}
+.tile.risk.pulse{animation:mc-pulse 2.4s ease-out infinite;}
+.tile.dragging{opacity:.4;}
+.tile.drop-target{border-color:var(--accent2);border-style:dashed;}
+
+/* the PROMINENT seeded gradient surface (NOT a hairline) */
+.tile .grad{
+  position:absolute;inset:0;z-index:0;pointer-events:none;
+  opacity:.16;
+}
+.tile .grad::after{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(120% 90% at 12% 0%, color-mix(in srgb,var(--tile-glow) 40%,transparent), transparent 60%);
+}
+.tile .grad-glow{
+  position:absolute;width:160px;height:160px;left:-40px;top:-50px;border-radius:50%;z-index:0;
+  filter:blur(36px);pointer-events:none;
+  --glow-lo:.42;--glow-hi:.72;
+}
+.tile.risk .grad-glow{--glow-lo:.5;--glow-hi:.92;}
+.tile-inner{position:relative;z-index:1;padding:14px 15px 14px 16px;display:flex;flex-direction:column;gap:11px;}
+
+.tile-controls{
+  position:absolute;top:9px;right:9px;z-index:3;display:flex;gap:5px;
+  opacity:0;transition:opacity var(--speed) var(--ease);
+}
+.tile:hover .tile-controls,.tile:focus-within .tile-controls,.tile.pinned .tile-controls{opacity:1;}
+.tctl{
+  width:26px;height:26px;border-radius:var(--radius);border:1px solid var(--border-default);
+  background:color-mix(in srgb,var(--bg-raised) 88%,transparent);color:var(--text-secondary);
+  display:flex;align-items:center;justify-content:center;font-size:12px;backdrop-filter:blur(4px);
+}
+.tctl:hover{border-color:var(--border-focused);color:var(--text-primary);}
+.tctl.on{color:var(--accent2);border-color:color-mix(in srgb,var(--accent2) 50%,var(--border-default));}
+
+.tile-head{display:flex;align-items:flex-start;gap:10px;}
+.tile-title{min-width:0;flex:1;}
+.tile-name{font-weight:600;font-size:14.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tile-kind{font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.risk-tag{
+  display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  padding:3px 7px;border-radius:999px;flex:none;font-family:var(--font-mono);
+}
+
+.reason{font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:6px;}
+.reason .gly{flex:none;}
+
+/* health row: gauge + safety meter side by side */
+.health-row{display:flex;align-items:center;gap:14px;}
+.gauge-wrap{flex:none;}
+.safety{flex:1;min-width:0;}
+.safety-title{font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px;}
+.safety-meter{display:flex;flex-direction:column;gap:8px;}
+.safety-seg{display:flex;align-items:center;gap:8px;}
+.safety-seg .gly{width:14px;text-align:center;font-size:11px;flex:none;}
+.safety-seg .lbl{font-size:11px;color:var(--text-secondary);flex:none;width:74px;}
+.safety-bar{flex:1;height:6px;border-radius:3px;background:var(--bg-tertiary);overflow:hidden;position:relative;}
+.safety-fill{height:100%;border-radius:3px;transition:width 700ms var(--ease),background-color 400ms var(--ease);}
+
+/* stats strip */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-top:11px;border-top:1px solid var(--border-subtle);}
+.stat .v{font-family:var(--font-mono);font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.stat .l{font-size:9px;letter-spacing:.4px;text-transform:uppercase;color:var(--text-faint);margin-top:1px;}
+
+.tile-foot{padding-top:11px;border-top:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:6px;}
+.foot-row{display:flex;align-items:baseline;gap:8px;}
+.foot-row .k{font-size:9px;letter-spacing:.4px;text-transform:uppercase;color:var(--text-faint);flex:none;}
+.foot-row .v{font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* generic panel surfaces (portrait / machine / settings scaffolds) */
+.view-pad{padding:16px 18px 70px;animation:mc-rise .26s var(--ease);}
+.crumb{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);margin-bottom:14px;}
+.crumb .link{color:var(--accent2);cursor:pointer;}
+.section{border-radius:var(--radius-lg);background:var(--bg-surface);border:1px solid var(--border-default);overflow:hidden;}
+.section-head{display:flex;align-items:center;gap:8px;padding:11px 15px;border-bottom:1px solid var(--border-subtle);}
+.section-head .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+.section-head .t{font-size:11px;letter-spacing:.7px;text-transform:uppercase;font-weight:600;color:var(--text-secondary);}
+.section-head .f{margin-left:auto;font-size:10.5px;color:var(--text-faint);font-family:var(--font-mono);}
+.row{display:flex;align-items:center;gap:11px;padding:11px 15px;border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background var(--speed) var(--ease);}
+.row:hover{background:var(--bg-tertiary);}
+.row:last-child{border-bottom:none;}
+.row .dot{width:7px;height:7px;border-radius:50%;flex:none;}
+.row .main{min-width:0;flex:1;}
+.row .lbl{font-size:12.5px;color:var(--text-secondary);}
+.row .sub{font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row .val{font-family:var(--font-mono);font-size:12.5px;font-weight:500;flex:none;white-space:nowrap;}
+.row .chev{color:var(--text-faint);font-size:12px;flex:none;}
+.grid-sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;align-items:start;}
+.grid-sections .row .sub{white-space:normal;overflow-wrap:anywhere;}
+.grid-sections > .section:first-child:nth-last-child(2){grid-column:1 / -1;}
+
+/* drill drawer */
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.46);}
+.drawer{
+  position:absolute;top:0;right:0;bottom:0;width:min(540px,94vw);
+  background:var(--bg-surface);border-left:1px solid var(--border-default);box-shadow:var(--shadow-3);
+  display:flex;flex-direction:column;animation:mc-slide .24s var(--ease);
+}
+.drawer-head{display:flex;align-items:center;gap:11px;padding:16px 20px;border-bottom:1px solid var(--border-default);}
+.drawer-head .t{font-family:var(--font-heading);font-size:16px;font-weight:var(--heading-weight,600);letter-spacing:var(--heading-tracking,.2px);flex:1;}
+.drawer-body{flex:1;overflow-y:auto;padding:10px 20px 28px;}
+.kv{padding:11px 0;border-bottom:1px solid var(--border-subtle);display:flex;align-items:baseline;gap:10px;}
+.kv .k{font-size:12px;color:var(--text-secondary);}
+.kv .v{margin-left:auto;font-family:var(--font-mono);font-size:12px;color:var(--text-primary);text-align:right;word-break:break-all;}
+
+/* modal */
+.modal-card{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(560px,94vw);max-height:86vh;overflow-y:auto;
+  background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-3);animation:mc-rise .2s var(--ease);
+}
+.modal-head{display:flex;align-items:center;gap:11px;padding:18px 22px;border-bottom:1px solid var(--border-subtle);}
+.modal-head .t{font-family:var(--font-heading);font-size:18px;font-weight:var(--heading-weight,600);letter-spacing:var(--heading-tracking,.2px);flex:1;}
+.modal-body{padding:16px 22px;}
+.modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;border-top:1px solid var(--border-subtle);}
+.btn{padding:8px 16px;border-radius:var(--radius);border:1px solid var(--border-default);background:var(--bg-tertiary);color:var(--text-primary);font-size:13px;}
+.btn:hover{border-color:var(--border-focused);}
+.btn.primary{background:var(--accent);color:var(--text-inverse);border-color:var(--accent);font-weight:600;}
+.btn.danger{background:var(--action-danger);color:#fff;border-color:var(--action-danger);}
+.step{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border-subtle);}
+.step .n{width:22px;height:22px;border-radius:50%;background:var(--action-cta-muted);color:var(--action-cta);font-family:var(--font-mono);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;}
+.ba{display:flex;gap:8px;align-items:center;font-family:var(--font-mono);font-size:11.5px;margin-top:4px;}
+.ba .before{color:var(--text-muted);text-decoration:line-through;}
+.ba .arrow{color:var(--text-faint);}
+.ba .after{color:var(--state-passed);}
+
+/* settings */
+.set-group{margin-bottom:22px;}
+.set-group h4{font-family:var(--font-heading);font-size:14px;margin:0 0 4px;}
+.set-group p{font-size:11.5px;color:var(--text-muted);margin:0 0 11px;}
+.swatch-row{display:flex;gap:9px;flex-wrap:wrap;}
+.swatch{
+  width:auto;padding:9px 13px;border-radius:var(--radius);border:1px solid var(--border-default);
+  background:var(--bg-tertiary);font-size:12px;display:flex;align-items:center;gap:8px;color:var(--text-secondary);
+  transition:border-color var(--speed) var(--ease),color var(--speed) var(--ease);
+}
+.swatch:hover{border-color:var(--border-focused);color:var(--text-primary);}
+.swatch[aria-pressed="true"]{border-color:var(--accent2);color:var(--text-primary);background:var(--action-cta-muted);}
+.swatch .dots{display:flex;gap:3px;}
+.swatch .dots i{width:11px;height:11px;border-radius:50%;display:block;}
+.swatch.none-pick{font-style:italic;}
+
+.empty-note{padding:60px 20px;text-align:center;color:var(--text-muted);}
+.empty-note .big{font-family:var(--font-heading);font-size:18px;color:var(--text-secondary);margin-bottom:6px;}
+
+/* toast for native-notification stand-in */
+#toasts{position:fixed;right:16px;bottom:16px;z-index:400;display:flex;flex-direction:column;gap:8px;max-width:340px;}
+.toast{
+  background:var(--bg-raised);border:1px solid var(--border-default);border-left:3px solid var(--state-warning);
+  border-radius:var(--radius);box-shadow:var(--shadow-3);padding:11px 13px;animation:mc-slide .24s var(--ease);
+}
+.toast.crit{border-left-color:var(--state-failed);}
+.toast .tt{font-weight:600;font-size:12.5px;display:flex;gap:7px;align-items:center;}
+.toast .tb{font-size:11.5px;color:var(--text-secondary);margin-top:3px;}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
+
+/* ============================================================================
+   PROJECT PORTRAIT — ring cluster, dimension rings, sparkline, rich timeline
+   ============================================================================ */
+.portrait-hero{
+  position:relative;border-radius:var(--radius-lg);overflow:hidden;
+  background:var(--bg-surface);border:1px solid var(--border-default);box-shadow:var(--shadow-1);
+}
+.portrait-hero .grad{position:absolute;inset:0;z-index:0;opacity:.14;pointer-events:none;}
+.portrait-hero .grad-glow{position:absolute;width:280px;height:280px;left:-80px;top:-120px;border-radius:50%;filter:blur(64px);z-index:0;pointer-events:none;--glow-lo:.4;--glow-hi:.68;}
+.hero-inner{position:relative;z-index:1;display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;padding:22px 24px;}
+.hero-id{flex:1;min-width:280px;}
+.hero-name{font-family:var(--font-heading);font-weight:var(--heading-weight,600);letter-spacing:var(--heading-tracking,.2px);font-size:27px;line-height:1.1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.hero-path{font-family:var(--font-mono);font-size:11px;color:var(--text-faint);margin-top:9px;word-break:break-all;}
+.hero-reason{font-size:14px;color:var(--text-secondary);margin-top:13px;display:flex;align-items:center;gap:8px;}
+.hero-acts{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+
+/* sparkline strip */
+.spark-wrap{display:flex;align-items:center;gap:10px;}
+.spark-wrap .spark-lbl{font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:var(--text-faint);white-space:nowrap;}
+
+/* RICH TIMELINE */
+.tl{position:relative;padding:8px 6px 4px;}
+.tl-scroll{overflow-x:auto;overflow-y:hidden;padding-bottom:8px;}
+.tl-rail{position:relative;height:128px;min-width:100%;}
+.tl-axis{position:absolute;left:0;right:0;top:64px;height:2px;background:var(--border-default);}
+.tl-gap{
+  position:absolute;top:55px;height:20px;border-top:2px dashed var(--border-strong);
+  display:flex;align-items:flex-start;justify-content:center;
+}
+.tl-gap .gap-lbl{
+  position:absolute;top:-26px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  font-family:var(--font-mono);font-size:9.5px;color:var(--text-faint);
+  background:var(--bg-surface);padding:1px 6px;border-radius:999px;border:1px dashed var(--border-strong);
+}
+.tl-pt{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;width:0;}
+.tl-node{
+  margin-top:54px;width:18px;height:18px;border:2px solid var(--bg-surface);cursor:pointer;padding:0;
+  transition:transform var(--speed) var(--ease),box-shadow var(--speed) var(--ease);flex:none;
+}
+.tl-node:hover{transform:scale(1.28);box-shadow:0 0 0 4px color-mix(in srgb,var(--ring) 30%,transparent);}
+.tl-node.release{border-radius:50%;background:var(--accent);}
+.tl-node.decision{border-radius:3px;background:var(--accent2);transform:rotate(0deg);}
+.tl-node.commit{border-radius:50%;background:var(--accent3);width:13px;height:13px;margin-top:57px;}
+/* GHOST: a reconstructed point inferred from the version trajectory, NOT a recorded
+   entry. Hollow + dashed so only the real anchors read as authoritative. */
+.tl-node.ghost{background:transparent !important;border-style:dashed;border-color:var(--text-faint);opacity:.8;}
+.tl-node.ghost.decision{border-radius:3px;}
+.tl-pt.ghost .tl-date,.tl-pt.ghost .tl-label{color:var(--text-faint);font-style:italic;}
+.tl-legend .lg i.ghost{border-radius:50%;background:transparent;border:1.5px dashed var(--text-faint);}
+.tl-stem{position:absolute;top:30px;width:2px;height:24px;background:var(--border-default);}
+.tl-label{
+  position:absolute;top:84px;font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);
+  white-space:nowrap;text-align:center;transform:translateX(-50%);left:50%;max-width:120px;overflow:hidden;text-overflow:ellipsis;
+}
+.tl-date{position:absolute;top:4px;font-family:var(--font-mono);font-size:9px;color:var(--text-faint);white-space:nowrap;transform:translateX(-50%);left:50%;}
+.tl-legend{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--text-muted);padding:10px 6px 2px;}
+.tl-legend .lg{display:inline-flex;align-items:center;gap:6px;}
+.tl-legend .lg i{width:11px;height:11px;display:block;flex:none;}
+.tl-legend .lg i.release{border-radius:50%;background:var(--accent);}
+.tl-legend .lg i.decision{border-radius:2px;background:var(--accent2);}
+.tl-legend .lg i.commit{border-radius:50%;background:var(--accent3);}
+.tl-controls{display:flex;gap:6px;margin-left:auto;}
+
+/* drawer extras */
+.kv .k.head{font-weight:600;color:var(--text-primary);}
+.raw-toggle{
+  display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--accent2);
+  border:1px solid var(--border-default);background:var(--bg-tertiary);border-radius:999px;padding:4px 10px;margin:8px 0 4px;
+}
+.note-line{font-size:11.5px;color:var(--text-secondary);padding:8px 0;border-bottom:1px solid var(--border-subtle);display:flex;gap:8px;}
+.note-line .gly{flex:none;color:var(--state-warning);}
+
+/* plan-apply action toggles (3 actions OFF by default) */
+.action-card{
+  border:1px solid var(--border-default);border-radius:var(--radius);background:var(--bg-tertiary);
+  padding:12px 14px;margin-bottom:10px;transition:border-color var(--speed) var(--ease),background var(--speed) var(--ease);
+}
+.action-card.armed{border-color:var(--border-focused);background:var(--action-cta-muted);}
+.action-head{display:flex;align-items:center;gap:11px;}
+.action-head .ti{flex:1;}
+.action-head .ti .t{font-size:13.5px;font-weight:600;}
+.action-head .ti .d{font-size:11.5px;color:var(--text-muted);margin-top:2px;}
+.tgl{
+  position:relative;width:38px;height:21px;border-radius:999px;border:1px solid var(--border-strong);
+  background:var(--bg-secondary);flex:none;transition:background var(--speed) var(--ease),border-color var(--speed) var(--ease);
+}
+.tgl::after{content:"";position:absolute;top:1px;left:1px;width:17px;height:17px;border-radius:50%;background:var(--text-muted);transition:transform var(--speed) var(--ease),background var(--speed) var(--ease);}
+.tgl[aria-pressed="true"]{background:color-mix(in srgb,var(--accent2) 30%,var(--bg-secondary));border-color:var(--accent2);}
+.tgl[aria-pressed="true"]::after{transform:translateX(17px);background:var(--accent2);}
+.action-steps{margin-top:11px;padding-top:10px;border-top:1px dashed var(--border-default);animation:mc-rise .2s var(--ease);}
+.plan-empty{font-size:12.5px;color:var(--text-muted);text-align:center;padding:18px 8px;}
+
+/* notifications: attention + history + snooze */
+.notif-tabs{display:flex;gap:6px;padding:0 0 12px;}
+.notif-tab{font-size:11.5px;padding:6px 12px;border-radius:999px;border:1px solid var(--border-default);background:var(--bg-tertiary);color:var(--text-secondary);}
+.notif-tab[aria-current="true"]{background:var(--action-cta-muted);border-color:var(--border-focused);color:var(--text-primary);}
+.notif-tab .ct{font-family:var(--font-mono);font-size:10px;opacity:.8;margin-left:4px;}
+.notif-card{display:flex;flex-direction:column;gap:5px;padding:12px 0;border-bottom:1px solid var(--border-subtle);}
+.notif-card .top{display:flex;align-items:center;gap:8px;}
+.notif-card .acts{display:flex;gap:6px;margin-top:5px;}
+.mini-btn{font-size:10.5px;padding:3px 9px;border-radius:999px;border:1px solid var(--border-default);background:var(--bg-tertiary);color:var(--text-muted);}
+.mini-btn:hover{border-color:var(--border-focused);color:var(--text-primary);}
+.snooze-pop{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;}
+
+/* segmented sub-toggle for snooze defaults in settings */
+.seg-mini{display:inline-flex;border:1px solid var(--border-default);border-radius:var(--radius);overflow:hidden;}
+.seg-mini button{border:none;background:var(--bg-tertiary);color:var(--text-secondary);font-size:11.5px;padding:6px 11px;border-right:1px solid var(--border-default);}
+.seg-mini button:last-child{border-right:none;}
+.seg-mini button[aria-pressed="true"]{background:var(--action-cta-muted);color:var(--text-primary);}
+
+/* ============================================================================
+   ACCESSIBILITY HARDENING ([A11]) — keyboard focus that survives the component
+   box-shadows (the global :focus-visible ring was being clobbered by .tile /
+   nav-current shadows), a button styled as the text link, and reduced-motion for
+   the one animation that escaped the guard.
+   ============================================================================ */
+.tile:focus-visible,
+.nav-seg button:focus-visible,
+.swatch:focus-visible,
+.chip:focus-visible,
+.mini-btn:focus-visible,
+.icon-btn:focus-visible,
+button.link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 var(--focus-ring-w, 2px) var(--border-focused), var(--shadow-2) !important;
+}
+button.link {
+  background: none; border: 0; padding: 0; margin: 0; font: inherit; cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .conn.reconnecting .led { animation: none !important; }
+}
+
+.changed-files{padding:12px 16px 16px;color:var(--text-secondary);font-size:12px;line-height:1.5;border-top:1px solid var(--border-subtle);}
+.changed-files ul{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px;}
+.changed-files li{display:flex;gap:10px;align-items:baseline;min-width:0;}
+.changed-files li span{font-family:var(--font-mono);color:var(--state-warning);flex:none;}
+.changed-files code{font-family:var(--font-mono);overflow-wrap:anywhere;color:var(--text-primary);}

@@ -1,0 +1,53 @@
+"use strict";
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const os = require("node:os");
+const path = require("node:path");
+const net = require("node:net");
+const { spawn, execFileSync } = require("node:child_process");
+
+test("HTTP workspace rereads the selected catalog and source without manual descriptions or unbound reads", async t => {
+  const scratch = await fs.mkdtemp(path.join(os.tmpdir(), "mc-workspace-http-"));
+  let child;
+  t.after(async () => { if (child && child.exitCode == null) { const exited = new Promise(resolve => child.once("exit", resolve)); child.kill(); await exited; } await fs.rm(scratch, { recursive: true, force: true }); });
+  const root = path.join(scratch, "project"); await fs.mkdir(root);
+  execFileSync("git", ["init", "-q"], { cwd: root, windowsHide: true });
+  await fs.writeFile(path.join(root, "a.txt"), "work\n");
+  await fs.writeFile(path.join(root, "VERSION"), "1.0.0\n");
+  await fs.writeFile(path.join(root, "package.json"), JSON.stringify({ name: "fixture", version: "1.0.0" }));
+  const manifest = path.join(scratch, "catalog.json");
+  await fs.writeFile(manifest, JSON.stringify({ schemaVersion: 1, objects: [{ id: "mc", label: "MC", kind: "project", root }, { id: "example", label: "Example project", kind: "project", root: null }] }));
+  const reservation = net.createServer(); await new Promise(resolve => reservation.listen(0, "127.0.0.1", resolve));
+  const port = reservation.address().port; await new Promise(resolve => reservation.close(resolve));
+  child = spawn(process.execPath, [path.resolve(__dirname, "dev-server.cjs")], { windowsHide: true, env: { ...process.env, MC_ENGINE_PORT: String(port), MC_DATA_DIR: path.join(scratch, "private"), MC_OPERATIONS_MANIFEST: manifest } });
+  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error("fixture server did not start")), 5000); child.stdout.once("data", () => { clearTimeout(timer); resolve(); }); child.once("error", error => { clearTimeout(timer); reject(error); }); });
+  const get = async () => { const response = await fetch(`http://127.0.0.1:${port}/api/workspace`); assert.equal(response.status, 200); return response.json(); };
+  const first = await get();
+  assert.equal(first.schema, "mc.workspace/1");
+  assert.equal(first.objects[0].observation.status, "observed");
+  assert.equal(first.objects[1].observation.status, "unconfigured");
+  assert.equal(first.objects[0].observation.state.drift.inSync, true);
+  const count = first.objects[0].observation.state.dirty;
+  await fs.writeFile(path.join(root, "b.txt"), "more work\n");
+  await fs.writeFile(path.join(root, "package.json"), JSON.stringify({ name: "fixture", version: "2.0.0" }));
+  const next = await get();
+  assert.equal(next.objects[0].observation.state.dirty, count + 1);
+  assert.equal(next.objects[0].observation.state.drift.inSync, false);
+  assert.equal("remotesDetailed" in next.objects[0].observation.state, false);
+});
+
+test("a non-npm source is still a valid workspace observation", async t => {
+  const scratch = await fs.mkdtemp(path.join(os.tmpdir(), "mc-workspace-non-npm-"));
+  t.after(() => fs.rm(scratch, { recursive: true, force: true }));
+  execFileSync("git", ["init", "-q"], { cwd: scratch, windowsHide: true });
+  await fs.writeFile(path.join(scratch, "main.py"), "print('fixture')\n");
+  const { createWorkspace } = require("./workspace.cjs");
+  const { activeWorkspace, scopedInterpretation } = require("../engine/workspace.mjs");
+  const snapshot = await createWorkspace({ operations: { catalog: async () => ({ objects: [{ id: "python", root: scratch, label: "Python" }] }) } })();
+  assert.equal(snapshot.objects[0].observation.status, "observed");
+  const project = activeWorkspace({ projects: [] }, snapshot).projects[0];
+  assert.equal(project.id, "python"); assert.equal(project.drift, null);
+  const clean = scopedInterpretation(require("../engine/model.mjs").default).safetyMeter(project).find(item => item.key === "clean");
+  assert.equal(clean.unknown, true); assert.equal(clean.ok, false);
+});

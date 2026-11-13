@@ -1,0 +1,22 @@
+appId: app.marshmallow.commons
+productName: Mousecat
+files:
+  - dist/**/*
+  - electron/**/*
+  - engine/**/*
+  - service/**/*
+  - VERSION
+  - LICENSE
+  - THIRD_PARTY_NOTICES.md
+  - licenses/**/*
+  - package.json
+  - public/mousecat.ico
+  - '!**/*.test.*'
+  - '!**/.local/**'
+  - '!**/.env*'
+  - '!**/runtime/**'
+  - '!**/traces/**'
+  - '!**/*.sqlite*'
+  - '!**/*.db'
+win:
+  icon: public/mousecat.ico

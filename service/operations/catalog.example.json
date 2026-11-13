@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "objects": [
+    {
+      "id": "mc",
+      "label": "Mousecat",
+      "kind": "project",
+      "root": "../..",
+      "responsibility": "Development control plane and source observations",
+      "authority": "Mousecat source",
+      "services": [
+        {
+          "id": "mc-engine",
+          "port": 7330
+        }
+      ]
+    },
+    {
+      "id": "example",
+      "label": "Example project",
+      "kind": "project",
+      "root": null,
+      "responsibility": "A project selected by its owner",
+      "authority": "Unconfigured"
+    }
+  ]
+}

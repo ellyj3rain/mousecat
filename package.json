@@ -1,0 +1,53 @@
+{
+  "name": "marshmallow-commons",
+  "private": true,
+  "version": "0.10.0",
+  "description": "Mousecat: a local desktop control plane for project status, model identity and reviewed development actions.",
+  "author": "Mousecat contributors",
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "concurrently -k -n vite,engine -c cyan,magenta \"vite\" \"node service/dev-server.cjs\"",
+    "dev:vite": "vite",
+    "dev:engine": "node service/dev-server.cjs",
+    "dev:app": "concurrently -k -n vite,engine,electron -c cyan,magenta,green \"vite\" \"node service/dev-server.cjs\" \"wait-on tcp:127.0.0.1:5173 && cross-env MMC_DEV=1 electron electron/main.cjs\"",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "serve:preview": "vite build && vite preview",
+    "dist": "npm run build && electron-builder",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --test-concurrency=1 service/*.test.cjs service/*.test.mjs service/identity/*.test.cjs service/operations/*.test.cjs engine/*.test.mjs",
+    "mcp:operations": "node service/mcp-server.cjs",
+    "test:operations": "node --test service/operations/operations.test.cjs"
+  },
+  "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.1.1",
+    "@fontsource/playfair-display": "^5.1.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "45.3.1",
+    "electron-builder": "26.18.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "wait-on": "^8.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ellyj3rain/mousecat.git"
+  },
+  "homepage": "https://github.com/ellyj3rain/mousecat#readme",
+  "bugs": {
+    "url": "https://github.com/ellyj3rain/mousecat/issues"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}
